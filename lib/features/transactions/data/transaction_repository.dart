@@ -1,0 +1,50 @@
+import 'package:uuid/uuid.dart';
+import '../../../core/db/powersync_db.dart';
+import '../domain/transaction.dart';
+
+const _uuid = Uuid();
+
+class TransactionRepository {
+  Stream<List<Transaction>> watchByMonth(int year, int month) {
+    final start = DateTime(year, month).millisecondsSinceEpoch;
+    final end = DateTime(year, month + 1).millisecondsSinceEpoch;
+
+    return db
+        .watch(
+      'SELECT * FROM transactions '
+          'WHERE created_at >= ? AND created_at < ? '
+          'ORDER BY created_at DESC',
+      parameters: [start.toString(), end.toString()],
+    )
+        .map((rows) => rows.map(Transaction.fromMap).toList());
+  }
+
+  Future<void> add({
+    required int amount,
+    required String type,
+    required String categoryId,
+    String? note,
+    DateTime? createdAt,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch.toString();
+    final at = (createdAt?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch).toString();
+
+    await db.execute(
+      'INSERT INTO transactions(id, amount, type, category_id, note, created_at, updated_at) '
+          'VALUES(?, ?, ?, ?, ?, ?, ?)',
+      [_uuid.v4(), amount.toString(), type, categoryId, note, at, now],
+    );
+  }
+
+  Future<void> update(Transaction t) async {
+    final now = DateTime.now().millisecondsSinceEpoch.toString();
+    await db.execute(
+      'UPDATE transactions SET amount=?, type=?, category_id=?, note=?, updated_at=? WHERE id=?',
+      [t.amount.toString(), t.type, t.categoryId, t.note, now, t.id],
+    );
+  }
+
+  Future<void> delete(String id) async {
+    await db.execute('DELETE FROM transactions WHERE id=?', [id]);
+  }
+}
