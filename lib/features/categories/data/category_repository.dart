@@ -1,5 +1,8 @@
+import 'package:uuid/uuid.dart';
 import '../../../core/db/powersync_db.dart';
-import '../../transactions/domain/category.dart';
+import '../domain/category.dart';
+
+const _uuid = Uuid();
 
 class CategoryRepository {
   Stream<List<Category>> watchAll() {
@@ -14,5 +17,43 @@ class CategoryRepository {
       [isIncome ? 1 : 0],
     );
     return rows.map(Category.fromMap).toList();
+  }
+
+  Future<void> add({
+    required String name,
+    required String colorHex,
+    required String iconName,
+    required bool isIncome,
+  }) async {
+    final maxOrder = await db.get(
+      'SELECT COALESCE(MAX(sort_order), -1) as mo FROM categories WHERE is_income=?',
+      [isIncome ? 1 : 0],
+    );
+    final nextOrder = (maxOrder['mo'] as int) + 1;
+
+    await db.execute(
+      'INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order) '
+          'VALUES(uuid(), ?, ?, ?, 0, ?, ?)',
+      [name, colorHex, iconName, isIncome ? 1 : 0, nextOrder],
+    );
+  }
+
+  Future<void> update(Category c) async {
+    await db.execute(
+      'UPDATE categories SET name=?, color_hex=?, icon_name=? WHERE id=?',
+      [c.name, c.colorHex, c.iconName, c.id],
+    );
+  }
+
+  Future<void> delete(String id) async {
+    // Không xoá nếu còn giao dịch đang dùng category này
+    final usage = await db.get(
+      'SELECT COUNT(*) as cnt FROM transactions WHERE category_id=?',
+      [id],
+    );
+    if ((usage['cnt'] as int) > 0) {
+      throw Exception('Danh mục đang được sử dụng, không thể xoá.');
+    }
+    await db.execute('DELETE FROM categories WHERE id=?', [id]);
   }
 }

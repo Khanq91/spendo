@@ -1,11 +1,10 @@
 class Transaction {
   final String id;
   final int amount;
-  final String type; // 'expense' | 'income'
+  final String type;
   final String categoryId;
   final String? note;
   final DateTime createdAt;
-  final DateTime updatedAt;
 
   const Transaction({
     required this.id,
@@ -14,7 +13,6 @@ class Transaction {
     required this.categoryId,
     this.note,
     required this.createdAt,
-    required this.updatedAt,
   });
 
   bool get isExpense => type == 'expense';
@@ -29,9 +27,6 @@ class Transaction {
       note: map['note'] as String?,
       createdAt: DateTime.fromMillisecondsSinceEpoch(
         int.parse(map['created_at'] as String),
-      ),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(
-        int.parse(map['updated_at'] as String),
       ),
     );
   }

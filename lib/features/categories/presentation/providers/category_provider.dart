@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../transactions/domain/category.dart';
+import '../../domain/category.dart';
 import '../../data/category_repository.dart';
 
 final categoryRepoProvider = Provider((_) => CategoryRepository());

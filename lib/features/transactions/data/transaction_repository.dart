@@ -47,4 +47,18 @@ class TransactionRepository {
   Future<void> delete(String id) async {
     await db.execute('DELETE FROM transactions WHERE id=?', [id]);
   }
+
+  Future<List<Transaction>> getRange({DateTime? from}) async {
+    if (from == null) {
+      final rows = await db.getAll(
+        'SELECT * FROM transactions ORDER BY created_at DESC',
+      );
+      return rows.map(Transaction.fromMap).toList();
+    }
+    final rows = await db.getAll(
+      'SELECT * FROM transactions WHERE created_at >= ? ORDER BY created_at DESC',
+      [from.millisecondsSinceEpoch.toString()],
+    );
+    return rows.map(Transaction.fromMap).toList();
+  }
 }
