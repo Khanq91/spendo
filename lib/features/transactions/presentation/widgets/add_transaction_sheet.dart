@@ -9,9 +9,14 @@ import 'amount_input_controller.dart';
 import '../../../../core/utils/category_matcher.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
-  final Transaction? existing; // null = add mode, non-null = edit mode
+  final Transaction? existing;
+  final String? preselectedCategoryId;
 
-  const AddTransactionSheet({super.key, this.existing});
+  const AddTransactionSheet({
+    super.key,
+    this.existing,
+    this.preselectedCategoryId,
+  });
 
   @override
   ConsumerState<AddTransactionSheet> createState() =>
@@ -34,6 +39,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final tx = widget.existing;
     _amountCtrl = AmountInputController();
     _noteCtrl = TextEditingController();
+
+    if (widget.preselectedCategoryId != null) {
+      _selectedCategoryId = widget.preselectedCategoryId;
+      _userPickedCategory = true;
+    }
 
     if (tx != null) {
       // pre-fill từ existing transaction

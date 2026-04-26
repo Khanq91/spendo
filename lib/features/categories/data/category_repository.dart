@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 import '../../../core/db/powersync_db.dart';
+import '../../../core/utils/widget_sync.dart';
 import '../domain/category.dart';
 
 const _uuid = Uuid();
@@ -36,6 +37,8 @@ class CategoryRepository {
           'VALUES(uuid(), ?, ?, ?, 0, ?, ?)',
       [name, colorHex, iconName, isIncome ? 1 : 0, nextOrder],
     );
+
+    await WidgetSync.syncCategories();
   }
 
   Future<void> update(Category c) async {
@@ -43,6 +46,8 @@ class CategoryRepository {
       'UPDATE categories SET name=?, color_hex=?, icon_name=? WHERE id=?',
       [c.name, c.colorHex, c.iconName, c.id],
     );
+
+    await WidgetSync.syncCategories();
   }
 
   Future<void> delete(String id) async {
@@ -55,5 +60,7 @@ class CategoryRepository {
       throw Exception('Danh mục đang được sử dụng, không thể xoá.');
     }
     await db.execute('DELETE FROM categories WHERE id=?', [id]);
+
+    await WidgetSync.syncCategories();
   }
 }
