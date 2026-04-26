@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../providers/budget_provider.dart';
 import '../screens/budget_screen.dart';
@@ -29,7 +30,7 @@ class BudgetCard extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              const Text('🎯', style: TextStyle(fontSize: 20)),
+              Icon(LucideIcons.target, size: 20, color: Colors.grey.shade400),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -72,8 +73,14 @@ class BudgetCard extends ConsumerWidget {
           children: [
             Row(
               children: [
+                Icon(
+                  isOver ? LucideIcons.triangleAlert : LucideIcons.target,
+                  size: 13,
+                  color: color,
+                ),
+                const SizedBox(width: 4),
                 Text(
-                  isOver ? '⚠️ Vượt hạn mức!' : '🎯 Hạn mức tháng này',
+                  isOver ? 'Vượt hạn mức!' : 'Hạn mức tháng này',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

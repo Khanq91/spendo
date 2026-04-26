@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../categories/domain/category.dart';
@@ -312,7 +313,6 @@ class _MiniSummaryRow extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final bool hasFilter;
-
   const _EmptyState({required this.hasFilter});
 
   @override
@@ -321,9 +321,10 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            hasFilter ? '🔍' : '💸',
-            style: const TextStyle(fontSize: 48),
+          Icon(
+            hasFilter ? LucideIcons.searchX : LucideIcons.receiptText,
+            size: 48,
+            color: Colors.grey.shade300,
           ),
           const SizedBox(height: 12),
           Text(
@@ -334,10 +335,9 @@ class _EmptyState extends StatelessWidget {
           ),
           if (!hasFilter) ...[
             const SizedBox(height: 4),
-            Text(
-              'Tap + để thêm',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-            ),
+            Text('Tap + để thêm',
+                style: TextStyle(
+                    fontSize: 12, color: Colors.grey.shade400)),
           ],
         ],
       ),

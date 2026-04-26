@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/category_icons.dart';
 import '../../data/category_repository.dart';
 import '../../domain/category.dart';
 
@@ -9,24 +10,12 @@ const _kColors = [
   '#66BB6A', '#B0BEC5',
 ];
 
-const _kIcons = {
-  'restaurant': '🍜',
-  'directions_car': '🚗',
-  'school': '📚',
-  'sports_esports': '🎮',
-  'favorite': '💊',
-  'shopping_bag': '🛍️',
-  'work': '💼',
-  'laptop': '💻',
-  'storefront': '🏪',
-  'card_giftcard': '🎁',
-  'home': '🏠',
-  'flight': '✈️',
-  'movie': '🎬',
-  'fitness_center': '💪',
-  'pets': '🐾',
-  'more_horiz': '📦',
-};
+const _kIconNames = [
+  'restaurant', 'directions_car', 'school', 'sports_esports',
+  'favorite', 'shopping_bag', 'work', 'laptop', 'storefront',
+  'card_giftcard', 'home', 'flight', 'movie', 'fitness_center',
+  'pets', 'more_horiz',
+];
 
 class CategoryFormSheet extends StatefulWidget {
   final Category? existing;
@@ -59,7 +48,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
       _selectedIcon = widget.existing!.iconName;
     } else {
       _selectedColor = _kColors.first;
-      _selectedIcon = _kIcons.keys.first;
+      _selectedIcon = _kIconNames.first;
     }
   }
 
@@ -193,31 +182,37 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
           const Text('Icon',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
+          // Thay đoạn Wrap icon picker cũ bằng:
+          const Text('Icon',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _kIcons.entries.map((entry) {
-              final selected = entry.key == _selectedIcon;
+            children: _kIconNames.map((name) {
+              final selected = name == _selectedIcon;
+              final color = Color(
+                int.parse('FF${_selectedColor.replaceAll('#', '')}', radix: 16),
+              );
               return GestureDetector(
-                onTap: () => setState(() => _selectedIcon = entry.key),
+                onTap: () => setState(() => _selectedIcon = name),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
                     color: selected
-                        ? accentColor.withOpacity(0.15)
+                        ? color.withOpacity(0.15)
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
                     border: selected
-                        ? Border.all(color: accentColor, width: 1.5)
+                        ? Border.all(color: color, width: 1.5)
                         : null,
                   ),
-                  child: Center(
-                    child: Text(
-                      entry.value,
-                      style: const TextStyle(fontSize: 20),
-                    ),
+                  child: Icon(
+                    categoryIcon(name),
+                    size: 20,
+                    color: selected ? color : Colors.grey.shade500,
                   ),
                 ),
               );

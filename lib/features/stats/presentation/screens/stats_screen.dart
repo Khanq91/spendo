@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
@@ -438,12 +439,11 @@ class _EmptyStats extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('📊', style: TextStyle(fontSize: 48)),
+          Icon(LucideIcons.chartPie,
+              size: 48, color: Colors.grey.shade300),
           const SizedBox(height: 12),
-          Text(
-            'Chưa có dữ liệu',
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
+          Text('Chưa có dữ liệu',
+              style: TextStyle(color: Colors.grey.shade600)),
           const SizedBox(height: 4),
           Text(
             'Thêm giao dịch để xem thống kê',

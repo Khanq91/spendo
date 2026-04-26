@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/notifications/notification_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/export_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../categories/domain/category.dart';
@@ -236,94 +237,94 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 32),
 
-          // ── Account section ─────────────────────────────────────────────
-          _SectionHeader(title: 'Tài khoản'),
-          Consumer(
-            builder: (context, ref, _) {
-              final userAsync = ref.watch(currentUserProvider);
-              final user = userAsync.valueOrNull;
-              final isLoggedIn = user != null;
-
-              if (isLoggedIn) {
-                return Column(
-                  children: [
-                    ListTile(
-                      tileColor: Colors.white,
-                      leading: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6C63FF).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.person_outline,
-                            size: 18, color: Color(0xFF6C63FF)),
-                      ),
-                      title: Text(
-                        user.email ?? 'Đã đăng nhập',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        'Dữ liệu đang được sync',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                      ),
-                    ),
-                    ListTile(
-                      tileColor: Colors.white,
-                      leading: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE53935).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.logout,
-                            size: 18, color: Color(0xFFE53935)),
-                      ),
-                      title: const Text(
-                        'Đăng xuất',
-                        style: TextStyle(fontSize: 14, color: Color(0xFFE53935)),
-                      ),
-                      onTap: () async {
-                        await Supabase.instance.client.auth.signOut();
-                      },
-                    ),
-                  ],
-                );
-              }
-
-              // Chưa login — hiện nút đăng nhập
-              return ListTile(
-                tileColor: Colors.white,
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6C63FF).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.cloud_upload_outlined,
-                      size: 18, color: Color(0xFF6C63FF)),
-                ),
-                title: const Text(
-                  'Đăng nhập để sync',
-                  style: TextStyle(fontSize: 14),
-                ),
-                subtitle: Text(
-                  'Sao lưu và đồng bộ đa thiết bị',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-                trailing: const Icon(Icons.chevron_right, size: 18),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      fullscreenDialog: true,
-                      builder: (_) => const AuthScreen()
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 32),
+          // // ── Account section ─────────────────────────────────────────────
+          // _SectionHeader(title: 'Tài khoản'),
+          // Consumer(
+          //   builder: (context, ref, _) {
+          //     final userAsync = ref.watch(currentUserProvider);
+          //     final user = userAsync.valueOrNull;
+          //     final isLoggedIn = user != null;
+          //
+          //     if (isLoggedIn) {
+          //       return Column(
+          //         children: [
+          //           ListTile(
+          //             tileColor: Colors.white,
+          //             leading: Container(
+          //               width: 36,
+          //               height: 36,
+          //               decoration: BoxDecoration(
+          //                 color: const Color(0xFF6C63FF).withOpacity(0.1),
+          //                 borderRadius: BorderRadius.circular(8),
+          //               ),
+          //               child: const Icon(Icons.person_outline,
+          //                   size: 18, color: Color(0xFF6C63FF)),
+          //             ),
+          //             title: Text(
+          //               user.email ?? 'Đã đăng nhập',
+          //               style: const TextStyle(fontSize: 14),
+          //             ),
+          //             subtitle: Text(
+          //               'Dữ liệu đang được sync',
+          //               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          //             ),
+          //           ),
+          //           ListTile(
+          //             tileColor: Colors.white,
+          //             leading: Container(
+          //               width: 36,
+          //               height: 36,
+          //               decoration: BoxDecoration(
+          //                 color: const Color(0xFFE53935).withOpacity(0.1),
+          //                 borderRadius: BorderRadius.circular(8),
+          //               ),
+          //               child: const Icon(Icons.logout,
+          //                   size: 18, color: Color(0xFFE53935)),
+          //             ),
+          //             title: const Text(
+          //               'Đăng xuất',
+          //               style: TextStyle(fontSize: 14, color: Color(0xFFE53935)),
+          //             ),
+          //             onTap: () async {
+          //               await Supabase.instance.client.auth.signOut();
+          //             },
+          //           ),
+          //         ],
+          //       );
+          //     }
+          //
+          //     // Chưa login — hiện nút đăng nhập
+          //     return ListTile(
+          //       tileColor: Colors.white,
+          //       leading: Container(
+          //         width: 36,
+          //         height: 36,
+          //         decoration: BoxDecoration(
+          //           color: const Color(0xFF6C63FF).withOpacity(0.1),
+          //           borderRadius: BorderRadius.circular(8),
+          //         ),
+          //         child: const Icon(Icons.cloud_upload_outlined,
+          //             size: 18, color: Color(0xFF6C63FF)),
+          //       ),
+          //       title: const Text(
+          //         'Đăng nhập để sync',
+          //         style: TextStyle(fontSize: 14),
+          //       ),
+          //       subtitle: Text(
+          //         'Sao lưu và đồng bộ đa thiết bị',
+          //         style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          //       ),
+          //       trailing: const Icon(Icons.chevron_right, size: 18),
+          //       onTap: () => Navigator.of(context).push(
+          //         MaterialPageRoute(
+          //             fullscreenDialog: true,
+          //             builder: (_) => const AuthScreen()
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
+          // const SizedBox(height: 32),
 
         ],
       ),
@@ -451,21 +452,20 @@ class _ExportTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      tileColor: Colors.white,
       leading: Container(
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: const Color(0xFF6C63FF).withOpacity(0.1),
+          color: AppTheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.download_outlined,
-            size: 18, color: Color(0xFF6C63FF)),
+        child: Icon(LucideIcons.download,
+            size: 18, color: AppTheme.primary),
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
       subtitle: Text(subtitle,
           style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-      trailing: const Icon(Icons.chevron_right, size: 18),
+      trailing: const Icon(LucideIcons.chevronRight, size: 18),
       onTap: onTap,
     );
   }
@@ -485,7 +485,6 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      tileColor: Colors.white,
       leading: Container(
         width: 36,
         height: 36,
@@ -493,11 +492,10 @@ class _CategoryTile extends StatelessWidget {
           color: category.color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Center(
-          child: Text(
-            _iconEmoji(category.iconName),
-            style: const TextStyle(fontSize: 18),
-          ),
+        child: Icon(
+          categoryIcon(category.iconName),
+          size: 18,
+          color: category.color,
         ),
       ),
       title: Text(category.name, style: const TextStyle(fontSize: 14)),
@@ -509,43 +507,21 @@ class _CategoryTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(Icons.edit_outlined,
-                size: 18, color: Colors.grey.shade500),
+            icon: Icon(LucideIcons.pencil,
+                size: 16, color: Colors.grey.shade500),
             onPressed: onEdit,
             visualDensity: VisualDensity.compact,
           ),
           if (!category.isDefault)
             IconButton(
-              icon: const Icon(Icons.delete_outline,
-                  size: 18, color: Color(0xFFE53935)),
+              icon: const Icon(LucideIcons.trash2,
+                  size: 16, color: AppTheme.expenseColor),
               onPressed: onDelete,
               visualDensity: VisualDensity.compact,
             ),
         ],
       ),
     );
-  }
-
-  String _iconEmoji(String iconName) {
-    const map = {
-      'restaurant': '🍜',
-      'directions_car': '🚗',
-      'school': '📚',
-      'sports_esports': '🎮',
-      'favorite': '💊',
-      'shopping_bag': '🛍️',
-      'more_horiz': '📦',
-      'work': '💼',
-      'laptop': '💻',
-      'storefront': '🏪',
-      'card_giftcard': '🎁',
-      'home': '🏠',
-      'flight': '✈️',
-      'movie': '🎬',
-      'fitness_center': '💪',
-      'pets': '🐾',
-    };
-    return map[iconName] ?? '💰';
   }
 }
 

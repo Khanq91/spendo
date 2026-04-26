@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../budget/presentation/widgets/budget_card.dart';
 import '../../../transactions/domain/transaction.dart';
@@ -75,7 +76,8 @@ class HomeScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('💸', style: TextStyle(fontSize: 48)),
+                      Icon(LucideIcons.receiptText,
+                          size: 48, color: Color(0xFFE0E0E0)),
                       SizedBox(height: 12),
                       Text(
                         'Chưa có giao dịch nào',

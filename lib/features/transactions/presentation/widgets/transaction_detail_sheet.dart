@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../domain/transaction.dart';
 import '../../data/transaction_repository.dart';
 import '../../../categories/domain/category.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/category_icon.dart';
 import 'add_transaction_sheet.dart';
 
 class TransactionDetailSheet extends ConsumerWidget {
@@ -20,10 +23,7 @@ class TransactionDetailSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isExpense = transaction.isExpense;
-    final color = isExpense
-        ? const Color(0xFFE53935)
-        : const Color(0xFF43A047);
-    final catColor = category?.color ?? Colors.grey;
+    final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -42,19 +42,10 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
 
           // icon + category
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: catColor.withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                _iconEmoji(category?.iconName ?? ''),
-                style: const TextStyle(fontSize: 26),
-              ),
-            ),
+          CategoryIconWidget(
+            category: category,
+            size: 56,
+            iconSize: 26,
           ),
           const SizedBox(height: 8),
           Text(
@@ -83,21 +74,20 @@ class TransactionDetailSheet extends ConsumerWidget {
 
           // detail rows
           _DetailRow(
-            icon: Icons.calendar_today_outlined,
+            icon: LucideIcons.calendarDays,
             label: 'Ngày',
-            value:
-            '${formatDayHeader(transaction.createdAt)}, ${formatTime(transaction.createdAt)}',
+            value: '${formatDayHeader(transaction.createdAt)}, ${formatTime(transaction.createdAt)}',
           ),
           if (transaction.note != null && transaction.note!.isNotEmpty)
             _DetailRow(
-              icon: Icons.notes_outlined,
+              icon: LucideIcons.fileText,
               label: 'Ghi chú',
               value: transaction.note!,
             ),
           _DetailRow(
             icon: isExpense
-                ? Icons.arrow_upward_rounded
-                : Icons.arrow_downward_rounded,
+                ? LucideIcons.arrowUpRight
+                : LucideIcons.arrowDownLeft,
             label: 'Loại',
             value: isExpense ? 'Chi tiêu' : 'Thu nhập',
             valueColor: color,
@@ -111,11 +101,12 @@ class TransactionDetailSheet extends ConsumerWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _confirmDelete(context, ref),
-                  icon: const Icon(Icons.delete_outline, size: 18),
+                  icon: const Icon(LucideIcons.trash2, size: 16),
                   label: const Text('Xoá'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFE53935),
-                    side: const BorderSide(color: Color(0xFFE53935), width: 0.8),
+                    foregroundColor: AppTheme.expenseColor,
+                    side: const BorderSide(
+                        color: AppTheme.expenseColor, width: 0.8),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -127,9 +118,10 @@ class TransactionDetailSheet extends ConsumerWidget {
               Expanded(
                 child: FilledButton.icon(
                   onPressed: () => _openEdit(context),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  icon: const Icon(LucideIcons.pencil, size: 16),
                   label: const Text('Chỉnh sửa'),
                   style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -158,7 +150,7 @@ class TransactionDetailSheet extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFE53935),
+              foregroundColor: AppTheme.expenseColor,
             ),
             child: const Text('Xoá'),
           ),
@@ -177,29 +169,12 @@ class TransactionDetailSheet extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => AddTransactionSheet(existing: transaction),
     );
-  }
-
-  String _iconEmoji(String iconName) {
-    const map = {
-      'restaurant': '🍜',
-      'directions_car': '🚗',
-      'school': '📚',
-      'sports_esports': '🎮',
-      'favorite': '💊',
-      'shopping_bag': '🛍️',
-      'more_horiz': '📦',
-      'work': '💼',
-      'laptop': '💻',
-      'storefront': '🏪',
-      'card_giftcard': '🎁',
-    };
-    return map[iconName] ?? '💰';
   }
 }
 
