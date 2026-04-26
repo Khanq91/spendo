@@ -105,7 +105,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           ),
         ],
       ),
-      floatingActionButton: const GlobalFab(),
+      // floatingActionButton: const GlobalFab(),
     );
   }
 

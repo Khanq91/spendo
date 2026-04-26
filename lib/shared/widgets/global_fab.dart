@@ -19,6 +19,7 @@ class GlobalFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
+      heroTag: 'global_fab',
       onPressed: () => showAddTransactionSheet(context),
       shape: const CircleBorder(),
       child: const Icon(Icons.add, size: 28),

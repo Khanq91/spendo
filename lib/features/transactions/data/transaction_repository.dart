@@ -26,13 +26,13 @@ class TransactionRepository {
     String? note,
     DateTime? createdAt,
   }) async {
-    final now = DateTime.now().millisecondsSinceEpoch.toString();
-    final at = (createdAt?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch).toString();
+    final at = (createdAt?.millisecondsSinceEpoch ??
+        DateTime.now().millisecondsSinceEpoch).toString();
 
     await db.execute(
-      'INSERT INTO transactions(id, amount, type, category_id, note, created_at, updated_at) '
-          'VALUES(?, ?, ?, ?, ?, ?, ?)',
-      [_uuid.v4(), amount.toString(), type, categoryId, note, at, now],
+      'INSERT INTO transactions(id, amount, type, category_id, note, created_at) '
+          'VALUES(uuid(), ?, ?, ?, ?, ?)',
+      [amount.toString(), type, categoryId, note, at],
     );
   }
 

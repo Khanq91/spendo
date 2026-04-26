@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 
 class SummaryCards extends StatelessWidget {
@@ -24,7 +25,7 @@ class SummaryCards extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF6C63FF), Color(0xFF9C8FFF)],
+              colors: [AppTheme.primary, AppTheme.primaryLight],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

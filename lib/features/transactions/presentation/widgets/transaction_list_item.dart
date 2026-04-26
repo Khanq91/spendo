@@ -3,6 +3,8 @@ import '../../domain/transaction.dart';
 import '../../../categories/domain/category.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/category_icon.dart';
 import 'transaction_detail_sheet.dart';
 
 class TransactionListItem extends StatelessWidget {
@@ -18,15 +20,13 @@ class TransactionListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpense = transaction.isExpense;
-    final color =
-    isExpense ? const Color(0xFFE53935) : const Color(0xFF43A047);
-    final catColor = category?.color ?? Colors.grey;
+    final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
 
     return InkWell(
       onTap: () => showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
@@ -39,20 +39,7 @@ class TransactionListItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: catColor.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  _iconEmoji(category?.iconName ?? ''),
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ),
-            ),
+            CategoryIconWidget(category: category),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -65,8 +52,7 @@ class TransactionListItem extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  if (transaction.note != null &&
-                      transaction.note!.isNotEmpty)
+                  if (transaction.note != null && transaction.note!.isNotEmpty)
                     Text(
                       transaction.note!,
                       style: TextStyle(
@@ -99,22 +85,5 @@ class TransactionListItem extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _iconEmoji(String iconName) {
-    const map = {
-      'restaurant': '🍜',
-      'directions_car': '🚗',
-      'school': '📚',
-      'sports_esports': '🎮',
-      'favorite': '💊',
-      'shopping_bag': '🛍️',
-      'more_horiz': '📦',
-      'work': '💼',
-      'laptop': '💻',
-      'storefront': '🏪',
-      'card_giftcard': '🎁',
-    };
-    return map[iconName] ?? '💰';
   }
 }

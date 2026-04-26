@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../budget/presentation/widgets/budget_card.dart';
 import '../../../transactions/domain/transaction.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../../../transactions/presentation/widgets/transaction_list_item.dart';
@@ -61,6 +62,13 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
 
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: const BudgetCard(),
+              ),
+            ),
+
             if (txs.isEmpty)
               const SliverFillRemaining(
                 child: Center(
@@ -94,7 +102,7 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: const GlobalFab(),
+      // floatingActionButton: const GlobalFab(),
     );
   }
 

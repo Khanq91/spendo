@@ -1,13 +1,12 @@
 import 'package:powersync/powersync.dart';
 
-const schema = Schema(([
+const schema = Schema([
   Table('transactions', [
     Column.text('amount'),
     Column.text('type'),
     Column.text('category_id'),
     Column.text('note'),
     Column.text('created_at'),
-    Column.text('updated_at'),
   ]),
   Table('categories', [
     Column.text('name'),
@@ -17,4 +16,8 @@ const schema = Schema(([
     Column.integer('is_income'),
     Column.integer('sort_order'),
   ]),
-]));
+  Table('budgets', [
+    Column.text('amount'),      // hạn mức
+    Column.text('month'),       // format: "2026-04"
+  ]),
+]);

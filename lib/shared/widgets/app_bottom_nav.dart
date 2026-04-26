@@ -3,6 +3,7 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/stats/presentation/screens/stats_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -20,6 +21,9 @@ class _AppShellState extends State<AppShell> {
     StatsScreen(),
     SettingsScreen(),
   ];
+
+  // FAB chỉ hiện ở Home và Transactions
+  bool get _showFab => _index == 0 || _index == 1;
 
   @override
   Widget build(BuildContext context) {
@@ -55,34 +59,22 @@ class _AppShellState extends State<AppShell> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  final String icon;
-  final String label;
-
-  const _PlaceholderScreen({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 48)),
-            const SizedBox(height: 12),
-            Text(label, style: TextStyle(color: Colors.grey.shade600)),
-            const SizedBox(height: 4),
-            Text('Coming soon',
-                style:
-                TextStyle(fontSize: 12, color: Colors.grey.shade400)),
-          ],
+      floatingActionButton: _showFab
+          ? FloatingActionButton(
+        heroTag: 'global_fab',
+        onPressed: () => showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (_) => const AddTransactionSheet(),
         ),
-      ),
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, size: 28),
+      )
+          : null,
     );
   }
 }

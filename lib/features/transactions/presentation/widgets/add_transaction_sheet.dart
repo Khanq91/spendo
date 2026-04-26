@@ -6,6 +6,7 @@ import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import 'numpad.dart';
 import 'amount_input_controller.dart';
+import '../../../../core/utils/category_matcher.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final Transaction? existing; // null = add mode, non-null = edit mode
@@ -22,8 +23,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   late final TextEditingController _noteCtrl;
   late bool _isExpense;
   String? _selectedCategoryId;
-
+  bool _userPickedCategory = false;
   bool get _isEditMode => widget.existing != null;
+  final _categoryScrollCtrl = ScrollController();
+  final Map<String, GlobalKey> _chipKeys = {};
 
   @override
   void initState() {
@@ -47,6 +50,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   void dispose() {
     _amountCtrl.dispose();
     _noteCtrl.dispose();
+    _categoryScrollCtrl.dispose();
     super.dispose();
   }
 
@@ -78,6 +82,34 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     }
 
     if (mounted) Navigator.of(context).pop();
+  }
+
+  void _autoSelectCategory(String note) {
+    if (_userPickedCategory) return;
+
+    final iconName = matchCategory(note);
+    if (iconName == null) return;
+
+    final allCats = ref.read(categoriesProvider).valueOrNull ?? [];
+    final cats = _categories(allCats);
+    final matched = cats.where((c) => c.iconName == iconName).firstOrNull;
+
+    if (matched != null && matched.id != _selectedCategoryId) {
+      setState(() => _selectedCategoryId = matched.id);
+
+      // Scroll tới chip sau khi setState xong
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final key = _chipKeys[matched.id];
+        if (key?.currentContext != null) {
+          Scrollable.ensureVisible(
+            key!.currentContext!,
+            alignment: 0.3,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -138,6 +170,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                   onTap: () => setState(() {
                     _isExpense = true;
                     _selectedCategoryId = null;
+                    _userPickedCategory = false;
                   }),
                 ),
                 const SizedBox(width: 8),
@@ -148,6 +181,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                   onTap: () => setState(() {
                     _isExpense = false;
                     _selectedCategoryId = null;
+                    _userPickedCategory = false;
                   }),
                 ),
                 const Spacer(),
@@ -177,6 +211,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           SizedBox(
             height: 36,
             child: ListView.separated(
+              controller: _categoryScrollCtrl, // thêm
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: cats.length,
@@ -184,18 +219,35 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               itemBuilder: (_, i) {
                 final cat = cats[i];
                 final selected = cat.id == _selectedCategoryId;
+
+                // Tạo key cho chip nếu chưa có
+                _chipKeys.putIfAbsent(cat.id, () => GlobalKey());
+
                 return ChoiceChip(
-                  label: Text(cat.name),
-                  selected: selected,
-                  onSelected: (_) =>
-                      setState(() => _selectedCategoryId = cat.id),
-                  selectedColor: color.withOpacity(0.15),
-                  labelStyle: TextStyle(
-                    fontSize: 12,
-                    fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.w400,
-                    color: selected ? color : Colors.grey.shade600,
+                  key: _chipKeys[cat.id], // gắn key vào đây
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        cat.name,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                          color: selected ? color : Colors.grey.shade600,
+                        ),
+                      ),
+                      if (selected && !_userPickedCategory) ...[
+                        const SizedBox(width: 3),
+                        Icon(Icons.auto_fix_high, size: 10, color: color),
+                      ],
+                    ],
                   ),
+                  selected: selected,
+                  onSelected: (_) => setState(() {
+                    _selectedCategoryId = cat.id;
+                    _userPickedCategory = true;
+                  }),
+                  selectedColor: color.withOpacity(0.15),
                   side: BorderSide(
                     color: selected ? color : Colors.grey.shade300,
                     width: 0.5,
@@ -215,6 +267,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
               controller: _noteCtrl,
+              onChanged: (text) => _autoSelectCategory(text),
               decoration: InputDecoration(
                 hintText: 'Ghi chú (tuỳ chọn)...',
                 hintStyle: TextStyle(

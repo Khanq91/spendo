@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/notifications/notification_provider.dart';
+import '../../../../core/notifications/notification_service.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/export_service.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/data/category_repository.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/presentation/widgets/category_form_sheet.dart';
+import '../../../auth/presentation/screens/auth_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../core/theme/theme_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -48,6 +57,151 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 8),
 
+          // ── UI Section ──────────────────────────────────
+          _SectionHeader(title: 'Giao diện'),
+          Consumer(
+            builder: (context, ref, _) {
+              final mode = ref.watch(themeModeProvider);
+              return Container(
+                color: Colors.white,
+                child: Column(
+                  children: [
+                    _ThemeTile(
+                      label: 'Theo hệ thống',
+                      icon: LucideIcons.monitor,
+                      selected: mode == ThemeMode.system,
+                      onTap: () => ref.read(themeModeProvider.notifier).setMode(ThemeMode.system),
+                    ),
+                    _ThemeTile(
+                      label: 'Sáng',
+                      icon: LucideIcons.sun,
+                      selected: mode == ThemeMode.light,
+                      onTap: () => ref.read(themeModeProvider.notifier).setMode(ThemeMode.light),
+                    ),
+                    _ThemeTile(
+                      label: 'Tối',
+                      icon: LucideIcons.moon,
+                      selected: mode == ThemeMode.dark,
+                      onTap: () => ref.read(themeModeProvider.notifier).setMode(ThemeMode.dark),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+
+
+          // ── Notification Section ──────────────────────────────────
+          _SectionHeader(title: 'Thông báo'),
+          Consumer(
+            builder: (context, ref, _) {
+              final enabled = ref.watch(notificationEnabledProvider);
+              final hour = ref.watch(notificationHourProvider);
+              final minute = ref.watch(notificationMinuteProvider);
+
+              return Container(
+                color: Theme.of(context).listTileTheme.tileColor,
+                child: Column(
+                  children: [
+                    // Toggle on/off
+                    ListTile(
+                      leading: Icon(
+                        LucideIcons.bell,
+                        size: 18,
+                        color: enabled
+                            ? AppTheme.primary
+                            : Colors.grey.shade500,
+                      ),
+                      title: const Text('Nhắc nhập chi tiêu',
+                          style: TextStyle(fontSize: 14)),
+                      subtitle: Text(
+                        'Mỗi ngày lúc ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade500),
+                      ),
+                      trailing: Switch(
+                        value: enabled,
+                        activeColor: AppTheme.primary,
+                        onChanged: (val) async {
+                          if (val) {
+                            final granted =
+                            await NotificationService.requestPermission();
+                            if (!granted) return;
+                          }
+                          ref.read(notificationEnabledProvider.notifier).toggle(
+                            val,
+                            hour: hour,
+                            minute: minute,
+                          );
+                        },
+                      ),
+                    ),
+
+                    // Chọn giờ — chỉ hiện khi enabled
+                    if (enabled)
+                      ListTile(
+                        leading: Icon(LucideIcons.clock,
+                            size: 18, color: Colors.grey.shade500),
+                        title: const Text('Giờ nhắc nhở',
+                            style: TextStyle(fontSize: 14)),
+                        trailing: Text(
+                          '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                        onTap: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay(hour: hour, minute: minute),
+                          );
+                          if (picked != null) {
+                            await ref
+                                .read(notificationHourProvider.notifier)
+                                .set(picked.hour);
+                            await ref
+                                .read(notificationMinuteProvider.notifier)
+                                .set(picked.minute);
+                            // Reschedule với giờ mới
+                            await NotificationService.scheduleDailyReminder(
+                              hour: picked.hour,
+                              minute: picked.minute,
+                            );
+                          }
+                        },
+                      ),
+                    if (enabled)
+                      ListTile(
+                        leading: Icon(LucideIcons.bellRing,
+                            size: 18, color: Colors.grey.shade500),
+                        title: const Text('Gửi thông báo thử',
+                            style: TextStyle(fontSize: 14)),
+                        subtitle: Text('Hiện sau 5 giây',
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                        trailing: const Icon(Icons.chevron_right, size: 18),
+                        onTap: () async {
+                          await NotificationService.sendTestNotification();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Thông báo sẽ hiện sau 5 giây'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+
           // ── Expense categories ──────────────────────────────────
           _SectionHeader(
             title: 'Danh mục Chi',
@@ -81,6 +235,96 @@ class SettingsScreen extends ConsumerWidget {
           )),
 
           const SizedBox(height: 32),
+
+          // ── Account section ─────────────────────────────────────────────
+          _SectionHeader(title: 'Tài khoản'),
+          Consumer(
+            builder: (context, ref, _) {
+              final userAsync = ref.watch(currentUserProvider);
+              final user = userAsync.valueOrNull;
+              final isLoggedIn = user != null;
+
+              if (isLoggedIn) {
+                return Column(
+                  children: [
+                    ListTile(
+                      tileColor: Colors.white,
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6C63FF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.person_outline,
+                            size: 18, color: Color(0xFF6C63FF)),
+                      ),
+                      title: Text(
+                        user.email ?? 'Đã đăng nhập',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'Dữ liệu đang được sync',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      ),
+                    ),
+                    ListTile(
+                      tileColor: Colors.white,
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE53935).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.logout,
+                            size: 18, color: Color(0xFFE53935)),
+                      ),
+                      title: const Text(
+                        'Đăng xuất',
+                        style: TextStyle(fontSize: 14, color: Color(0xFFE53935)),
+                      ),
+                      onTap: () async {
+                        await Supabase.instance.client.auth.signOut();
+                      },
+                    ),
+                  ],
+                );
+              }
+
+              // Chưa login — hiện nút đăng nhập
+              return ListTile(
+                tileColor: Colors.white,
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6C63FF).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.cloud_upload_outlined,
+                      size: 18, color: Color(0xFF6C63FF)),
+                ),
+                title: const Text(
+                  'Đăng nhập để sync',
+                  style: TextStyle(fontSize: 14),
+                ),
+                subtitle: Text(
+                  'Sao lưu và đồng bộ đa thiết bị',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+                trailing: const Icon(Icons.chevron_right, size: 18),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                      fullscreenDialog: true,
+                      builder: (_) => const AuthScreen()
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+
         ],
       ),
     );
@@ -302,5 +546,35 @@ class _CategoryTile extends StatelessWidget {
       'pets': '🐾',
     };
     return map[iconName] ?? '💰';
+  }
+}
+
+class _ThemeTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ThemeTile({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        size: 18,
+        color: selected ? AppTheme.primary : Colors.grey.shade500,
+      ),
+      title: Text(label, style: const TextStyle(fontSize: 14)),
+      trailing: selected
+          ? const Icon(LucideIcons.check, size: 16, color: AppTheme.primary)
+          : null,
+      onTap: onTap,
+    );
   }
 }
