@@ -47,6 +47,7 @@ class SpendoWidgetMedium : AppWidgetProvider() {
                 "FlutterSharedPreferences", Context.MODE_PRIVATE
             )
             val catsJson = prefs.getString("flutter.widget_categories", null)
+            android.util.Log.d("SpendoWidget", "cats json = $catsJson")
 
             data class CatData(val id: String, val name: String, val emoji: String)
 
@@ -81,9 +82,9 @@ class SpendoWidgetMedium : AppWidgetProvider() {
                 views.setTextViewText(CAT_NAME_IDS[i], cat.name)
 
                 val uri = if (cat.id.isNotEmpty())
-                    Uri.parse("spendo://add?category_id=${cat.id}")
+                    Uri.parse("spendo:///add?category_id=${cat.id}")
                 else
-                    Uri.parse("spendo://add")
+                    Uri.parse("spendo:///add")
 
                 val intent = Intent(Intent.ACTION_VIEW, uri)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

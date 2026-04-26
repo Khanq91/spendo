@@ -15,6 +15,7 @@ import '../../../auth/presentation/screens/auth_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../widgets/widget_pin_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -200,6 +201,15 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               );
             },
+          ),
+          const SizedBox(height: 8),
+
+          // ── Widgets Pin Section ──────────────────────────────────
+          _SectionHeader(title: 'Widget màn hình chính'),
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: const WidgetPinSection(),
           ),
           const SizedBox(height: 8),
 
