@@ -12,6 +12,7 @@ class BudgetCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(budgetProgressProvider);
     final budgetAsync = ref.watch(currentBudgetProvider);
+    final cs = Theme.of(context).colorScheme;
 
     // Chưa set budget
     if (budgetAsync.valueOrNull == null) {
@@ -19,10 +20,11 @@ class BudgetCard extends ConsumerWidget {
         onTap: () => _openBudgetScreen(context),
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             border: Border.all(
-              color: Colors.grey.shade300,
+              color: cs.outlineVariant,
               width: 0.8,
               style: BorderStyle.solid,
             ),
@@ -30,19 +32,20 @@ class BudgetCard extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              Icon(LucideIcons.target, size: 20, color: Colors.grey.shade400),
+              Icon(LucideIcons.target,
+                  size: 20, color: cs.onSurfaceVariant),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Đặt hạn mức chi tiêu tháng này',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade600,
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
               ),
               Icon(Icons.chevron_right,
-                  size: 18, color: Colors.grey.shade400),
+                  size: 18, color: cs.onSurfaceVariant),
             ],
           ),
         ),
@@ -66,7 +69,8 @@ class BudgetCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: color.withOpacity(0.06),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2), width: 0.8),
+          border:
+          Border.all(color: color.withOpacity(0.2), width: 0.8),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,7 +78,9 @@ class BudgetCard extends ConsumerWidget {
             Row(
               children: [
                 Icon(
-                  isOver ? LucideIcons.triangleAlert : LucideIcons.target,
+                  isOver
+                      ? LucideIcons.triangleAlert
+                      : LucideIcons.target,
                   size: 13,
                   color: color,
                 ),
@@ -99,7 +105,6 @@ class BudgetCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            // progress bar
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
@@ -124,7 +129,7 @@ class BudgetCard extends ConsumerWidget {
                   ' / ${formatVND(progress.budget)}',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade500,
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -139,10 +144,6 @@ class BudgetCard extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (_) => const BudgetScreen(),
     );
   }

@@ -46,7 +46,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     }
 
     if (tx != null) {
-      // pre-fill từ existing transaction
       _amountCtrl.prefill(tx.amount.toString());
       _noteCtrl.text = tx.note ?? '';
       _isExpense = tx.isExpense;
@@ -107,7 +106,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     if (matched != null && matched.id != _selectedCategoryId) {
       setState(() => _selectedCategoryId = matched.id);
 
-      // Scroll tới chip sau khi setState xong
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final key = _chipKeys[matched.id];
         if (key?.currentContext != null) {
@@ -127,6 +125,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final categoriesAsync = ref.watch(categoriesProvider);
     final allCategories = categoriesAsync.valueOrNull ?? [];
     final cats = _categories(allCategories);
+    final cs = Theme.of(context).colorScheme;
 
     if (cats.isNotEmpty &&
         (_selectedCategoryId == null ||
@@ -134,8 +133,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _selectedCategoryId = cats.first.id;
     }
 
-    final color =
-    _isExpense ? const Color(0xFFE53935) : const Color(0xFF43A047);
+    final color = _isExpense
+        ? const Color(0xFFE53935)
+        : const Color(0xFF43A047);
 
     return Padding(
       padding:
@@ -143,18 +143,17 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // drag handle
+          // Drag handle
           Container(
             margin: const EdgeInsets.symmetric(vertical: 10),
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: cs.outlineVariant,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
 
-          // title khi edit
           if (_isEditMode)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -163,12 +162,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade500,
+                  color: cs.onSurfaceVariant,
                 ),
               ),
             ),
 
-          // toggle + amount
+          // Toggle + amount
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -210,18 +209,18 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 const SizedBox(width: 4),
                 Text('₫',
                     style: TextStyle(
-                        fontSize: 14, color: Colors.grey.shade500)),
+                        fontSize: 14, color: cs.onSurfaceVariant)),
               ],
             ),
           ),
 
           const SizedBox(height: 10),
 
-          // category chips
+          // Category chips
           SizedBox(
             height: 36,
             child: ListView.separated(
-              controller: _categoryScrollCtrl, // thêm
+              controller: _categoryScrollCtrl,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: cats.length,
@@ -229,12 +228,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               itemBuilder: (_, i) {
                 final cat = cats[i];
                 final selected = cat.id == _selectedCategoryId;
-
-                // Tạo key cho chip nếu chưa có
                 _chipKeys.putIfAbsent(cat.id, () => GlobalKey());
 
                 return ChoiceChip(
-                  key: _chipKeys[cat.id], // gắn key vào đây
+                  key: _chipKeys[cat.id],
                   label: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -242,8 +239,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         cat.name,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                          color: selected ? color : Colors.grey.shade600,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: selected ? color : cs.onSurfaceVariant,
                         ),
                       ),
                       if (selected && !_userPickedCategory) ...[
@@ -259,8 +258,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                   }),
                   selectedColor: color.withOpacity(0.15),
                   side: BorderSide(
-                    color: selected ? color : Colors.grey.shade300,
-                    width: 0.5,
+                    color: selected ? color : cs.outlineVariant,
+                    width: 0.8,
                   ),
                   backgroundColor: Colors.transparent,
                   showCheckmark: false,
@@ -272,34 +271,34 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
           const SizedBox(height: 8),
 
-          // note
+          // Note
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
               controller: _noteCtrl,
               onChanged: (text) => _autoSelectCategory(text),
+              style: TextStyle(fontSize: 13, color: cs.onSurface),
               decoration: InputDecoration(
                 hintText: 'Ghi chú (tuỳ chọn)...',
                 hintStyle: TextStyle(
-                    fontSize: 13, color: Colors.grey.shade400),
+                    fontSize: 13, color: cs.onSurfaceVariant),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                contentPadding:
+                const EdgeInsets.symmetric(vertical: 4),
               ),
-              style: const TextStyle(fontSize: 13),
               maxLines: 1,
             ),
           ),
 
           const Divider(height: 12, thickness: 0.5),
 
-          // numpad
           ListenableBuilder(
             listenable: _amountCtrl,
             builder: (_, __) => Numpad(onKey: _amountCtrl.press),
           ),
 
-          // confirm
+          // Confirm
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: ListenableBuilder(
@@ -349,18 +348,18 @@ class _TypeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding:
-        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color:
           active ? color.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: active ? color : Colors.grey.shade300,
+            color: active ? color : cs.outlineVariant,
             width: 0.8,
           ),
         ),
@@ -369,7 +368,7 @@ class _TypeToggle extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: active ? color : Colors.grey.shade500,
+            color: active ? color : cs.onSurfaceVariant,
           ),
         ),
       ),

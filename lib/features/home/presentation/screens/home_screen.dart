@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../budget/presentation/widgets/budget_card.dart';
 import '../../../transactions/domain/transaction.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../../../transactions/presentation/widgets/transaction_list_item.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/domain/category.dart';
-import '../../../../shared/widgets/global_fab.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/month_selector.dart';
 
@@ -21,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
     final txAsync = ref.watch(transactionsProvider);
     final summary = ref.watch(summaryProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
+    final cs = Theme.of(context).colorScheme;
 
     final categoryMap = <String, Category>{};
     for (final c in categoriesAsync.valueOrNull ?? []) {
@@ -28,10 +29,7 @@ class HomeScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade50,
-        elevation: 0,
         centerTitle: true,
         title: MonthSelector(
           month: month,
@@ -62,31 +60,30 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: const BudgetCard(),
               ),
             ),
-
             if (txs.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(LucideIcons.receiptText,
-                          size: 48, color: Color(0xFFE0E0E0)),
-                      SizedBox(height: 12),
+                          size: 48, color: cs.outlineVariant),
+                      const SizedBox(height: 12),
                       Text(
                         'Chưa có giao dịch nào',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: cs.onSurfaceVariant),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         'Tap + để thêm',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: TextStyle(
+                            fontSize: 12, color: cs.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -95,24 +92,23 @@ class HomeScreen extends ConsumerWidget {
             else
               SliverList(
                 delegate: SliverChildListDelegate(
-                  _buildGroupedList(txs, categoryMap),
+                  _buildGroupedList(context, txs, categoryMap),
                 ),
               ),
-
-            // padding cuối để FAB không che item
             const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         ),
       ),
-      // floatingActionButton: const GlobalFab(),
     );
   }
 
   List<Widget> _buildGroupedList(
+      BuildContext context,
       List<Transaction> txs,
       Map<String, Category> categoryMap,
       ) {
-    // group by date
+    final cs = Theme.of(context).colorScheme;
+
     final Map<String, List<Transaction>> grouped = {};
     for (final tx in txs) {
       final key =
@@ -125,7 +121,6 @@ class HomeScreen extends ConsumerWidget {
       final dayTxs = entry.value;
       final date = dayTxs.first.createdAt;
 
-      // day header
       final dayTotal = dayTxs.fold<int>(
         0,
             (sum, t) => t.isExpense ? sum - t.amount : sum + t.amount,
@@ -142,7 +137,7 @@ class HomeScreen extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade500,
+                  color: cs.onSurfaceVariant,
                 ),
               ),
               const Spacer(),
@@ -152,8 +147,8 @@ class HomeScreen extends ConsumerWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: isPositive
-                      ? const Color(0xFF43A047)
-                      : const Color(0xFFE53935),
+                      ? AppTheme.incomeColor
+                      : AppTheme.expenseAltColor,
                 ),
               ),
             ],
@@ -161,10 +156,8 @@ class HomeScreen extends ConsumerWidget {
         ),
       );
 
-      // divider
       widgets.add(const Divider(height: 1, indent: 16, endIndent: 16));
 
-      // items
       for (final tx in dayTxs) {
         widgets.add(
           TransactionListItem(

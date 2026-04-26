@@ -3,18 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../domain/transaction.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/transaction_list_item.dart';
-import '../../../../shared/widgets/global_fab.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
   @override
-  ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
+  ConsumerState<TransactionsScreen> createState() =>
+      _TransactionsScreenState();
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
@@ -34,6 +35,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final allCategories = categoriesAsync.valueOrNull ?? [];
     final selectedCat = ref.watch(selectedCategoryFilterProvider);
     final month = ref.watch(selectedMonthProvider);
+    final cs = Theme.of(context).colorScheme;
 
     final categoryMap = <String, Category>{};
     for (final c in allCategories) {
@@ -41,19 +43,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade50,
-        elevation: 0,
         centerTitle: true,
         title: _showSearch
             ? TextField(
           controller: _searchCtrl,
           autofocus: true,
-          decoration: const InputDecoration(
+          style: TextStyle(color: cs.onSurface),
+          decoration: InputDecoration(
             hintText: 'Tìm kiếm...',
             border: InputBorder.none,
-            hintStyle: TextStyle(fontSize: 15),
+            hintStyle: TextStyle(
+                fontSize: 15, color: cs.onSurfaceVariant),
           ),
           onChanged: (v) =>
           ref.read(searchQueryProvider.notifier).state = v,
@@ -61,9 +62,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             : Text(
           'Tháng ${month.month}/${month.year}',
           style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+              fontSize: 16, fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
@@ -80,40 +79,37 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
       body: Column(
         children: [
-          // category filter chips
           _CategoryFilterBar(
             categories: allCategories,
             selectedId: selectedCat,
             onSelect: (id) =>
             ref.read(selectedCategoryFilterProvider.notifier).state = id,
           ),
-
-          // summary mini row
           _MiniSummaryRow(txs: txs),
-
           const Divider(height: 1),
-
-          // list
           Expanded(
             child: txs.isEmpty
-                ? _EmptyState(hasFilter: selectedCat != null || _showSearch)
+                ? _EmptyState(
+                hasFilter: selectedCat != null || _showSearch)
                 : ListView(
               children: [
-                ..._buildGroupedList(txs, categoryMap),
+                ..._buildGroupedList(context, txs, categoryMap),
                 const SizedBox(height: 80),
               ],
             ),
           ),
         ],
       ),
-      // floatingActionButton: const GlobalFab(),
     );
   }
 
   List<Widget> _buildGroupedList(
+      BuildContext context,
       List<Transaction> txs,
       Map<String, Category> categoryMap,
       ) {
+    final cs = Theme.of(context).colorScheme;
+
     final Map<String, List<Transaction>> grouped = {};
     for (final tx in txs) {
       final key =
@@ -126,15 +122,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       final dayTxs = entry.value;
       final date = dayTxs.first.createdAt;
       final dayNet = dayTxs.fold<int>(
-        0,
-            (s, t) => t.isExpense ? s - t.amount : s + t.amount,
-      );
+          0, (s, t) => t.isExpense ? s - t.amount : s + t.amount);
       final isPos = dayNet >= 0;
 
-      // day header
       widgets.add(
         Container(
-          color: Colors.grey.shade100,
+          color: cs.surfaceContainerHighest,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
           child: Row(
             children: [
@@ -143,7 +136,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade600,
+                  color: cs.onSurfaceVariant,
                 ),
               ),
               const Spacer(),
@@ -153,8 +146,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: isPos
-                      ? const Color(0xFF43A047)
-                      : const Color(0xFFE53935),
+                      ? AppTheme.incomeColor
+                      : AppTheme.expenseAltColor,
                 ),
               ),
             ],
@@ -167,7 +160,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           transaction: tx,
           category: categoryMap[tx.categoryId],
         ));
-        widgets.add(const Divider(height: 1, indent: 68, endIndent: 16));
+        widgets.add(Divider(
+            height: 1,
+            indent: 68,
+            endIndent: 16,
+            color: cs.outlineVariant));
       }
     }
 
@@ -175,7 +172,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 }
 
-// ── Category filter bar ──────────────────────────────────────────────────────
+// ── Category filter bar ───────────────────────────────────────────────────────
 
 class _CategoryFilterBar extends StatelessWidget {
   final List<Category> categories;
@@ -194,9 +191,9 @@ class _CategoryFilterBar extends StatelessWidget {
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         children: [
-          // "Tất cả" chip
           _FilterChip(
             label: 'Tất cả',
             selected: selectedId == null,
@@ -234,17 +231,19 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.primary;
+    final cs = Theme.of(context).colorScheme;
+    final c = color ?? cs.primary;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
           color: selected ? c.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? c : Colors.grey.shade300,
+            color: selected ? c : cs.outlineVariant,
             width: 0.8,
           ),
         ),
@@ -252,8 +251,9 @@ class _FilterChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? c : Colors.grey.shade600,
+            fontWeight:
+            selected ? FontWeight.w600 : FontWeight.w400,
+            color: selected ? c : cs.onSurfaceVariant,
           ),
         ),
       ),
@@ -261,21 +261,19 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ── Mini summary row ─────────────────────────────────────────────────────────
+// ── Mini summary row ──────────────────────────────────────────────────────────
 
 class _MiniSummaryRow extends StatelessWidget {
   final List<Transaction> txs;
-
   const _MiniSummaryRow({required this.txs});
 
   @override
   Widget build(BuildContext context) {
-    final income = txs
-        .where((t) => t.isIncome)
-        .fold(0, (s, t) => s + t.amount);
-    final expense = txs
-        .where((t) => t.isExpense)
-        .fold(0, (s, t) => s + t.amount);
+    final cs = Theme.of(context).colorScheme;
+    final income =
+    txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
+    final expense =
+    txs.where((t) => t.isExpense).fold(0, (s, t) => s + t.amount);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
@@ -283,7 +281,7 @@ class _MiniSummaryRow extends StatelessWidget {
         children: [
           Text(
             '${txs.length} giao dịch',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
           const Spacer(),
           Text(
@@ -291,7 +289,7 @@ class _MiniSummaryRow extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF43A047),
+              color: AppTheme.incomeColor,
             ),
           ),
           const SizedBox(width: 10),
@@ -300,7 +298,7 @@ class _MiniSummaryRow extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: Color(0xFFE53935),
+              color: AppTheme.expenseAltColor,
             ),
           ),
         ],
@@ -309,7 +307,7 @@ class _MiniSummaryRow extends StatelessWidget {
   }
 }
 
-// ── Empty state ──────────────────────────────────────────────────────────────
+// ── Empty state ───────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   final bool hasFilter;
@@ -317,6 +315,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -324,20 +323,20 @@ class _EmptyState extends StatelessWidget {
           Icon(
             hasFilter ? LucideIcons.searchX : LucideIcons.receiptText,
             size: 48,
-            color: Colors.grey.shade300,
+            color: cs.outlineVariant,
           ),
           const SizedBox(height: 12),
           Text(
             hasFilter
                 ? 'Không tìm thấy giao dịch nào'
                 : 'Chưa có giao dịch nào',
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: cs.onSurfaceVariant),
           ),
           if (!hasFilter) ...[
             const SizedBox(height: 4),
             Text('Tap + để thêm',
                 style: TextStyle(
-                    fontSize: 12, color: Colors.grey.shade400)),
+                    fontSize: 12, color: cs.onSurfaceVariant)),
           ],
         ],
       ),

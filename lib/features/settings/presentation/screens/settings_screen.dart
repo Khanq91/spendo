@@ -6,13 +6,10 @@ import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/export_service.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/data/category_repository.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/presentation/widgets/category_form_sheet.dart';
-import '../../../auth/presentation/screens/auth_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../widgets/widget_pin_section.dart';
@@ -26,11 +23,11 @@ class SettingsScreen extends ConsumerWidget {
     final allCats = categoriesAsync.valueOrNull ?? [];
     final expenseCats = allCats.where((c) => !c.isIncome).toList();
     final incomeCats = allCats.where((c) => c.isIncome).toList();
+    final cs = Theme.of(context).colorScheme;
+    final surface = cs.surface;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade50,
         elevation: 0,
         title: const Text(
           'Cài đặt',
@@ -39,7 +36,7 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
-          // ── Export section ──────────────────────────────────────
+          // ── Export ──────────────────────────────────────────────────────
           _SectionHeader(title: 'Xuất dữ liệu'),
           _ExportTile(
             label: 'Tháng này',
@@ -59,32 +56,38 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 8),
 
-          // ── UI Section ──────────────────────────────────
+          // ── Theme ────────────────────────────────────────────────────────
           _SectionHeader(title: 'Giao diện'),
           Consumer(
             builder: (context, ref, _) {
               final mode = ref.watch(themeModeProvider);
               return Container(
-                color: Colors.white,
+                color: surface,
                 child: Column(
                   children: [
                     _ThemeTile(
                       label: 'Theo hệ thống',
                       icon: LucideIcons.monitor,
                       selected: mode == ThemeMode.system,
-                      onTap: () => ref.read(themeModeProvider.notifier).setMode(ThemeMode.system),
+                      onTap: () => ref
+                          .read(themeModeProvider.notifier)
+                          .setMode(ThemeMode.system),
                     ),
                     _ThemeTile(
                       label: 'Sáng',
                       icon: LucideIcons.sun,
                       selected: mode == ThemeMode.light,
-                      onTap: () => ref.read(themeModeProvider.notifier).setMode(ThemeMode.light),
+                      onTap: () => ref
+                          .read(themeModeProvider.notifier)
+                          .setMode(ThemeMode.light),
                     ),
                     _ThemeTile(
                       label: 'Tối',
                       icon: LucideIcons.moon,
                       selected: mode == ThemeMode.dark,
-                      onTap: () => ref.read(themeModeProvider.notifier).setMode(ThemeMode.dark),
+                      onTap: () => ref
+                          .read(themeModeProvider.notifier)
+                          .setMode(ThemeMode.dark),
                     ),
                   ],
                 ),
@@ -93,58 +96,53 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
 
-
-          // ── Notification Section ──────────────────────────────────
+          // ── Notifications ────────────────────────────────────────────────
           _SectionHeader(title: 'Thông báo'),
           Consumer(
             builder: (context, ref, _) {
               final enabled = ref.watch(notificationEnabledProvider);
               final hour = ref.watch(notificationHourProvider);
               final minute = ref.watch(notificationMinuteProvider);
+              final cs = Theme.of(context).colorScheme;
 
               return Container(
-                color: Theme.of(context).listTileTheme.tileColor,
+                color: surface,
                 child: Column(
                   children: [
-                    // Toggle on/off
                     ListTile(
                       leading: Icon(
                         LucideIcons.bell,
                         size: 18,
                         color: enabled
                             ? AppTheme.primary
-                            : Colors.grey.shade500,
+                            : cs.onSurfaceVariant,
                       ),
                       title: const Text('Nhắc nhập chi tiêu',
                           style: TextStyle(fontSize: 14)),
                       subtitle: Text(
                         'Mỗi ngày lúc ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade500),
+                            fontSize: 12, color: cs.onSurfaceVariant),
                       ),
                       trailing: Switch(
                         value: enabled,
                         activeColor: AppTheme.primary,
                         onChanged: (val) async {
                           if (val) {
-                            final granted =
-                            await NotificationService.requestPermission();
+                            final granted = await NotificationService
+                                .requestPermission();
                             if (!granted) return;
                           }
-                          ref.read(notificationEnabledProvider.notifier).toggle(
-                            val,
-                            hour: hour,
-                            minute: minute,
-                          );
+                          ref
+                              .read(notificationEnabledProvider.notifier)
+                              .toggle(val, hour: hour, minute: minute);
                         },
                       ),
                     ),
-
-                    // Chọn giờ — chỉ hiện khi enabled
                     if (enabled)
                       ListTile(
                         leading: Icon(LucideIcons.clock,
-                            size: 18, color: Colors.grey.shade500),
+                            size: 18, color: cs.onSurfaceVariant),
                         title: const Text('Giờ nhắc nhở',
                             style: TextStyle(fontSize: 14)),
                         trailing: Text(
@@ -158,7 +156,8 @@ class SettingsScreen extends ConsumerWidget {
                         onTap: () async {
                           final picked = await showTimePicker(
                             context: context,
-                            initialTime: TimeOfDay(hour: hour, minute: minute),
+                            initialTime:
+                            TimeOfDay(hour: hour, minute: minute),
                           );
                           if (picked != null) {
                             await ref
@@ -167,8 +166,8 @@ class SettingsScreen extends ConsumerWidget {
                             await ref
                                 .read(notificationMinuteProvider.notifier)
                                 .set(picked.minute);
-                            // Reschedule với giờ mới
-                            await NotificationService.scheduleDailyReminder(
+                            await NotificationService
+                                .scheduleDailyReminder(
                               hour: picked.hour,
                               minute: picked.minute,
                             );
@@ -178,25 +177,29 @@ class SettingsScreen extends ConsumerWidget {
                     if (enabled)
                       ListTile(
                         leading: Icon(LucideIcons.bellRing,
-                            size: 18, color: Colors.grey.shade500),
+                            size: 18, color: cs.onSurfaceVariant),
                         title: const Text('Gửi thông báo thử',
                             style: TextStyle(fontSize: 14)),
                         subtitle: Text('Hiện sau 5 giây',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                        trailing: const Icon(Icons.chevron_right, size: 18),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: cs.onSurfaceVariant)),
+                        trailing: Icon(Icons.chevron_right,
+                            size: 18, color: cs.onSurfaceVariant),
                         onTap: () async {
-                          await NotificationService.sendTestNotification();
+                          await NotificationService
+                              .sendTestNotification();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Thông báo sẽ hiện sau 5 giây'),
+                                content: Text(
+                                    'Thông báo sẽ hiện sau 5 giây'),
                                 duration: Duration(seconds: 2),
                               ),
                             );
                           }
                         },
                       ),
-
                   ],
                 ),
               );
@@ -204,22 +207,23 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
 
-          // ── Widgets Pin Section ──────────────────────────────────
+          // ── Widget pin ───────────────────────────────────────────────────
           _SectionHeader(title: 'Widget màn hình chính'),
           Container(
-            color: Colors.white,
+            color: surface,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: const WidgetPinSection(),
           ),
           const SizedBox(height: 8),
 
-          // ── Expense categories ──────────────────────────────────
+          // ── Expense categories ───────────────────────────────────────────
           _SectionHeader(
             title: 'Danh mục Chi',
             action: TextButton.icon(
               onPressed: () => _openForm(context, isIncome: false),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Thêm', style: TextStyle(fontSize: 13)),
+              label:
+              const Text('Thêm', style: TextStyle(fontSize: 13)),
             ),
           ),
           ...expenseCats.map((cat) => _CategoryTile(
@@ -230,13 +234,14 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 8),
 
-          // ── Income categories ───────────────────────────────────
+          // ── Income categories ────────────────────────────────────────────
           _SectionHeader(
             title: 'Danh mục Thu',
             action: TextButton.icon(
               onPressed: () => _openForm(context, isIncome: true),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Thêm', style: TextStyle(fontSize: 13)),
+              label:
+              const Text('Thêm', style: TextStyle(fontSize: 13)),
             ),
           ),
           ...incomeCats.map((cat) => _CategoryTile(
@@ -244,8 +249,6 @@ class SettingsScreen extends ConsumerWidget {
             onEdit: () => _openEditForm(context, cat),
             onDelete: () => _confirmDelete(context, cat),
           )),
-
-          const SizedBox(height: 32),
 
           // // ── Account section ─────────────────────────────────────────────
           // _SectionHeader(title: 'Tài khoản'),
@@ -334,21 +337,19 @@ class SettingsScreen extends ConsumerWidget {
           //     );
           //   },
           // ),
-          // const SizedBox(height: 32),
 
+          const SizedBox(height: 32),
         ],
       ),
     );
   }
 
+  // ── Bottom sheet helpers — dùng theme surface thay vì Colors.white ──────────
+
   void _openForm(BuildContext context, {required bool isIncome}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (_) => CategoryFormSheet(isIncome: isIncome),
     );
   }
@@ -357,15 +358,13 @@ class SettingsScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => CategoryFormSheet(existing: cat, isIncome: cat.isIncome),
+      builder: (_) =>
+          CategoryFormSheet(existing: cat, isIncome: cat.isIncome),
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, Category cat) async {
+  Future<void> _confirmDelete(
+      BuildContext context, Category cat) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -381,7 +380,7 @@ class SettingsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFE53935)),
+                foregroundColor: AppTheme.expenseAltColor),
             child: const Text('Xoá'),
           ),
         ],
@@ -395,8 +394,9 @@ class SettingsScreen extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: const Color(0xFFE53935),
+              content:
+              Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: AppTheme.expenseAltColor,
             ),
           );
         }
@@ -422,11 +422,11 @@ class SettingsScreen extends ConsumerWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final Widget? action;
-
   const _SectionHeader({required this.title, this.action});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
       child: Row(
@@ -436,7 +436,7 @@ class _SectionHeader extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade500,
+              color: cs.onSurfaceVariant,
               letterSpacing: 0.5,
             ),
           ),
@@ -461,6 +461,7 @@ class _ExportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return ListTile(
       leading: Container(
         width: 36,
@@ -469,13 +470,13 @@ class _ExportTile extends StatelessWidget {
           color: AppTheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(LucideIcons.download,
-            size: 18, color: AppTheme.primary),
+        child: Icon(LucideIcons.download, size: 18, color: AppTheme.primary),
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
       subtitle: Text(subtitle,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-      trailing: const Icon(LucideIcons.chevronRight, size: 18),
+          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+      trailing: Icon(LucideIcons.chevronRight,
+          size: 18, color: cs.onSurfaceVariant),
       onTap: onTap,
     );
   }
@@ -494,6 +495,7 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return ListTile(
       leading: Container(
         width: 36,
@@ -511,21 +513,22 @@ class _CategoryTile extends StatelessWidget {
       title: Text(category.name, style: const TextStyle(fontSize: 14)),
       subtitle: category.isDefault
           ? Text('Mặc định',
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade400))
+          style: TextStyle(
+              fontSize: 11, color: cs.onSurfaceVariant))
           : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
             icon: Icon(LucideIcons.pencil,
-                size: 16, color: Colors.grey.shade500),
+                size: 16, color: cs.onSurfaceVariant),
             onPressed: onEdit,
             visualDensity: VisualDensity.compact,
           ),
           if (!category.isDefault)
             IconButton(
-              icon: const Icon(LucideIcons.trash2,
-                  size: 16, color: AppTheme.expenseColor),
+              icon: Icon(LucideIcons.trash2,
+                  size: 16, color: AppTheme.expenseAltColor),
               onPressed: onDelete,
               visualDensity: VisualDensity.compact,
             ),
@@ -550,15 +553,17 @@ class _ThemeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return ListTile(
       leading: Icon(
         icon,
         size: 18,
-        color: selected ? AppTheme.primary : Colors.grey.shade500,
+        color: selected ? AppTheme.primary : cs.onSurfaceVariant,
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
       trailing: selected
-          ? const Icon(LucideIcons.check, size: 16, color: AppTheme.primary)
+          ? const Icon(LucideIcons.check,
+          size: 16, color: AppTheme.primary)
           : null,
       onTap: onTap,
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/widget_sync.dart';
 import '../../../categories/domain/category.dart';
@@ -15,8 +14,8 @@ class WidgetPinSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pinnedIds = ref.watch(widgetPinnedIdsProvider);
     final allCats = ref.watch(expenseCategoriesProvider);
+    final cs = Theme.of(context).colorScheme;
 
-    // Đảm bảo đủ 4 slot
     final slots = List<String>.from(pinnedIds);
     while (slots.length < 4) slots.add('');
 
@@ -37,7 +36,8 @@ class WidgetPinSection extends ConsumerWidget {
                 child: _SlotCard(
                   slot: i,
                   category: cat,
-                  onTap: () => _pickCategory(context, ref, i, slots, allCats),
+                  onTap: () =>
+                      _pickCategory(context, ref, i, slots, allCats),
                   onClear: cat != null
                       ? () async {
                     await ref
@@ -54,7 +54,7 @@ class WidgetPinSection extends ConsumerWidget {
         const SizedBox(height: 8),
         Text(
           'Tap vào ô để chọn danh mục hiển thị trên widget',
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+          style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
       ],
@@ -70,10 +70,7 @@ class WidgetPinSection extends ConsumerWidget {
       ) async {
     final picked = await showModalBottomSheet<Category>(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      // Lấy bg từ theme
       builder: (_) => _CategoryPickerSheet(
         allCats: allCats,
         currentSlots: currentSlots,
@@ -82,7 +79,9 @@ class WidgetPinSection extends ConsumerWidget {
     );
 
     if (picked != null) {
-      await ref.read(widgetPinnedIdsProvider.notifier).setSlot(slot, picked.id);
+      await ref
+          .read(widgetPinnedIdsProvider.notifier)
+          .setSlot(slot, picked.id);
       await WidgetSync.syncCategories();
     }
   }
@@ -103,7 +102,8 @@ class _SlotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = category?.color ?? Colors.grey.shade300;
+    final cs = Theme.of(context).colorScheme;
+    final color = category?.color ?? cs.outlineVariant;
 
     return GestureDetector(
       onTap: onTap,
@@ -112,12 +112,12 @@ class _SlotCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: category != null
               ? color.withOpacity(0.1)
-              : Colors.grey.shade50,
+              : cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: category != null
                 ? color.withOpacity(0.4)
-                : Colors.grey.shade300,
+                : cs.outlineVariant,
             width: 1,
           ),
         ),
@@ -152,7 +152,7 @@ class _SlotCard extends StatelessWidget {
                 child: GestureDetector(
                   onTap: onClear,
                   child: Icon(LucideIcons.x,
-                      size: 12, color: Colors.grey.shade400),
+                      size: 12, color: cs.onSurfaceVariant),
                 ),
               ),
           ],
@@ -161,12 +161,12 @@ class _SlotCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(LucideIcons.plus,
-                size: 20, color: Colors.grey.shade400),
+                size: 20, color: cs.onSurfaceVariant),
             const SizedBox(height: 2),
             Text(
               'Slot ${slot + 1}',
               style: TextStyle(
-                  fontSize: 10, color: Colors.grey.shade400),
+                  fontSize: 10, color: cs.onSurfaceVariant),
             ),
           ],
         ),
@@ -188,7 +188,8 @@ class _CategoryPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Các slot khác đang dùng (trừ slot hiện tại)
+    final cs = Theme.of(context).colorScheme;
+
     final usedIds = currentSlots
         .asMap()
         .entries
@@ -201,9 +202,10 @@ class _CategoryPickerSheet extends StatelessWidget {
       children: [
         Container(
           margin: const EdgeInsets.symmetric(vertical: 10),
-          width: 36, height: 4,
+          width: 36,
+          height: 4,
           decoration: BoxDecoration(
-            color: Colors.grey.shade300,
+            color: cs.outlineVariant,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -211,7 +213,8 @@ class _CategoryPickerSheet extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
           child: Text(
             'Chọn danh mục cho slot ${currentSlotIndex + 1}',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ),
         const Divider(height: 1),
@@ -226,7 +229,8 @@ class _CategoryPickerSheet extends StatelessWidget {
               final isUsed = usedIds.contains(cat.id);
               return ListTile(
                 leading: Container(
-                  width: 36, height: 36,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: cat.color.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -237,18 +241,20 @@ class _CategoryPickerSheet extends StatelessWidget {
                 title: Text(cat.name,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isUsed ? Colors.grey.shade400 : null,
+                      color: isUsed ? cs.onSurfaceVariant : null,
                     )),
                 subtitle: isUsed
                     ? Text('Đang dùng ở slot khác',
                     style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade400))
+                        fontSize: 11, color: cs.onSurfaceVariant))
                     : null,
                 trailing: isUsed
                     ? null
-                    : const Icon(Icons.chevron_right,
-                    size: 18, color: Colors.grey),
-                onTap: isUsed ? null : () => Navigator.pop(context, cat),
+                    : Icon(Icons.chevron_right,
+                    size: 18, color: cs.onSurfaceVariant),
+                onTap: isUsed
+                    ? null
+                    : () => Navigator.pop(context, cat),
               );
             },
           ),
