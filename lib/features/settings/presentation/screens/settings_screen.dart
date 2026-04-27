@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/notifications/notification_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
@@ -207,6 +208,29 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
 
+          // ── Recurring reminders ──────────────────────────────────────────
+          _SectionHeader(title: 'Nhắc chi tiêu định kỳ'),
+          ListTile(
+            tileColor: surface,
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(LucideIcons.bellRing, size: 18, color: AppTheme.primary),
+            ),
+            title: const Text('Quản lý nhắc nhở', style: TextStyle(fontSize: 14)),
+            subtitle: Text(
+              'Nhắc mua đồ và ghi chi tiêu định kỳ',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            ),
+            trailing: Icon(LucideIcons.chevronRight, size: 18, color: cs.onSurfaceVariant),
+            onTap: () => context.push('/reminders'),
+          ),
+          const SizedBox(height: 8),
+
           // ── Widget pin ───────────────────────────────────────────────────
           _SectionHeader(title: 'Widget màn hình chính'),
           Container(
@@ -216,39 +240,16 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
 
-          // ── Expense categories ───────────────────────────────────────────
-          _SectionHeader(
-            title: 'Danh mục Chi',
-            action: TextButton.icon(
-              onPressed: () => _openForm(context, isIncome: false),
-              icon: const Icon(Icons.add, size: 16),
-              label:
-              const Text('Thêm', style: TextStyle(fontSize: 13)),
-            ),
+          // ── Categories (collapsible) ─────────────────────────────────────
+          _SectionHeader(title: 'Danh mục'),
+          _CategoriesExpansionTile(
+            expenseCats: expenseCats,
+            incomeCats: incomeCats,
+            onAddExpense: () => _openForm(context, isIncome: false),
+            onAddIncome: () => _openForm(context, isIncome: true),
+            onEdit: (cat) => _openEditForm(context, cat),
+            onDelete: (cat) => _confirmDelete(context, cat),
           ),
-          ...expenseCats.map((cat) => _CategoryTile(
-            category: cat,
-            onEdit: () => _openEditForm(context, cat),
-            onDelete: () => _confirmDelete(context, cat),
-          )),
-
-          const SizedBox(height: 8),
-
-          // ── Income categories ────────────────────────────────────────────
-          _SectionHeader(
-            title: 'Danh mục Thu',
-            action: TextButton.icon(
-              onPressed: () => _openForm(context, isIncome: true),
-              icon: const Icon(Icons.add, size: 16),
-              label:
-              const Text('Thêm', style: TextStyle(fontSize: 13)),
-            ),
-          ),
-          ...incomeCats.map((cat) => _CategoryTile(
-            category: cat,
-            onEdit: () => _openEditForm(context, cat),
-            onDelete: () => _confirmDelete(context, cat),
-          )),
 
           // // ── Account section ─────────────────────────────────────────────
           // _SectionHeader(title: 'Tài khoản'),
@@ -343,8 +344,6 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
-
-  // ── Bottom sheet helpers — dùng theme surface thay vì Colors.white ──────────
 
   void _openForm(BuildContext context, {required bool isIncome}) {
     showModalBottomSheet(
@@ -566,6 +565,191 @@ class _ThemeTile extends StatelessWidget {
           size: 16, color: AppTheme.primary)
           : null,
       onTap: onTap,
+    );
+  }
+}
+
+// ── Collapsible categories tile ───────────────────────────────────────────────
+
+class _CategoriesExpansionTile extends StatefulWidget {
+  final List<Category> expenseCats;
+  final List<Category> incomeCats;
+  final VoidCallback onAddExpense;
+  final VoidCallback onAddIncome;
+  final void Function(Category) onEdit;
+  final void Function(Category) onDelete;
+
+  const _CategoriesExpansionTile({
+    required this.expenseCats,
+    required this.incomeCats,
+    required this.onAddExpense,
+    required this.onAddIncome,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  State<_CategoriesExpansionTile> createState() =>
+      _CategoriesExpansionTileState();
+}
+
+class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
+  bool _expanded = false;
+  int _tab = 0; // 0 = Chi, 1 = Thu
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final cats = _tab == 0 ? widget.expenseCats : widget.incomeCats;
+    final total = widget.expenseCats.length + widget.incomeCats.length;
+
+    return Column(
+      children: [
+        // Header row
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Container(
+            color: cs.surface,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(LucideIcons.tag, size: 18, color: AppTheme.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Danh mục thu chi',
+                          style: TextStyle(fontSize: 14)),
+                      Text(
+                        '$total danh mục · ${widget.expenseCats.length} chi, ${widget.incomeCats.length} thu',
+                        style: TextStyle(
+                            fontSize: 12, color: cs.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(Icons.keyboard_arrow_down,
+                      size: 20, color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Expanded content
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Container(
+            color: cs.surface,
+            child: Column(
+              children: [
+                const Divider(height: 1),
+
+                // Chi / Thu tab strip + add button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+                  child: Row(
+                    children: [
+                      _TabChip(
+                        label: 'Chi (${widget.expenseCats.length})',
+                        selected: _tab == 0,
+                        onTap: () => setState(() => _tab = 0),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: 'Thu (${widget.incomeCats.length})',
+                        selected: _tab == 1,
+                        onTap: () => setState(() => _tab = 1),
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: _tab == 0
+                            ? widget.onAddExpense
+                            : widget.onAddIncome,
+                        icon: const Icon(Icons.add, size: 15),
+                        label: const Text('Thêm',
+                            style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          foregroundColor: AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Category list
+                ...cats.map((cat) => _CategoryTile(
+                  category: cat,
+                  onEdit: () => widget.onEdit(cat),
+                  onDelete: () => widget.onDelete(cat),
+                )),
+
+                const SizedBox(height: 4),
+              ],
+            ),
+          ),
+          crossFadeState: _expanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 220),
+          sizeCurve: Curves.easeOutCubic,
+        ),
+      ],
+    );
+  }
+}
+
+class _TabChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TabChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primary.withOpacity(0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppTheme.primary : cs.outlineVariant,
+            width: 0.8,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: selected ? AppTheme.primary : cs.onSurfaceVariant,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ),
     );
   }
 }

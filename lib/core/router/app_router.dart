@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
+import '../../features/reminders/presentation/screens/reminders_screen.dart';
 import '../../shared/widgets/app_bottom_nav.dart';
 
 final appRouter = GoRouter(
@@ -14,8 +15,19 @@ final appRouter = GoRouter(
       path: '/add',
       builder: (context, state) {
         final categoryId = state.uri.queryParameters['category_id'];
-        return _AddTransactionPage(categoryId: categoryId);
+        final note = state.uri.queryParameters['note'];
+        final amountStr = state.uri.queryParameters['amount'];
+        final amount = amountStr != null ? int.tryParse(amountStr) : null;
+        return _AddTransactionPage(
+          categoryId: categoryId,
+          prefillNote: note,
+          prefillAmount: amount,
+        );
       },
+    ),
+    GoRoute(
+      path: '/reminders',
+      builder: (_, __) => const RemindersScreen(),
     ),
   ],
 );
@@ -23,7 +35,14 @@ final appRouter = GoRouter(
 /// Wrapper page — mở AppShell rồi show bottom sheet ngay
 class _AddTransactionPage extends StatefulWidget {
   final String? categoryId;
-  const _AddTransactionPage({this.categoryId});
+  final String? prefillNote;
+  final int? prefillAmount;
+
+  const _AddTransactionPage({
+    this.categoryId,
+    this.prefillNote,
+    this.prefillAmount,
+  });
 
   @override
   State<_AddTransactionPage> createState() => _AddTransactionPageState();
@@ -44,6 +63,8 @@ class _AddTransactionPageState extends State<_AddTransactionPage> {
         ),
         builder: (_) => AddTransactionSheet(
           preselectedCategoryId: widget.categoryId,
+          prefillNote: widget.prefillNote,
+          prefillAmount: widget.prefillAmount,
         ),
       );
       if (mounted) context.go('/');

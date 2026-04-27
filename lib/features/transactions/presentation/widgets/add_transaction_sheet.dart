@@ -11,11 +11,15 @@ import '../../../../core/utils/category_matcher.dart';
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final Transaction? existing;
   final String? preselectedCategoryId;
+  final String? prefillNote;
+  final int? prefillAmount;
 
   const AddTransactionSheet({
     super.key,
     this.existing,
     this.preselectedCategoryId,
+    this.prefillNote,
+    this.prefillAmount,
   });
 
   @override
@@ -52,6 +56,13 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _selectedCategoryId = tx.categoryId;
     } else {
       _isExpense = true;
+      // Pre-fill from notification payload
+      if (widget.prefillNote != null) {
+        _noteCtrl.text = widget.prefillNote!;
+      }
+      if (widget.prefillAmount != null && widget.prefillAmount! > 0) {
+        _amountCtrl.prefill(widget.prefillAmount!.toString());
+      }
     }
   }
 

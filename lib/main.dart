@@ -6,7 +6,9 @@ import 'core/config.dart';
 import 'core/db/powersync_db.dart';
 import 'app.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/notifications/reminder_notification_service.dart';
 import 'core/utils/widget_sync.dart';
+import 'features/reminders/data/reminder_repository.dart';
 import 'shared/widgets/splash_screen.dart';
 
 void main() async {
@@ -30,7 +32,6 @@ class _AppRoot extends StatelessWidget {
   }
 }
 
-/// Chạy tất cả dịch vụ tuần tự, báo cáo progress về splash screen.
 Future<void> _initServices(
     void Function(double progress, String message) report,
     ) async {
@@ -52,8 +53,13 @@ Future<void> _initServices(
   report(0.65, 'Setting up notifications…');
   await NotificationService.init();
 
-  // 4. Home widgets sync
-  report(0.85, 'Syncing widgets…');
+  // 4. Schedule recurring reminders
+  report(0.80, 'Scheduling reminders…');
+  final reminders = await ReminderRepository().getAll();
+  await ReminderNotificationService.scheduleAll(reminders);
+
+  // 5. Home widgets sync
+  report(0.90, 'Syncing widgets…');
   await WidgetSync.syncCategories();
 
   report(1.0, 'All done!');
