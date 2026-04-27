@@ -20,6 +20,8 @@ class RecurringReminder {
   final int minute;
   final bool isActive;
   final DateTime nextTrigger;
+  /// Số giờ cảnh báo "sắp hết đồ" trước nextTrigger. 0 = tắt.
+  final int warnBeforeHours;
 
   const RecurringReminder({
     required this.id,
@@ -33,7 +35,17 @@ class RecurringReminder {
     required this.minute,
     required this.isActive,
     required this.nextTrigger,
+    this.warnBeforeHours = 0,
   });
+
+  /// Thời điểm gửi notification cảnh báo "sắp hết đồ".
+  /// null nếu warnBeforeHours == 0 hoặc warn time đã qua.
+  DateTime? get warnTrigger {
+    if (warnBeforeHours <= 0) return null;
+    final t = nextTrigger.subtract(Duration(hours: warnBeforeHours));
+    if (t.isBefore(DateTime.now())) return null;
+    return t;
+  }
 
   factory RecurringReminder.fromMap(Map<String, dynamic> map) {
     return RecurringReminder(
@@ -53,6 +65,37 @@ class RecurringReminder {
       minute: map['minute'] as int,
       isActive: (map['is_active'] as int) == 1,
       nextTrigger: DateTime.parse(map['next_trigger'] as String),
+      warnBeforeHours: (map['warn_before_hours'] as int?) ?? 0,
+    );
+  }
+
+  RecurringReminder copyWith({
+    String? id,
+    String? title,
+    String? categoryId,
+    int? amountHint,
+    ReminderFrequency? frequency,
+    int? dayOfWeek,
+    int? dayOfMonth,
+    int? hour,
+    int? minute,
+    bool? isActive,
+    DateTime? nextTrigger,
+    int? warnBeforeHours,
+  }) {
+    return RecurringReminder(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      categoryId: categoryId ?? this.categoryId,
+      amountHint: amountHint ?? this.amountHint,
+      frequency: frequency ?? this.frequency,
+      dayOfWeek: dayOfWeek ?? this.dayOfWeek,
+      dayOfMonth: dayOfMonth ?? this.dayOfMonth,
+      hour: hour ?? this.hour,
+      minute: minute ?? this.minute,
+      isActive: isActive ?? this.isActive,
+      nextTrigger: nextTrigger ?? this.nextTrigger,
+      warnBeforeHours: warnBeforeHours ?? this.warnBeforeHours,
     );
   }
 
@@ -77,7 +120,16 @@ class RecurringReminder {
   }
 
   static String _weekdayName(int day) {
-    const names = ['', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+    const names = [
+      '',
+      'Thứ 2',
+      'Thứ 3',
+      'Thứ 4',
+      'Thứ 5',
+      'Thứ 6',
+      'Thứ 7',
+      'CN'
+    ];
     return names[day.clamp(1, 7)];
   }
 
@@ -96,15 +148,14 @@ class RecurringReminder {
         if (!t.isAfter(now)) t = t.add(const Duration(days: 1));
         return t;
       case ReminderFrequency.weekly:
-        final targetDow = dayOfWeek ?? 1; // 1=Mon
+        final targetDow = dayOfWeek ?? 1;
         var t = DateTime(now.year, now.month, now.day, hour, minute);
-        // Dart weekday: 1=Mon..7=Sun — matches our scheme
         final diff = (targetDow - now.weekday + 7) % 7;
         t = t.add(Duration(days: diff));
         if (!t.isAfter(now)) t = t.add(const Duration(days: 7));
         return t;
       case ReminderFrequency.monthly:
-        final dom = (dayOfMonth ?? 1).clamp(1, 28); // clamp to 28 to be safe
+        final dom = (dayOfMonth ?? 1).clamp(1, 28);
         var t = DateTime(now.year, now.month, dom, hour, minute);
         if (!t.isAfter(now)) {
           t = DateTime(now.year, now.month + 1, dom, hour, minute);
@@ -114,26 +165,66 @@ class RecurringReminder {
   }
 }
 
-// Preset templates
+// ── Preset templates ──────────────────────────────────────────────────────────
+
 class ReminderPreset {
   final String title;
-  final String iconName; // maps to category icon
+  final String iconName;
   final int? suggestedAmount;
   final ReminderFrequency frequency;
+  /// Số giờ cảnh báo trước mặc định cho preset này
+  final int defaultWarnBeforeHours;
 
   const ReminderPreset({
     required this.title,
     required this.iconName,
     this.suggestedAmount,
     required this.frequency,
+    this.defaultWarnBeforeHours = 0,
   });
 }
 
 const kReminderPresets = [
-  ReminderPreset(title: 'Dầu gội', iconName: 'favorite', suggestedAmount: 50000, frequency: ReminderFrequency.monthly),
-  ReminderPreset(title: 'Tiền điện', iconName: 'home', suggestedAmount: 300000, frequency: ReminderFrequency.monthly),
-  ReminderPreset(title: 'Tiền nước', iconName: 'home', suggestedAmount: 100000, frequency: ReminderFrequency.monthly),
-  ReminderPreset(title: 'Xăng xe', iconName: 'directions_car', suggestedAmount: 100000, frequency: ReminderFrequency.weekly),
-  ReminderPreset(title: 'Đồ ăn vặt', iconName: 'restaurant', suggestedAmount: 50000, frequency: ReminderFrequency.weekly),
-  ReminderPreset(title: 'Tiền thuê nhà', iconName: 'home', suggestedAmount: 3000000, frequency: ReminderFrequency.monthly),
+  ReminderPreset(
+    title: 'Dầu gội',
+    iconName: 'favorite',
+    suggestedAmount: 50000,
+    frequency: ReminderFrequency.monthly,
+    defaultWarnBeforeHours: 48, // cảnh báo trước 2 ngày
+  ),
+  ReminderPreset(
+    title: 'Tiền điện',
+    iconName: 'home',
+    suggestedAmount: 300000,
+    frequency: ReminderFrequency.monthly,
+    defaultWarnBeforeHours: 72,
+  ),
+  ReminderPreset(
+    title: 'Tiền nước',
+    iconName: 'home',
+    suggestedAmount: 100000,
+    frequency: ReminderFrequency.monthly,
+    defaultWarnBeforeHours: 48,
+  ),
+  ReminderPreset(
+    title: 'Xăng xe',
+    iconName: 'directions_car',
+    suggestedAmount: 100000,
+    frequency: ReminderFrequency.weekly,
+    defaultWarnBeforeHours: 24,
+  ),
+  ReminderPreset(
+    title: 'Đồ ăn vặt',
+    iconName: 'restaurant',
+    suggestedAmount: 50000,
+    frequency: ReminderFrequency.weekly,
+    defaultWarnBeforeHours: 0,
+  ),
+  ReminderPreset(
+    title: 'Tiền thuê nhà',
+    iconName: 'home',
+    suggestedAmount: 3000000,
+    frequency: ReminderFrequency.monthly,
+    defaultWarnBeforeHours: 120, // cảnh báo trước 5 ngày
+  ),
 ];

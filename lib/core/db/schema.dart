@@ -24,12 +24,14 @@ const schema = Schema([
     Column.text('title'),
     Column.text('category_id'),
     Column.text('amount_hint'),
-    Column.text('frequency'),      // 'daily' | 'weekly' | 'monthly'
-    Column.integer('day_of_week'), // 1-7, weekly only
-    Column.integer('day_of_month'),// 1-28, monthly only
+    Column.text('frequency'),       // 'daily' | 'weekly' | 'monthly'
+    Column.integer('day_of_week'),  // 1-7, weekly only
+    Column.integer('day_of_month'), // 1-28, monthly only
     Column.integer('hour'),
     Column.integer('minute'),
     Column.integer('is_active'),
-    Column.text('next_trigger'),   // ISO8601 string
+    Column.text('next_trigger'),    // ISO8601 string
+    // "Sắp hết đồ" mode: cảnh báo trước N giờ (0 = tắt)
+    Column.integer('warn_before_hours'),
   ]),
 ]);
