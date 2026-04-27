@@ -92,6 +92,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final accentColor = Color(
       int.parse('FF${_selectedColor.replaceAll('#', '')}', radix: 16),
     );
@@ -107,13 +108,13 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // handle
+          // Drag handle
           Center(
             child: Container(
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: cs.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -122,28 +123,35 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
 
           Text(
             _isEdit ? 'Chỉnh sửa danh mục' : 'Thêm danh mục',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 16),
 
-          // name field
+          // Name field
           TextField(
             controller: _nameCtrl,
             autofocus: true,
+            style: TextStyle(color: cs.onSurface),
             decoration: InputDecoration(
               labelText: 'Tên danh mục',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
-              contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 10),
             ),
           ),
           const SizedBox(height: 16),
 
-          // color picker
-          const Text('Màu sắc',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          // Color picker
+          Text(
+            'Màu sắc',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: cs.onSurface),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -163,14 +171,19 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                     color: color,
                     shape: BoxShape.circle,
                     border: selected
-                        ? Border.all(color: Colors.white, width: 3)
+                        ? Border.all(color: cs.surface, width: 3)
                         : null,
                     boxShadow: selected
-                        ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 6)]
+                        ? [
+                      BoxShadow(
+                          color: color.withOpacity(0.5),
+                          blurRadius: 6)
+                    ]
                         : null,
                   ),
                   child: selected
-                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      ? const Icon(Icons.check,
+                      size: 14, color: Colors.white)
                       : null,
                 ),
               );
@@ -178,13 +191,14 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
           ),
           const SizedBox(height: 16),
 
-          // icon picker
-          const Text('Icon',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
-          // Thay đoạn Wrap icon picker cũ bằng:
-          const Text('Icon',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          // Icon picker
+          Text(
+            'Icon',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: cs.onSurface),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -192,7 +206,8 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
             children: _kIconNames.map((name) {
               final selected = name == _selectedIcon;
               final color = Color(
-                int.parse('FF${_selectedColor.replaceAll('#', '')}', radix: 16),
+                int.parse(
+                    'FF${_selectedColor.replaceAll('#', '')}', radix: 16),
               );
               return GestureDetector(
                 onTap: () => setState(() => _selectedIcon = name),
@@ -203,16 +218,17 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                   decoration: BoxDecoration(
                     color: selected
                         ? color.withOpacity(0.15)
-                        : Colors.grey.shade100,
+                        : cs.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                     border: selected
                         ? Border.all(color: color, width: 1.5)
-                        : null,
+                        : Border.all(
+                        color: cs.outlineVariant, width: 0.5),
                   ),
                   child: Icon(
                     categoryIcon(name),
                     size: 20,
-                    color: selected ? color : Colors.grey.shade500,
+                    color: selected ? color : cs.onSurfaceVariant,
                   ),
                 ),
               );
@@ -220,7 +236,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
           ),
           const SizedBox(height: 20),
 
-          // submit button
+          // Submit
           SizedBox(
             width: double.infinity,
             child: FilledButton(

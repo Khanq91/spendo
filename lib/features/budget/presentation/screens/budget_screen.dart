@@ -22,7 +22,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill nếu đã có budget
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final budget = ref.read(currentBudgetProvider).valueOrNull;
       if (budget != null) {
@@ -43,7 +42,6 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
 
     final month = ref.read(selectedMonthProvider);
     final key = Budget.monthKey(month);
-
     await BudgetRepository().set(key, _amountCtrl.value);
 
     if (mounted) Navigator.of(context).pop();
@@ -59,7 +57,9 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   @override
   Widget build(BuildContext context) {
     final month = ref.watch(selectedMonthProvider);
-    final hasBudget = ref.watch(currentBudgetProvider).valueOrNull != null;
+    final hasBudget =
+        ref.watch(currentBudgetProvider).valueOrNull != null;
+    final cs = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -67,13 +67,13 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // handle
+          // Drag handle
           Container(
             margin: const EdgeInsets.symmetric(vertical: 10),
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: cs.outlineVariant,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -93,7 +93,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                     Text(
                       'Tháng ${month.month}/${month.year}',
                       style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade500),
+                          fontSize: 12, color: cs.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -103,7 +103,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                     onPressed: _delete,
                     style: TextButton.styleFrom(
                         foregroundColor: const Color(0xFFE53935)),
-                    child: const Text('Xoá', style: TextStyle(fontSize: 13)),
+                    child: const Text('Xoá',
+                        style: TextStyle(fontSize: 13)),
                   ),
               ],
             ),
@@ -111,7 +112,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
 
           const SizedBox(height: 8),
 
-          // amount display
+          // Amount display
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -132,27 +133,28 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 const SizedBox(width: 4),
                 Text('₫',
                     style: TextStyle(
-                        fontSize: 14, color: Colors.grey.shade500)),
+                        fontSize: 14,
+                        color: cs.onSurfaceVariant)),
               ],
             ),
           ),
 
           const Divider(height: 16, thickness: 0.5),
 
-          // numpad
           ListenableBuilder(
             listenable: _amountCtrl,
             builder: (_, __) => Numpad(onKey: _amountCtrl.press),
           ),
 
-          // save button
+          // Save button
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: ListenableBuilder(
               listenable: _amountCtrl,
               builder: (_, __) => FilledButton(
-                onPressed:
-                _amountCtrl.hasValue && !_loading ? _save : null,
+                onPressed: _amountCtrl.hasValue && !_loading
+                    ? _save
+                    : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF6C63FF),
                   minimumSize: const Size(double.infinity, 48),
@@ -165,14 +167,16 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2,
+                      color: Colors.white),
                 )
                     : Text(
                   hasBudget
                       ? 'Cập nhật hạn mức'
                       : 'Đặt hạn mức ${_amountCtrl.formatted} ₫',
                   style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600),
                 ),
               ),
             ),

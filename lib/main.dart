@@ -35,7 +35,7 @@ Future<void> _initServices(
     void Function(double progress, String message) report,
     ) async {
   report(0.0, 'Initializing…');
-  await Future.delayed(const Duration(milliseconds: 100)); // allow first frame
+  await Future.delayed(const Duration(milliseconds: 100));
 
   // 1. Supabase
   report(0.05, 'Connecting to cloud…');

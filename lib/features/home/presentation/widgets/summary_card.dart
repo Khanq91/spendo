@@ -16,13 +16,16 @@ class SummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Column(
       children: [
-        // balance lớn ở trên
+        // Balance card — gradient stays the same, always readable
         Container(
           width: double.infinity,
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [AppTheme.primary, AppTheme.primaryLight],
@@ -36,10 +39,7 @@ class SummaryCards extends StatelessWidget {
             children: [
               const Text(
                 'Số dư',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(height: 4),
               Text(
@@ -57,7 +57,7 @@ class SummaryCards extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // thu + chi row
+        // Income + expense mini cards
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
@@ -66,7 +66,7 @@ class SummaryCards extends StatelessWidget {
                 child: _MiniCard(
                   label: 'Thu nhập',
                   amount: income,
-                  color: const Color(0xFF43A047),
+                  color: AppTheme.incomeColor,
                   icon: Icons.arrow_downward_rounded,
                 ),
               ),
@@ -75,7 +75,7 @@ class SummaryCards extends StatelessWidget {
                 child: _MiniCard(
                   label: 'Chi tiêu',
                   amount: expense,
-                  color: const Color(0xFFE53935),
+                  color: AppTheme.expenseAltColor,
                   icon: Icons.arrow_upward_rounded,
                 ),
               ),
@@ -102,10 +102,13 @@ class _MiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        // surface thay vì hardcode opacity trên white
+        color: cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.2), width: 0.5),
       ),
@@ -124,9 +127,11 @@ class _MiniCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade600)),
+                Text(
+                  label,
+                  style: TextStyle(
+                      fontSize: 11, color: cs.onSurfaceVariant),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   formatVND(amount),
