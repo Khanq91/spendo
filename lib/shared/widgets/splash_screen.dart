@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme/theme_provider.dart';
 
 typedef InitCallback = Future<void> Function(
     void Function(double progress, String message) onProgress,
     );
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   final InitCallback onInit;
   final Widget nextScreen;
 
@@ -16,10 +18,10 @@ class SplashScreen extends StatefulWidget {
   });
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late final AnimationController _entryCtrl;
   late final AnimationController _progressCtrl;
@@ -39,26 +41,36 @@ class _SplashScreenState extends State<SplashScreen>
   String _statusMsg = 'Starting up…';
   bool _initDone = false;
 
-  // Đọc brightness lúc initState — trước khi context available trong build
-  late Brightness _brightness;
+  // ── Resolve brightness từ app theme mode + system ─────────────────────────
 
-  @override
-  void initState() {
-    super.initState();
-    _brightness =
-        WidgetsBinding.instance.platformDispatcher.platformBrightness;
-
-    _updateSystemUI();
-    _setupAnimations();
-    _entryCtrl.forward().then((_) => _startInit());
+  /// Ưu tiên: app ThemeMode (light/dark cứng) → system brightness
+  Brightness _resolveBrightness() {
+    final themeMode = ref.read(themeModeProvider);
+    if (themeMode == ThemeMode.dark) return Brightness.dark;
+    if (themeMode == ThemeMode.light) return Brightness.light;
+    // ThemeMode.system — đọc từ MediaQuery, luôn chính xác trong build/didChangeDependencies
+    return MediaQuery.of(context).platformBrightness;
   }
 
-  void _updateSystemUI() {
-    final isDark = _brightness == Brightness.dark;
+  void _updateSystemUI(bool isDark) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     ));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAnimations();
+    _entryCtrl.forward().then((_) => _startInit());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Gọi ở đây để có context hợp lệ (MediaQuery available)
+    _updateSystemUI(_resolveBrightness() == Brightness.dark);
   }
 
   void _setupAnimations() {
@@ -174,36 +186,25 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  // ── Colors theo brightness ─────────────────────────────────────────────────
-
-  bool get _isDark => _brightness == Brightness.dark;
-
-  Color get _bgColor =>
-      _isDark ? const Color(0xFF0F0A12) : const Color(0xFFFAF5FF);
-
-  Color get _taglineColor =>
-      _isDark ? const Color(0xFFB89AB0) : const Color(0xFF7B5F8A);
-
-  Color get _statusColor =>
-      _isDark ? const Color(0xFF8A7090) : const Color(0xFF9E7DB0);
-
-  Color get _versionColor =>
-      _isDark ? const Color(0xFF5A4560) : const Color(0xFFB09ABF);
-
-  Color get _progressTrackColor =>
-      _isDark ? const Color(0xFF2A1A2E) : const Color(0xFFE8D8F5);
-
-  Color get _appNameColor => _isDark ? Colors.white : const Color(0xFF1A0A2E);
-
   @override
   Widget build(BuildContext context) {
+    // Đọc brightness mỗi frame — đảm bảo luôn đúng
+    final isDark = _resolveBrightness() == Brightness.dark;
+
+    final bgColor = isDark ? const Color(0xFF0F0A12) : const Color(0xFFFAF5FF);
+    final taglineColor = isDark ? const Color(0xFFB89AB0) : const Color(0xFF7B5F8A);
+    final statusColor = isDark ? const Color(0xFF8A7090) : const Color(0xFF9E7DB0);
+    final versionColor = isDark ? const Color(0xFF5A4560) : const Color(0xFFB09ABF);
+    final progressTrackColor = isDark ? const Color(0xFF2A1A2E) : const Color(0xFFE8D8F5);
+    final appNameColor = isDark ? Colors.white : const Color(0xFF1A0A2E);
+
     return FadeTransition(
       opacity: _exitOpacity,
       child: Scaffold(
-        backgroundColor: _bgColor,
+        backgroundColor: bgColor,
         body: Stack(
           children: [
-            Positioned.fill(child: _BackgroundMesh(isDark: _isDark)),
+            Positioned.fill(child: _BackgroundMesh(isDark: isDark)),
             SafeArea(
               child: Column(
                 children: [
@@ -213,8 +214,7 @@ class _SplashScreenState extends State<SplashScreen>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           AnimatedBuilder(
-                            animation:
-                            Listenable.merge([_entryCtrl, _pulseCtrl]),
+                            animation: Listenable.merge([_entryCtrl, _pulseCtrl]),
                             builder: (_, __) => FadeTransition(
                               opacity: _logoOpacity,
                               child: SlideTransition(
@@ -222,8 +222,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 child: ScaleTransition(
                                   scale: _logoScale,
                                   child: _LogoMark(
-                                    glowIntensity:
-                                    _initDone ? 0.0 : _pulse.value,
+                                    glowIntensity: _initDone ? 0.0 : _pulse.value,
                                   ),
                                 ),
                               ),
@@ -240,7 +239,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   fontFamily: 'serif',
                                   fontSize: 44,
                                   fontWeight: FontWeight.w700,
-                                  color: _appNameColor,
+                                  color: appNameColor,
                                   letterSpacing: -1.5,
                                   height: 1,
                                 ),
@@ -258,7 +257,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   'Your money, clearly.',
                                   style: TextStyle(
                                     fontSize: 15,
-                                    color: _taglineColor,
+                                    color: taglineColor,
                                     letterSpacing: 0.3,
                                     fontWeight: FontWeight.w400,
                                   ),
@@ -281,23 +280,22 @@ class _SplashScreenState extends State<SplashScreen>
                           children: [
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 300),
-                              transitionBuilder: (child, anim) =>
-                                  FadeTransition(
-                                    opacity: anim,
-                                    child: SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(0, 0.3),
-                                        end: Offset.zero,
-                                      ).animate(anim),
-                                      child: child,
-                                    ),
-                                  ),
+                              transitionBuilder: (child, anim) => FadeTransition(
+                                opacity: anim,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 0.3),
+                                    end: Offset.zero,
+                                  ).animate(anim),
+                                  child: child,
+                                ),
+                              ),
                               child: Text(
                                 _statusMsg,
                                 key: ValueKey(_statusMsg),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: _statusColor,
+                                  color: statusColor,
                                   letterSpacing: 0.4,
                                 ),
                               ),
@@ -305,15 +303,15 @@ class _SplashScreenState extends State<SplashScreen>
                             const SizedBox(height: 14),
                             _ProgressBar(
                               progress: _progress,
-                              trackColor: _progressTrackColor,
-                              isDark: _isDark,
+                              trackColor: progressTrackColor,
+                              isDark: isDark,
                             ),
                             const SizedBox(height: 24),
                             Text(
                               'v1.0.0',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: _versionColor,
+                                color: versionColor,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -357,8 +355,7 @@ class _LogoMark extends StatelessWidget {
             spreadRadius: 2 + 4 * glowIntensity,
           ),
           BoxShadow(
-            color:
-            const Color(0xFFF06292).withOpacity(0.1 * glowIntensity),
+            color: const Color(0xFFF06292).withOpacity(0.1 * glowIntensity),
             blurRadius: 60,
             spreadRadius: 10,
           ),
@@ -503,9 +500,8 @@ class _MeshPainter extends CustomPainter {
       bottomOrb,
     );
 
-    final bgColor = isDark
-        ? const Color(0xFF0F0A12)
-        : const Color(0xFFFAF5FF);
+    final bgColor =
+    isDark ? const Color(0xFF0F0A12) : const Color(0xFFFAF5FF);
     final vignette = Paint()
       ..shader = RadialGradient(
         colors: [

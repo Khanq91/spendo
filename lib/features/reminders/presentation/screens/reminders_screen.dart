@@ -90,6 +90,22 @@ class _DebugPanelState extends State<_DebugPanel> {
     _selected = widget.reminders.first;
   }
 
+  @override
+  void didUpdateWidget(_DebugPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.reminders != oldWidget.reminders) {
+      // Sync _selected sang instance mới có cùng id
+      final currentId = _selected?.id;
+      if (currentId != null) {
+        _selected = widget.reminders
+            .where((r) => r.id == currentId)
+            .firstOrNull;
+      }
+      // Fallback nếu reminder bị xoá
+      _selected ??= widget.reminders.firstOrNull;
+    }
+  }
+
   Future<void> _fireNow() async {
     final r = _selected;
     if (r == null) return;
