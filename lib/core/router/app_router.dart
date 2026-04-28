@@ -3,8 +3,12 @@ import 'package:go_router/go_router.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
 import '../../features/reminders/presentation/screens/reminders_screen.dart';
 import '../../shared/widgets/app_bottom_nav.dart';
+import '../notifications/notification_service.dart';
+
+final _routerNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
+  navigatorKey: _routerNavigatorKey,
   initialLocation: '/',
   routes: [
     GoRoute(
@@ -32,7 +36,11 @@ final appRouter = GoRouter(
   ],
 );
 
-/// Wrapper page — mở AppShell rồi show bottom sheet ngay
+/// Gán navigatorKey cho NotificationService sau khi router sẵn sàng.
+void initNotificationNavigatorKey() {
+  NotificationService.navigatorKey = _routerNavigatorKey;
+}
+
 class _AddTransactionPage extends StatefulWidget {
   final String? categoryId;
   final String? prefillNote;

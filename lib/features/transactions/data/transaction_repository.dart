@@ -27,7 +27,8 @@ class TransactionRepository {
     DateTime? createdAt,
   }) async {
     final at = (createdAt?.millisecondsSinceEpoch ??
-        DateTime.now().millisecondsSinceEpoch).toString();
+        DateTime.now().millisecondsSinceEpoch)
+        .toString();
 
     await db.execute(
       'INSERT INTO transactions(id, amount, type, category_id, note, created_at) '
@@ -37,10 +38,10 @@ class TransactionRepository {
   }
 
   Future<void> update(Transaction t) async {
-    final now = DateTime.now().millisecondsSinceEpoch.toString();
+    // Không ghi updated_at thủ công — PowerSync tự quản lý field này
     await db.execute(
-      'UPDATE transactions SET amount=?, type=?, category_id=?, note=?, updated_at=? WHERE id=?',
-      [t.amount.toString(), t.type, t.categoryId, t.note, now, t.id],
+      'UPDATE transactions SET amount=?, type=?, category_id=?, note=? WHERE id=?',
+      [t.amount.toString(), t.type, t.categoryId, t.note, t.id],
     );
   }
 

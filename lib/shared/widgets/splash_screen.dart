@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Callback type — nhận progress (0.0 → 1.0) và status message
 typedef InitCallback = Future<void> Function(
     void Function(double progress, String message) onProgress,
     );
@@ -22,13 +21,11 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  // ── Animation controllers ──────────────────────────────────────────────────
   late final AnimationController _entryCtrl;
   late final AnimationController _progressCtrl;
   late final AnimationController _pulseCtrl;
   late final AnimationController _exitCtrl;
 
-  // ── Animations ─────────────────────────────────────────────────────────────
   late final Animation<double> _logoScale;
   late final Animation<double> _logoOpacity;
   late final Animation<Offset> _logoSlide;
@@ -38,26 +35,33 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _pulse;
   late final Animation<double> _exitOpacity;
 
-  // ── State ──────────────────────────────────────────────────────────────────
   double _progress = 0.0;
   String _statusMsg = 'Starting up…';
   bool _initDone = false;
 
+  // Đọc brightness lúc initState — trước khi context available trong build
+  late Brightness _brightness;
+
   @override
   void initState() {
     super.initState();
+    _brightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
 
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ));
-
+    _updateSystemUI();
     _setupAnimations();
     _entryCtrl.forward().then((_) => _startInit());
   }
 
+  void _updateSystemUI() {
+    final isDark = _brightness == Brightness.dark;
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    ));
+  }
+
   void _setupAnimations() {
-    // Entry — logo + tagline fade/slide in
     _entryCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1100),
@@ -103,13 +107,11 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Progress bar smooth animation
     _progressCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
 
-    // Pulse glow on logo while loading
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -118,7 +120,6 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
 
-    // Exit fade
     _exitCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 450),
@@ -139,7 +140,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    // Ensure 100% visible for a moment
     setState(() {
       _progress = 1.0;
       _statusMsg = 'Ready!';
@@ -174,31 +174,47 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+  // ── Colors theo brightness ─────────────────────────────────────────────────
+
+  bool get _isDark => _brightness == Brightness.dark;
+
+  Color get _bgColor =>
+      _isDark ? const Color(0xFF0F0A12) : const Color(0xFFFAF5FF);
+
+  Color get _taglineColor =>
+      _isDark ? const Color(0xFFB89AB0) : const Color(0xFF7B5F8A);
+
+  Color get _statusColor =>
+      _isDark ? const Color(0xFF8A7090) : const Color(0xFF9E7DB0);
+
+  Color get _versionColor =>
+      _isDark ? const Color(0xFF5A4560) : const Color(0xFFB09ABF);
+
+  Color get _progressTrackColor =>
+      _isDark ? const Color(0xFF2A1A2E) : const Color(0xFFE8D8F5);
+
+  Color get _appNameColor => _isDark ? Colors.white : const Color(0xFF1A0A2E);
+
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _exitOpacity,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F0A12),
+        backgroundColor: _bgColor,
         body: Stack(
           children: [
-            // ── Background mesh gradient ──────────────────────────────────
-            Positioned.fill(child: _BackgroundMesh()),
-
-            // ── Main content ──────────────────────────────────────────────
+            Positioned.fill(child: _BackgroundMesh(isDark: _isDark)),
             SafeArea(
               child: Column(
                 children: [
-                  // Center: logo + name + tagline
                   Expanded(
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Logo mark
                           AnimatedBuilder(
-                            animation: Listenable.merge(
-                                [_entryCtrl, _pulseCtrl]),
+                            animation:
+                            Listenable.merge([_entryCtrl, _pulseCtrl]),
                             builder: (_, __) => FadeTransition(
                               opacity: _logoOpacity,
                               child: SlideTransition(
@@ -206,48 +222,43 @@ class _SplashScreenState extends State<SplashScreen>
                                 child: ScaleTransition(
                                   scale: _logoScale,
                                   child: _LogoMark(
-                                    glowIntensity: _initDone ? 0.0 : _pulse.value,
+                                    glowIntensity:
+                                    _initDone ? 0.0 : _pulse.value,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-
                           const SizedBox(height: 28),
-
-                          // App name
                           AnimatedBuilder(
                             animation: _entryCtrl,
                             builder: (_, __) => FadeTransition(
                               opacity: _logoOpacity,
-                              child: const Text(
+                              child: Text(
                                 'Spendo',
                                 style: TextStyle(
                                   fontFamily: 'serif',
                                   fontSize: 44,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: _appNameColor,
                                   letterSpacing: -1.5,
                                   height: 1,
                                 ),
                               ),
                             ),
                           ),
-
                           const SizedBox(height: 8),
-
-                          // Tagline
                           AnimatedBuilder(
                             animation: _entryCtrl,
                             builder: (_, __) => Opacity(
                               opacity: _taglineOpacity.value,
                               child: Transform.translate(
                                 offset: Offset(0, _taglineSlide.value),
-                                child: const Text(
+                                child: Text(
                                   'Your money, clearly.',
                                   style: TextStyle(
                                     fontSize: 15,
-                                    color: Color(0xFFB89AB0),
+                                    color: _taglineColor,
                                     letterSpacing: 0.3,
                                     fontWeight: FontWeight.w400,
                                   ),
@@ -259,8 +270,6 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
-
-                  // Bottom: loading bar + status
                   AnimatedBuilder(
                     animation: _entryCtrl,
                     builder: (_, __) => FadeTransition(
@@ -270,7 +279,6 @@ class _SplashScreenState extends State<SplashScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Status message
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 300),
                               transitionBuilder: (child, anim) =>
@@ -287,27 +295,25 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Text(
                                 _statusMsg,
                                 key: ValueKey(_statusMsg),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF8A7090),
+                                  color: _statusColor,
                                   letterSpacing: 0.4,
                                 ),
                               ),
                             ),
-
                             const SizedBox(height: 14),
-
-                            // Progress track
-                            _ProgressBar(progress: _progress),
-
+                            _ProgressBar(
+                              progress: _progress,
+                              trackColor: _progressTrackColor,
+                              isDark: _isDark,
+                            ),
                             const SizedBox(height: 24),
-
-                            // Version tag
-                            const Text(
+                            Text(
                               'v1.0.0',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFF5A4560),
+                                color: _versionColor,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -345,22 +351,21 @@ class _LogoMark extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFF06292).withOpacity(0.25 + 0.25 * glowIntensity),
+            color: const Color(0xFFF06292)
+                .withOpacity(0.25 + 0.25 * glowIntensity),
             blurRadius: 24 + 20 * glowIntensity,
             spreadRadius: 2 + 4 * glowIntensity,
           ),
           BoxShadow(
-            color: const Color(0xFFF06292).withOpacity(0.1 * glowIntensity),
+            color:
+            const Color(0xFFF06292).withOpacity(0.1 * glowIntensity),
             blurRadius: 60,
             spreadRadius: 10,
           ),
         ],
       ),
       child: const Center(
-        child: Text(
-          '💸',
-          style: TextStyle(fontSize: 46),
-        ),
+        child: Text('💸', style: TextStyle(fontSize: 46)),
       ),
     );
   }
@@ -370,7 +375,14 @@ class _LogoMark extends StatelessWidget {
 
 class _ProgressBar extends StatelessWidget {
   final double progress;
-  const _ProgressBar({required this.progress});
+  final Color trackColor;
+  final bool isDark;
+
+  const _ProgressBar({
+    required this.progress,
+    required this.trackColor,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -381,12 +393,11 @@ class _ProgressBar extends StatelessWidget {
           height: 3,
           width: trackW,
           decoration: BoxDecoration(
-            color: const Color(0xFF2A1A2E),
+            color: trackColor,
             borderRadius: BorderRadius.circular(2),
           ),
           child: Stack(
             children: [
-              // Filled portion
               AnimatedContainer(
                 duration: const Duration(milliseconds: 380),
                 curve: Curves.easeOutCubic,
@@ -406,8 +417,6 @@ class _ProgressBar extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Shimmer gleam travelling along the bar
               if (progress > 0.0 && progress < 1.0)
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 380),
@@ -421,7 +430,7 @@ class _ProgressBar extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: [
                           Colors.white.withOpacity(0.0),
-                          Colors.white.withOpacity(0.5),
+                          Colors.white.withOpacity(isDark ? 0.5 : 0.8),
                           Colors.white.withOpacity(0.0),
                         ],
                       ),
@@ -439,22 +448,29 @@ class _ProgressBar extends StatelessWidget {
 // ── Background mesh ───────────────────────────────────────────────────────────
 
 class _BackgroundMesh extends StatelessWidget {
+  final bool isDark;
+  const _BackgroundMesh({required this.isDark});
+
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _MeshPainter(),
-    );
+    return CustomPaint(painter: _MeshPainter(isDark: isDark));
   }
 }
 
 class _MeshPainter extends CustomPainter {
+  final bool isDark;
+  const _MeshPainter({required this.isDark});
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Deep violet top orb
+    final topOrbOpacity = isDark ? 0.35 : 0.18;
+    final bottomOrbOpacity = isDark ? 0.18 : 0.12;
+    final vignetteOpacity = isDark ? 0.55 : 0.25;
+
     final topOrb = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF7B1FA2).withOpacity(0.35),
+          const Color(0xFF7B1FA2).withOpacity(topOrbOpacity),
           Colors.transparent,
         ],
       ).createShader(
@@ -469,11 +485,10 @@ class _MeshPainter extends CustomPainter {
       topOrb,
     );
 
-    // Pink bottom-left orb
     final bottomOrb = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFFF06292).withOpacity(0.18),
+          const Color(0xFFF06292).withOpacity(bottomOrbOpacity),
           Colors.transparent,
         ],
       ).createShader(
@@ -488,17 +503,17 @@ class _MeshPainter extends CustomPainter {
       bottomOrb,
     );
 
-    // Subtle center vignette
+    final bgColor = isDark
+        ? const Color(0xFF0F0A12)
+        : const Color(0xFFFAF5FF);
     final vignette = Paint()
       ..shader = RadialGradient(
         colors: [
           Colors.transparent,
-          const Color(0xFF0F0A12).withOpacity(0.55),
+          bgColor.withOpacity(vignetteOpacity),
         ],
         radius: 0.85,
-      ).createShader(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-      );
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
       vignette,
@@ -506,5 +521,5 @@ class _MeshPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MeshPainter old) => old.isDark != isDark;
 }

@@ -54,9 +54,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _noteCtrl.text = tx.note ?? '';
       _isExpense = tx.isExpense;
       _selectedCategoryId = tx.categoryId;
+      _userPickedCategory = true; // edit mode: coi như user đã chọn
     } else {
       _isExpense = true;
-      // Pre-fill from notification payload
       if (widget.prefillNote != null) {
         _noteCtrl.text = widget.prefillNote!;
       }
@@ -131,6 +131,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     }
   }
 
+  /// Đổi type Chi/Thu — chỉ reset category nếu thực sự thay đổi type
+  void _switchType(bool toExpense) {
+    if (_isExpense == toExpense) return; // không đổi → không làm gì
+    setState(() {
+      _isExpense = toExpense;
+      _selectedCategoryId = null;
+      _userPickedCategory = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
@@ -187,22 +197,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                   label: 'Chi',
                   active: _isExpense,
                   color: const Color(0xFFE53935),
-                  onTap: () => setState(() {
-                    _isExpense = true;
-                    _selectedCategoryId = null;
-                    _userPickedCategory = false;
-                  }),
+                  onTap: () => _switchType(true),
                 ),
                 const SizedBox(width: 8),
                 _TypeToggle(
                   label: 'Thu',
                   active: !_isExpense,
                   color: const Color(0xFF43A047),
-                  onTap: () => setState(() {
-                    _isExpense = false;
-                    _selectedCategoryId = null;
-                    _userPickedCategory = false;
-                  }),
+                  onTap: () => _switchType(false),
                 ),
                 const Spacer(),
                 ListenableBuilder(
@@ -291,8 +293,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               style: TextStyle(fontSize: 13, color: cs.onSurface),
               decoration: InputDecoration(
                 hintText: 'Ghi chú (tuỳ chọn)...',
-                hintStyle: TextStyle(
-                    fontSize: 13, color: cs.onSurfaceVariant),
+                hintStyle:
+                TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding:
@@ -366,8 +368,7 @@ class _TypeToggle extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color:
-          active ? color.withOpacity(0.12) : Colors.transparent,
+          color: active ? color.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: active ? color : cs.outlineVariant,
