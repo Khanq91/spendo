@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,12 +8,14 @@ import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/export_service.dart';
+import '../../../../core/utils/import_service.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/data/category_repository.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/presentation/widgets/category_form_sheet.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../widgets/widget_pin_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -53,6 +56,30 @@ class SettingsScreen extends ConsumerWidget {
             label: 'Tất cả',
             subtitle: 'Toàn bộ lịch sử giao dịch',
             onTap: () => _export(context, ExportRange.all),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ── Import ──────────────────────────────────────────────────────
+          _SectionHeader(title: 'Nhập dữ liệu'),
+          ListTile(
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(LucideIcons.upload, size: 18, color: AppTheme.primary),
+            ),
+            title: const Text('Nhập từ file CSV', style: TextStyle(fontSize: 14)),
+            subtitle: Text(
+              'Import dữ liệu đã xuất trước đó',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            ),
+            trailing: Icon(LucideIcons.chevronRight,
+                size: 18, color: cs.onSurfaceVariant),
+            onTap: () => _import(context, ref),
           ),
 
           const SizedBox(height: 8),
@@ -413,6 +440,215 @@ class SettingsScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  Future<void> _import(BuildContext context, WidgetRef ref) async {
+    try {
+      // 1. Chọn file CSV
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+      if (result == null || result.files.single.path == null) return;
+      final filePath = result.files.single.path!;
+
+      if (!context.mounted) return;
+
+      // Đợi frame tiếp theo để navigator unlock sau khi FilePicker trả về
+      await Future.delayed(Duration.zero);
+      if (!context.mounted) return;
+
+      // 2. Hiện loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        useRootNavigator: true,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // 3. Preview (dry-run)
+      final preview = await ImportService.previewCSV(filePath);
+
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // đóng loading
+
+      // 4. Nếu có lỗi nghiêm trọng và không có gì để import
+      if (preview.added == 0 && preview.skipped == 0 && preview.errors.isNotEmpty) {
+        _showImportError(context, preview.errors.first);
+        return;
+      }
+
+      // 5. Hiện dialog xác nhận
+      final confirmed = await showDialog<bool>(
+        context: context,
+        useRootNavigator: true,
+        builder: (ctx) => _ImportPreviewDialog(preview: preview),
+      );
+
+      if (confirmed != true || !context.mounted) return;
+
+      // 6. Import thật
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        useRootNavigator: true,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final result2 = await ImportService.importCSV(filePath);
+
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // đóng loading
+
+      // 8. Invalidate providers để UI cập nhật ngay
+      ref.invalidate(transactionsProvider);
+      ref.invalidate(categoriesProvider);
+
+      // 9. Hiện kết quả
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '✅ Đã nhập ${result2.added} giao dịch'
+                '${result2.skipped > 0 ? ', bỏ qua ${result2.skipped} trùng' : ''}'
+                '${result2.newCategories > 0 ? ', tạo ${result2.newCategories} danh mục mới' : ''}',
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        // Đóng dialog loading nếu đang mở (an toàn)
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+        _showImportError(context, e.toString());
+      }
+    }
+  }
+
+  void _showImportError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('❌ $message'),
+        backgroundColor: AppTheme.expenseAltColor,
+      ),
+    );
+  }
+}
+
+// ── Import preview dialog ─────────────────────────────────────────────────────
+
+class _ImportPreviewDialog extends StatelessWidget {
+  final ImportResult preview;
+  const _ImportPreviewDialog({required this.preview});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(LucideIcons.fileUp, size: 20, color: AppTheme.primary),
+          const SizedBox(width: 8),
+          const Text('Xác nhận nhập dữ liệu',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _PreviewRow(
+            icon: LucideIcons.circlePlus,
+            color: AppTheme.primary,
+            text: '${preview.added} giao dịch mới sẽ được thêm',
+          ),
+          if (preview.skipped > 0)
+            _PreviewRow(
+              icon: LucideIcons.circleArrowRight,
+              color: cs.onSurfaceVariant,
+              text: '${preview.skipped} giao dịch trùng → bỏ qua',
+            ),
+          if (preview.newCategories > 0) ...[
+            _PreviewRow(
+              icon: LucideIcons.tag,
+              color: Colors.orange,
+              text: '${preview.newCategories} danh mục mới sẽ được tạo:',
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: preview.newCategoryNames
+                    .map((name) => Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    '• $name',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ))
+                    .toList(),
+              ),
+            ),
+          ],
+          if (preview.errors.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _PreviewRow(
+              icon: LucideIcons.triangleAlert,
+              color: AppTheme.expenseAltColor,
+              text: '${preview.errors.length} dòng bị lỗi (sẽ bỏ qua)',
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text('Huỷ',
+              style: TextStyle(color: cs.onSurfaceVariant)),
+        ),
+        FilledButton(
+          onPressed: preview.added > 0
+              ? () => Navigator.pop(context, true)
+              : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppTheme.primary,
+          ),
+          child: const Text('Nhập ngay'),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  const _PreviewRow({
+    required this.icon,
+    required this.color,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
+    );
   }
 }
 

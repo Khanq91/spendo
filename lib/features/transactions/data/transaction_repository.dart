@@ -37,6 +37,32 @@ class TransactionRepository {
     );
   }
 
+  /// Thêm nhiều transactions cùng lúc (dùng cho import CSV)
+  Future<void> batchAdd(List<Map<String, dynamic>> rows) async {
+    for (final row in rows) {
+      final at = (row['createdAt'] as DateTime).millisecondsSinceEpoch.toString();
+      await db.execute(
+        'INSERT INTO transactions(id, amount, type, category_id, note, created_at) '
+            'VALUES(uuid(), ?, ?, ?, ?, ?)',
+        [
+          (row['amount'] as int).toString(),
+          row['type'] as String,
+          row['categoryId'] as String,
+          row['note'] as String?,
+          at,
+        ],
+      );
+    }
+  }
+
+  /// Lấy toàn bộ transactions (dùng cho dedup khi import)
+  Future<List<Transaction>> getAll() async {
+    final rows = await db.getAll(
+      'SELECT * FROM transactions ORDER BY created_at DESC',
+    );
+    return rows.map(Transaction.fromMap).toList();
+  }
+
   Future<void> update(Transaction t) async {
     // Không ghi updated_at thủ công — PowerSync tự quản lý field này
     await db.execute(

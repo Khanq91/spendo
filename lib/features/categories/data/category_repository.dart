@@ -20,6 +20,24 @@ class CategoryRepository {
     return rows.map(Category.fromMap).toList();
   }
 
+
+  Future<List<Category>> getAll() async {
+    final rows = await db.getAll(
+      'SELECT * FROM categories ORDER BY is_income ASC, sort_order ASC',
+    );
+    return rows.map(Category.fromMap).toList();
+  }
+
+  /// Tìm category theo tên và loại (thu/chi). Trả null nếu không tìm thấy.
+  Future<Category?> findByName(String name, {required bool isIncome}) async {
+    final rows = await db.getAll(
+      'SELECT * FROM categories WHERE name=? AND is_income=? LIMIT 1',
+      [name, isIncome ? 1 : 0],
+    );
+    if (rows.isEmpty) return null;
+    return Category.fromMap(rows.first);
+  }
+
   Future<void> add({
     required String name,
     required String colorHex,
