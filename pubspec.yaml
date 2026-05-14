@@ -63,6 +63,7 @@ dependencies:
   # Notification & time
   flutter_local_notifications: ^18.0.0
   timezone: ^0.9.4
+  flutter_timezone: ^3.0.0
 
   # UI Widget
   home_widget: ^0.7.0
