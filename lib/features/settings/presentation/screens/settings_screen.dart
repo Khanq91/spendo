@@ -2,10 +2,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/notifications/notification_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/backup_service.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/export_service.dart';
 import '../../../../core/utils/import_service.dart';
@@ -40,46 +40,102 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
-          // ── Export ──────────────────────────────────────────────────────
-          _SectionHeader(title: 'Xuất dữ liệu'),
+          // ── Export báo cáo ───────────────────────────────────────────────
+          _SectionHeader(title: 'Xuất báo cáo'),
           _ExportTile(
             label: 'Tháng này',
-            subtitle: 'Xuất giao dịch tháng hiện tại',
+            subtitle: 'Xuất giao dịch tháng hiện tại dạng CSV',
             onTap: () => _export(context, ExportRange.thisMonth),
           ),
           _ExportTile(
             label: '3 tháng gần đây',
-            subtitle: 'Xuất giao dịch 3 tháng gần nhất',
+            subtitle: 'Xuất giao dịch 3 tháng gần nhất dạng CSV',
             onTap: () => _export(context, ExportRange.threeMonths),
           ),
           _ExportTile(
             label: 'Tất cả',
-            subtitle: 'Toàn bộ lịch sử giao dịch',
+            subtitle: 'Toàn bộ lịch sử giao dịch dạng CSV',
             onTap: () => _export(context, ExportRange.all),
           ),
 
           const SizedBox(height: 8),
 
-          // ── Import ──────────────────────────────────────────────────────
-          _SectionHeader(title: 'Nhập dữ liệu'),
-          ListTile(
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(LucideIcons.upload, size: 18, color: AppTheme.primary),
+          // ── Import CSV ───────────────────────────────────────────────────
+          // _SectionHeader(title: 'Nhập từ CSV'),
+          // ListTile(
+          //   leading: Container(
+          //     width: 36,
+          //     height: 36,
+          //     decoration: BoxDecoration(
+          //       color: AppTheme.primary.withOpacity(0.1),
+          //       borderRadius: BorderRadius.circular(8),
+          //     ),
+          //     child:
+          //     Icon(LucideIcons.upload, size: 18, color: AppTheme.primary),
+          //   ),
+          //   title: const Text('Nhập từ file CSV', style: TextStyle(fontSize: 14)),
+          //   subtitle: Text(
+          //     'Import từ file báo cáo CSV đã xuất trước đó',
+          //     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+          //   ),
+          //   trailing: Icon(LucideIcons.chevronRight,
+          //       size: 18, color: cs.onSurfaceVariant),
+          //   onTap: () => _import(context, ref),
+          // ),
+          //
+          // const SizedBox(height: 8),
+
+          // ── Backup & Restore ─────────────────────────────────────────────
+          _SectionHeader(title: 'Sao lưu & khôi phục'),
+          Container(
+            color: surface,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6C63FF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(LucideIcons.hardDriveDownload,
+                        size: 18, color: Color(0xFF6C63FF)),
+                  ),
+                  title: const Text('Xuất backup toàn bộ',
+                      style: TextStyle(fontSize: 14)),
+                  subtitle: Text(
+                    'Lưu toàn bộ dữ liệu ra file JSON để khôi phục sau',
+                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                  ),
+                  trailing: Icon(LucideIcons.chevronRight,
+                      size: 18, color: cs.onSurfaceVariant),
+                  onTap: () => _exportBackup(context),
+                ),
+                Divider(height: 1, indent: 16, color: cs.outlineVariant),
+                ListTile(
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6C63FF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(LucideIcons.hardDriveUpload,
+                        size: 18, color: Color(0xFF6C63FF)),
+                  ),
+                  title: const Text('Khôi phục từ backup',
+                      style: TextStyle(fontSize: 14)),
+                  subtitle: Text(
+                    'Nhập file JSON backup để khôi phục dữ liệu',
+                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                  ),
+                  trailing: Icon(LucideIcons.chevronRight,
+                      size: 18, color: cs.onSurfaceVariant),
+                  onTap: () => _restore(context, ref),
+                ),
+              ],
             ),
-            title: const Text('Nhập từ file CSV', style: TextStyle(fontSize: 14)),
-            subtitle: Text(
-              'Import dữ liệu đã xuất trước đó',
-              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-            ),
-            trailing: Icon(LucideIcons.chevronRight,
-                size: 18, color: cs.onSurfaceVariant),
-            onTap: () => _import(context, ref),
           ),
 
           const SizedBox(height: 8),
@@ -194,8 +250,7 @@ class SettingsScreen extends ConsumerWidget {
                             await ref
                                 .read(notificationMinuteProvider.notifier)
                                 .set(picked.minute);
-                            await NotificationService
-                                .scheduleDailyReminder(
+                            await NotificationService.scheduleDailyReminder(
                               hour: picked.hour,
                               minute: picked.minute,
                             );
@@ -215,13 +270,12 @@ class SettingsScreen extends ConsumerWidget {
                         trailing: Icon(Icons.chevron_right,
                             size: 18, color: cs.onSurfaceVariant),
                         onTap: () async {
-                          await NotificationService
-                              .sendTestNotification();
+                          await NotificationService.sendTestNotification();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                    'Thông báo sẽ hiện sau 5 giây'),
+                                content:
+                                Text('Thông báo sẽ hiện sau 5 giây'),
                                 duration: Duration(seconds: 2),
                               ),
                             );
@@ -246,14 +300,17 @@ class SettingsScreen extends ConsumerWidget {
                 color: AppTheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(LucideIcons.bellRing, size: 18, color: AppTheme.primary),
+              child: Icon(LucideIcons.bellRing,
+                  size: 18, color: AppTheme.primary),
             ),
-            title: const Text('Quản lý nhắc nhở', style: TextStyle(fontSize: 14)),
+            title: const Text('Quản lý nhắc nhở',
+                style: TextStyle(fontSize: 14)),
             subtitle: Text(
               'Nhắc mua đồ và ghi chi tiêu định kỳ',
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
-            trailing: Icon(LucideIcons.chevronRight, size: 18, color: cs.onSurfaceVariant),
+            trailing: Icon(LucideIcons.chevronRight,
+                size: 18, color: cs.onSurfaceVariant),
             onTap: () => context.push('/reminders'),
           ),
           const SizedBox(height: 8),
@@ -267,7 +324,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
 
-          // ── Categories (collapsible) ─────────────────────────────────────
+          // ── Categories ───────────────────────────────────────────────────
           _SectionHeader(title: 'Danh mục'),
           _CategoriesExpansionTile(
             expenseCats: expenseCats,
@@ -278,99 +335,13 @@ class SettingsScreen extends ConsumerWidget {
             onDelete: (cat) => _confirmDelete(context, cat),
           ),
 
-          // // ── Account section ─────────────────────────────────────────────
-          // _SectionHeader(title: 'Tài khoản'),
-          // Consumer(
-          //   builder: (context, ref, _) {
-          //     final userAsync = ref.watch(currentUserProvider);
-          //     final user = userAsync.valueOrNull;
-          //     final isLoggedIn = user != null;
-          //
-          //     if (isLoggedIn) {
-          //       return Column(
-          //         children: [
-          //           ListTile(
-          //             tileColor: Colors.white,
-          //             leading: Container(
-          //               width: 36,
-          //               height: 36,
-          //               decoration: BoxDecoration(
-          //                 color: const Color(0xFF6C63FF).withOpacity(0.1),
-          //                 borderRadius: BorderRadius.circular(8),
-          //               ),
-          //               child: const Icon(Icons.person_outline,
-          //                   size: 18, color: Color(0xFF6C63FF)),
-          //             ),
-          //             title: Text(
-          //               user.email ?? 'Đã đăng nhập',
-          //               style: const TextStyle(fontSize: 14),
-          //             ),
-          //             subtitle: Text(
-          //               'Dữ liệu đang được sync',
-          //               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-          //             ),
-          //           ),
-          //           ListTile(
-          //             tileColor: Colors.white,
-          //             leading: Container(
-          //               width: 36,
-          //               height: 36,
-          //               decoration: BoxDecoration(
-          //                 color: const Color(0xFFE53935).withOpacity(0.1),
-          //                 borderRadius: BorderRadius.circular(8),
-          //               ),
-          //               child: const Icon(Icons.logout,
-          //                   size: 18, color: Color(0xFFE53935)),
-          //             ),
-          //             title: const Text(
-          //               'Đăng xuất',
-          //               style: TextStyle(fontSize: 14, color: Color(0xFFE53935)),
-          //             ),
-          //             onTap: () async {
-          //               await Supabase.instance.client.auth.signOut();
-          //             },
-          //           ),
-          //         ],
-          //       );
-          //     }
-          //
-          //     // Chưa login — hiện nút đăng nhập
-          //     return ListTile(
-          //       tileColor: Colors.white,
-          //       leading: Container(
-          //         width: 36,
-          //         height: 36,
-          //         decoration: BoxDecoration(
-          //           color: const Color(0xFF6C63FF).withOpacity(0.1),
-          //           borderRadius: BorderRadius.circular(8),
-          //         ),
-          //         child: const Icon(Icons.cloud_upload_outlined,
-          //             size: 18, color: Color(0xFF6C63FF)),
-          //       ),
-          //       title: const Text(
-          //         'Đăng nhập để sync',
-          //         style: TextStyle(fontSize: 14),
-          //       ),
-          //       subtitle: Text(
-          //         'Sao lưu và đồng bộ đa thiết bị',
-          //         style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-          //       ),
-          //       trailing: const Icon(Icons.chevron_right, size: 18),
-          //       onTap: () => Navigator.of(context).push(
-          //         MaterialPageRoute(
-          //             fullscreenDialog: true,
-          //             builder: (_) => const AuthScreen()
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-
           const SizedBox(height: 32),
         ],
       ),
     );
   }
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   void _openForm(BuildContext context, {required bool isIncome}) {
     showModalBottomSheet(
@@ -389,8 +360,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmDelete(
-      BuildContext context, Category cat) async {
+  Future<void> _confirmDelete(BuildContext context, Category cat) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -442,9 +412,133 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  // ── Backup export ─────────────────────────────────────────────────────────
+
+  Future<void> _exportBackup(BuildContext context) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        useRootNavigator: true,
+        builder: (_) =>
+        const Center(child: CircularProgressIndicator()),
+      );
+
+      final result = await BackupService.exportBackup();
+
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '✅ Đã xuất ${result.transactions} giao dịch, ${result.categories} danh mục',
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Lỗi xuất backup: $e'),
+            backgroundColor: AppTheme.expenseAltColor,
+          ),
+        );
+      }
+    }
+  }
+
+  // ── Backup restore ────────────────────────────────────────────────────────
+
+  Future<void> _restore(BuildContext context, WidgetRef ref) async {
+    try {
+      // 1. Chọn file JSON
+      final filePath = await BackupService.pickBackupFile();
+      if (filePath == null) return;
+
+      if (!context.mounted) return;
+      await Future.delayed(Duration.zero);
+      if (!context.mounted) return;
+
+      // 2. Loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        useRootNavigator: true,
+        builder: (_) =>
+        const Center(child: CircularProgressIndicator()),
+      );
+
+      // 3. Preview
+      final preview = await BackupService.previewRestore(filePath);
+
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // 4. Lỗi nghiêm trọng
+      if (preview.categoriesAdded == 0 &&
+          preview.transactionsAdded == 0 &&
+          preview.errors.isNotEmpty) {
+        _showError(context, preview.errors.first);
+        return;
+      }
+
+      // 5. Confirm dialog
+      final confirmed = await showDialog<bool>(
+        context: context,
+        useRootNavigator: true,
+        builder: (ctx) => _RestorePreviewDialog(preview: preview),
+      );
+
+      if (confirmed != true || !context.mounted) return;
+
+      // 6. Restore thật
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        useRootNavigator: true,
+        builder: (_) =>
+        const Center(child: CircularProgressIndicator()),
+      );
+
+      final result = await BackupService.restore(filePath);
+
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // 7. Invalidate providers
+      ref.invalidate(transactionsProvider);
+      ref.invalidate(categoriesProvider);
+
+      // 8. Kết quả
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '✅ Đã khôi phục ${result.transactionsAdded} giao dịch, '
+                '${result.categoriesAdded} danh mục'
+                '${result.transactionsSkipped > 0 ? ' · bỏ qua ${result.transactionsSkipped} trùng' : ''}',
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+        _showError(context, e.toString());
+      }
+    }
+  }
+
+  // ── Import CSV (giữ nguyên) ───────────────────────────────────────────────
+
   Future<void> _import(BuildContext context, WidgetRef ref) async {
     try {
-      // 1. Chọn file CSV
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
@@ -453,32 +547,29 @@ class SettingsScreen extends ConsumerWidget {
       final filePath = result.files.single.path!;
 
       if (!context.mounted) return;
-
-      // Đợi frame tiếp theo để navigator unlock sau khi FilePicker trả về
       await Future.delayed(Duration.zero);
       if (!context.mounted) return;
 
-      // 2. Hiện loading
       showDialog(
         context: context,
         barrierDismissible: false,
         useRootNavigator: true,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
+        builder: (_) =>
+        const Center(child: CircularProgressIndicator()),
       );
 
-      // 3. Preview (dry-run)
       final preview = await ImportService.previewCSV(filePath);
 
       if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(); // đóng loading
+      Navigator.of(context, rootNavigator: true).pop();
 
-      // 4. Nếu có lỗi nghiêm trọng và không có gì để import
-      if (preview.added == 0 && preview.skipped == 0 && preview.errors.isNotEmpty) {
-        _showImportError(context, preview.errors.first);
+      if (preview.added == 0 &&
+          preview.skipped == 0 &&
+          preview.errors.isNotEmpty) {
+        _showError(context, preview.errors.first);
         return;
       }
 
-      // 5. Hiện dialog xác nhận
       final confirmed = await showDialog<bool>(
         context: context,
         useRootNavigator: true,
@@ -487,24 +578,22 @@ class SettingsScreen extends ConsumerWidget {
 
       if (confirmed != true || !context.mounted) return;
 
-      // 6. Import thật
       showDialog(
         context: context,
         barrierDismissible: false,
         useRootNavigator: true,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
+        builder: (_) =>
+        const Center(child: CircularProgressIndicator()),
       );
 
       final result2 = await ImportService.importCSV(filePath);
 
       if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(); // đóng loading
+      Navigator.of(context, rootNavigator: true).pop();
 
-      // 8. Invalidate providers để UI cập nhật ngay
       ref.invalidate(transactionsProvider);
       ref.invalidate(categoriesProvider);
 
-      // 9. Hiện kết quả
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -517,16 +606,15 @@ class SettingsScreen extends ConsumerWidget {
       );
     } catch (e) {
       if (context.mounted) {
-        // Đóng dialog loading nếu đang mở (an toàn)
         try {
           Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
-        _showImportError(context, e.toString());
+        _showError(context, e.toString());
       }
     }
   }
 
-  void _showImportError(BuildContext context, String message) {
+  void _showError(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('❌ $message'),
@@ -536,7 +624,99 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-// ── Import preview dialog ─────────────────────────────────────────────────────
+// ── Restore preview dialog ────────────────────────────────────────────────────
+
+class _RestorePreviewDialog extends StatelessWidget {
+  final RestoreResult preview;
+  const _RestorePreviewDialog({required this.preview});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hasAnything =
+        preview.categoriesAdded > 0 || preview.transactionsAdded > 0;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          const Icon(LucideIcons.hardDriveUpload,
+              size: 20, color: Color(0xFF6C63FF)),
+          const SizedBox(width: 8),
+          const Text('Xác nhận khôi phục',
+              style:
+              TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (preview.transactionsAdded > 0)
+            _PreviewRow(
+              icon: LucideIcons.circlePlus,
+              color: const Color(0xFF6C63FF),
+              text:
+              '${preview.transactionsAdded} giao dịch mới sẽ được thêm',
+            ),
+          if (preview.categoriesAdded > 0)
+            _PreviewRow(
+              icon: LucideIcons.tag,
+              color: Colors.orange,
+              text:
+              '${preview.categoriesAdded} danh mục mới sẽ được tạo',
+            ),
+          if (preview.transactionsSkipped > 0)
+            _PreviewRow(
+              icon: LucideIcons.circleArrowRight,
+              color: cs.onSurfaceVariant,
+              text:
+              '${preview.transactionsSkipped} giao dịch đã tồn tại → bỏ qua',
+            ),
+          if (preview.categoriesSkipped > 0)
+            _PreviewRow(
+              icon: LucideIcons.circleArrowRight,
+              color: cs.onSurfaceVariant,
+              text:
+              '${preview.categoriesSkipped} danh mục đã tồn tại → bỏ qua',
+            ),
+          if (preview.errors.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _PreviewRow(
+              icon: LucideIcons.triangleAlert,
+              color: AppTheme.expenseAltColor,
+              text: '${preview.errors.length} mục bị lỗi (sẽ bỏ qua)',
+            ),
+          ],
+          if (!hasAnything) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Tất cả dữ liệu trong backup đã tồn tại trên thiết bị này.',
+              style:
+              TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text('Huỷ',
+              style: TextStyle(color: cs.onSurfaceVariant)),
+        ),
+        FilledButton(
+          onPressed: hasAnything
+              ? () => Navigator.pop(context, true)
+              : null,
+          style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF6C63FF)),
+          child: const Text('Khôi phục'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Import CSV preview dialog (giữ nguyên) ────────────────────────────────────
 
 class _ImportPreviewDialog extends StatelessWidget {
   final ImportResult preview;
@@ -551,7 +731,8 @@ class _ImportPreviewDialog extends StatelessWidget {
           Icon(LucideIcons.fileUp, size: 20, color: AppTheme.primary),
           const SizedBox(width: 8),
           const Text('Xác nhận nhập dữ liệu',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              style:
+              TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ],
       ),
       content: Column(
@@ -573,7 +754,8 @@ class _ImportPreviewDialog extends StatelessWidget {
             _PreviewRow(
               icon: LucideIcons.tag,
               color: Colors.orange,
-              text: '${preview.newCategories} danh mục mới sẽ được tạo:',
+              text:
+              '${preview.newCategories} danh mục mới sẽ được tạo:',
             ),
             Padding(
               padding: const EdgeInsets.only(left: 28),
@@ -585,9 +767,8 @@ class _ImportPreviewDialog extends StatelessWidget {
                   child: Text(
                     '• $name',
                     style: TextStyle(
-                      fontSize: 13,
-                      color: cs.onSurfaceVariant,
-                    ),
+                        fontSize: 13,
+                        color: cs.onSurfaceVariant),
                   ),
                 ))
                     .toList(),
@@ -615,8 +796,7 @@ class _ImportPreviewDialog extends StatelessWidget {
               ? () => Navigator.pop(context, true)
               : null,
           style: FilledButton.styleFrom(
-            backgroundColor: AppTheme.primary,
-          ),
+              backgroundColor: AppTheme.primary),
           child: const Text('Nhập ngay'),
         ),
       ],
@@ -656,28 +836,21 @@ class _PreviewRow extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  final Widget? action;
-  const _SectionHeader({required this.title, this.action});
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurfaceVariant,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const Spacer(),
-          if (action != null) action!,
-        ],
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: cs.onSurfaceVariant,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -705,11 +878,13 @@ class _ExportTile extends StatelessWidget {
           color: AppTheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(LucideIcons.download, size: 18, color: AppTheme.primary),
+        child:
+        Icon(LucideIcons.download, size: 18, color: AppTheme.primary),
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
       subtitle: Text(subtitle,
-          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          style:
+          TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
       trailing: Icon(LucideIcons.chevronRight,
           size: 18, color: cs.onSurfaceVariant),
       onTap: onTap,
@@ -829,24 +1004,26 @@ class _CategoriesExpansionTile extends StatefulWidget {
       _CategoriesExpansionTileState();
 }
 
-class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
+class _CategoriesExpansionTileState
+    extends State<_CategoriesExpansionTile> {
   bool _expanded = false;
-  int _tab = 0; // 0 = Chi, 1 = Thu
+  int _tab = 0;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final cats = _tab == 0 ? widget.expenseCats : widget.incomeCats;
-    final total = widget.expenseCats.length + widget.incomeCats.length;
+    final total =
+        widget.expenseCats.length + widget.incomeCats.length;
 
     return Column(
       children: [
-        // Header row
         InkWell(
           onTap: () => setState(() => _expanded = !_expanded),
           child: Container(
             color: cs.surface,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 14),
             child: Row(
               children: [
                 Container(
@@ -856,7 +1033,8 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                     color: AppTheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(LucideIcons.tag, size: 18, color: AppTheme.primary),
+                  child: Icon(LucideIcons.tag,
+                      size: 18, color: AppTheme.primary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -868,7 +1046,8 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                       Text(
                         '$total danh mục · ${widget.expenseCats.length} chi, ${widget.incomeCats.length} thu',
                         style: TextStyle(
-                            fontSize: 12, color: cs.onSurfaceVariant),
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -883,8 +1062,6 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
             ),
           ),
         ),
-
-        // Expanded content
         AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: Container(
@@ -892,8 +1069,6 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
             child: Column(
               children: [
                 const Divider(height: 1),
-
-                // Chi / Thu tab strip + add button
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
                   child: Row(
@@ -925,14 +1100,11 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                     ],
                   ),
                 ),
-
-                // Category list
                 ...cats.map((cat) => _CategoryTile(
                   category: cat,
                   onEdit: () => widget.onEdit(cat),
                   onDelete: () => widget.onDelete(cat),
                 )),
-
                 const SizedBox(height: 4),
               ],
             ),
@@ -966,14 +1138,16 @@ class _TabChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: selected
               ? AppTheme.primary.withOpacity(0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppTheme.primary : cs.outlineVariant,
+            color:
+            selected ? AppTheme.primary : cs.outlineVariant,
             width: 0.8,
           ),
         ),
@@ -982,7 +1156,8 @@ class _TabChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             color: selected ? AppTheme.primary : cs.onSurfaceVariant,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            fontWeight:
+            selected ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ),

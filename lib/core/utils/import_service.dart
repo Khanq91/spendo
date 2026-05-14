@@ -46,13 +46,9 @@ class ImportService {
       );
     }
 
-    // Đọc file, xử lý BOM marker
     String content = await file.readAsString();
-    if (content.startsWith('\uFEFF')) {
-      content = content.substring(1);
-    }
+    if (content.startsWith('\uFEFF')) content = content.substring(1);
 
-    // Parse CSV
     final rows = const CsvToListConverter().convert(content);
     if (rows.isEmpty) {
       return const ImportResult(
@@ -64,7 +60,6 @@ class ImportService {
       );
     }
 
-    // Validate header
     final header = rows.first.map((e) => e.toString().trim()).toList();
     const expectedHeader = ['Ngày', 'Loại', 'Danh mục', 'Số tiền', 'Ghi chú'];
     if (header.length < 5 ||
@@ -93,17 +88,16 @@ class ImportService {
       );
     }
 
-    // Load dữ liệu hiện có
     final catRepo = CategoryRepository();
     final txRepo = TransactionRepository();
     final existingCats = await catRepo.getAll();
     final existingTxs = await txRepo.getAll();
 
-    // Build fingerprint set từ transactions hiện có
+    // Build fingerprint set — normalize timestamp đến phút để khớp với CSV export
     final existingFingerprints = <String>{};
     for (final tx in existingTxs) {
       existingFingerprints.add(_fingerprint(
-        createdAt: tx.createdAt,
+        createdAt: _truncateToMinute(tx.createdAt),
         type: tx.type,
         categoryId: tx.categoryId,
         amount: tx.amount,
@@ -111,7 +105,6 @@ class ImportService {
       ));
     }
 
-    // Cache tên → category (key = "name|isIncome")
     final catCache = <String, String>{};
     for (final c in existingCats) {
       catCache['${c.name}|${c.isIncome}'] = c.id;
@@ -125,7 +118,7 @@ class ImportService {
 
     for (int i = 0; i < dataRows.length; i++) {
       final row = dataRows[i];
-      final lineNum = i + 2; // +2 vì header + 1-indexed
+      final lineNum = i + 2;
 
       try {
         if (row.length < 5) {
@@ -139,14 +132,12 @@ class ImportService {
         final amountRaw = row[3];
         final note = row[4].toString().trim();
 
-        // Parse date: "d/M/yyyy HH:mm"
         final date = _parseDate(dateStr);
         if (date == null) {
           errors.add('Dòng $lineNum: không parse được ngày "$dateStr"');
           continue;
         }
 
-        // Parse type
         final String type;
         if (typeStr == 'Chi') {
           type = 'expense';
@@ -157,7 +148,6 @@ class ImportService {
           continue;
         }
 
-        // Parse amount
         final int amount;
         if (amountRaw is int) {
           amount = amountRaw;
@@ -172,32 +162,27 @@ class ImportService {
           amount = parsed;
         }
 
-        // Tìm / tạo category
         final isIncome = type == 'income';
         final cacheKey = '$catName|$isIncome';
         String? categoryId = catCache[cacheKey];
 
         if (categoryId == null) {
-          // Tìm trong DB (có thể đã tạo ở vòng trước trong dry-run)
           final found = await catRepo.findByName(catName, isIncome: isIncome);
           if (found != null) {
             categoryId = found.id;
             catCache[cacheKey] = categoryId;
           } else {
             if (!dryRun) {
-              // Tạo category mới với icon/color mặc định
               await catRepo.add(
                 name: catName,
                 colorHex: isIncome ? '#4CAF50' : '#FF5252',
-                iconName: isIncome ? 'wallet' : 'shopping-cart',
+                iconName: isIncome ? 'work' : 'more_horiz',
                 isIncome: isIncome,
               );
-              final created =
-              await catRepo.findByName(catName, isIncome: isIncome);
+              final created = await catRepo.findByName(catName, isIncome: isIncome);
               categoryId = created!.id;
               catCache[cacheKey] = categoryId;
             } else {
-              // Dry-run: dùng placeholder ID
               categoryId = 'preview_$cacheKey';
               catCache[cacheKey] = categoryId;
             }
@@ -207,26 +192,31 @@ class ImportService {
           }
         }
 
-        // Check trùng lặp
+        // Fingerprint dùng timestamp đã truncate đến phút — khớp với export format
         final fp = _fingerprint(
-          createdAt: date,
+          createdAt: date, // date từ CSV đã là đến phút (seconds=0)
           type: type,
-          categoryId: categoryId,
+          // Dry-run với preview category: so sánh không dùng categoryId
+          categoryId: categoryId.startsWith('preview_') ? '' : categoryId,
           amount: amount,
           note: note,
         );
 
-        // Trong dry-run, category_id là placeholder nên fingerprint sẽ khác.
-        // Cần check bằng cách so sánh trực tiếp các trường (trừ category_id placeholder).
-        bool isDuplicate = false;
-        if (dryRun && categoryId.startsWith('preview_')) {
-          // So sánh bằng fields khác (date + type + amount + note)
-          isDuplicate = existingTxs.any((tx) =>
-          tx.createdAt.millisecondsSinceEpoch ==
-              date.millisecondsSinceEpoch &&
-              tx.type == type &&
-              tx.amount == amount &&
-              (tx.note ?? '') == note);
+        bool isDuplicate;
+        if (categoryId.startsWith('preview_')) {
+          // Dry-run, category mới: so sánh theo date+type+amount+note (bỏ qua categoryId)
+          isDuplicate = existingFingerprints.any((existing) {
+            final parts = existing.split('|');
+            if (parts.length < 5) return false;
+            final exFp = _fingerprint(
+              createdAt: DateTime.fromMillisecondsSinceEpoch(int.tryParse(parts[0]) ?? 0),
+              type: parts[1],
+              categoryId: '',
+              amount: int.tryParse(parts[3]) ?? -1,
+              note: parts.sublist(4).join('|'),
+            );
+            return exFp == fp;
+          });
         } else {
           isDuplicate = existingFingerprints.contains(fp);
         }
@@ -235,7 +225,7 @@ class ImportService {
           skipped++;
         } else {
           added++;
-          existingFingerprints.add(fp); // tránh dup trong cùng file
+          existingFingerprints.add(fp);
           if (!dryRun) {
             toInsert.add({
               'amount': amount,
@@ -251,7 +241,6 @@ class ImportService {
       }
     }
 
-    // Batch insert
     if (!dryRun && toInsert.isNotEmpty) {
       await txRepo.batchAdd(toInsert);
     }
@@ -265,10 +254,14 @@ class ImportService {
     );
   }
 
-  /// Parse date string "d/M/yyyy HH:mm" → DateTime
+  /// Truncate DateTime đến phút (seconds và milliseconds = 0)
+  /// CSV export chỉ lưu đến HH:mm nên cần normalize để so sánh đúng
+  static DateTime _truncateToMinute(DateTime dt) {
+    return DateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute);
+  }
+
   static DateTime? _parseDate(String s) {
     try {
-      // Format: "28/4/2026 14:30"
       final parts = s.split(' ');
       if (parts.length != 2) return null;
 
@@ -291,7 +284,6 @@ class ImportService {
     }
   }
 
-  /// Tạo fingerprint từ 5 trường để detect trùng lặp
   static String _fingerprint({
     required DateTime createdAt,
     required String type,
