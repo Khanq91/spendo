@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Match Dart SplashScreen bgColor for light mode: Color(0xFFFAF5FF) -->
+    <!-- Match Dart SplashScreen bgColor for light mode -->
     <color name="launch_bg_light">#FFFAF5FF</color>
+
+    <!-- Default fallback for dark mode color -->
+    <color name="launch_bg_dark">#FF0F0A12</color>
 </resources>
