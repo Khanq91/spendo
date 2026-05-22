@@ -20,6 +20,12 @@ const schema = Schema([
     Column.text('amount'),
     Column.text('month'),
   ]),
+  // Hạn mức theo danh mục — local only, không sync Supabase
+  // amount: số tiền hạn mức (text để nhất quán với các table khác)
+  Table.localOnly('category_budgets', [
+    Column.text('category_id'),
+    Column.text('amount'),
+  ]),
   Table('recurring_reminders', [
     Column.text('title'),
     Column.text('category_id'),

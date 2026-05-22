@@ -4,9 +4,11 @@ import '../../data/transaction_repository.dart';
 import '../../domain/transaction.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
+import '../../../budget/presentation/providers/category_budget_provider.dart';
 import 'numpad.dart';
 import 'amount_input_controller.dart';
 import '../../../../core/utils/category_matcher.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final Transaction? existing;
@@ -54,7 +56,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _noteCtrl.text = tx.note ?? '';
       _isExpense = tx.isExpense;
       _selectedCategoryId = tx.categoryId;
-      _userPickedCategory = true; // edit mode: coi như user đã chọn
+      _userPickedCategory = true;
     } else {
       _isExpense = true;
       if (widget.prefillNote != null) {
@@ -80,6 +82,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   Future<void> _submit() async {
     if (!_amountCtrl.hasValue || _selectedCategoryId == null) return;
 
+    // ── Check category budget nếu là chi tiêu ───────────────────────────────
+    if (_isExpense && !_isEditMode) {
+      final shouldProceed = await _checkCategoryBudget();
+      if (!shouldProceed) return;
+    }
+
     final repo = TransactionRepository();
 
     if (_isEditMode) {
@@ -102,6 +110,50 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     }
 
     if (mounted) Navigator.of(context).pop();
+  }
+
+  /// Kiểm tra category budget, hỏi xác nhận nếu sẽ vượt hạn mức.
+  /// Returns true nếu được tiếp tục, false nếu user cancel.
+  Future<bool> _checkCategoryBudget() async {
+    final catId = _selectedCategoryId!;
+    final progressMap = ref.read(categoryBudgetProgressProvider);
+    final progress = progressMap[catId];
+
+    // Không có budget cho category này → cho qua
+    if (progress == null) return true;
+
+    final newAmount = _amountCtrl.value;
+    final willExceed = (progress.spent + newAmount) > progress.budget;
+
+    // Chưa vượt → cho qua
+    if (!willExceed) return true;
+
+    // Đã vượt sẵn rồi (isOver) hay sắp vượt → show dialog
+    if (!mounted) return false;
+
+    final allCats = ref.read(expenseCategoriesProvider);
+    final catName = allCats
+        .where((c) => c.id == catId)
+        .firstOrNull
+        ?.name ?? 'danh mục này';
+
+    final remaining = progress.budget - progress.spent;
+    final overAmount = (progress.spent + newAmount) - progress.budget;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => _BudgetWarningDialog(
+        categoryName: catName,
+        budgetAmount: progress.budget,
+        spentAmount: progress.spent,
+        newAmount: newAmount,
+        remaining: remaining,
+        overAmount: overAmount,
+        isAlreadyOver: progress.isOver,
+      ),
+    );
+
+    return confirmed == true;
   }
 
   void _autoSelectCategory(String note) {
@@ -131,9 +183,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     }
   }
 
-  /// Đổi type Chi/Thu — chỉ reset category nếu thực sự thay đổi type
   void _switchType(bool toExpense) {
-    if (_isExpense == toExpense) return; // không đổi → không làm gì
+    if (_isExpense == toExpense) return;
     setState(() {
       _isExpense = toExpense;
       _selectedCategoryId = null;
@@ -147,6 +198,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final allCategories = categoriesAsync.valueOrNull ?? [];
     final cats = _categories(allCategories);
     final cs = Theme.of(context).colorScheme;
+
+    // Category budget progress map — chỉ relevant khi đang ở mode chi
+    final budgetProgressMap = _isExpense
+        ? ref.watch(categoryBudgetProgressProvider)
+        : <String, ({int budget, int spent, double percent, bool isOver})>{};
 
     if (cats.isNotEmpty &&
         (_selectedCategoryId == null ||
@@ -243,6 +299,15 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 final selected = cat.id == _selectedCategoryId;
                 _chipKeys.putIfAbsent(cat.id, () => GlobalKey());
 
+                // ── Budget coloring ──────────────────────────────────
+                final progress = budgetProgressMap[cat.id];
+                final chipBgColor = _resolveChipBgColor(
+                  progress: progress,
+                  selected: selected,
+                  baseColor: color,
+                  cs: cs,
+                );
+
                 return ChoiceChip(
                   key: _chipKeys[cat.id],
                   label: Row(
@@ -252,15 +317,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         cat.name,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                          fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.w400,
                           color: selected ? color : cs.onSurfaceVariant,
                         ),
                       ),
+                      // Auto-select indicator
                       if (selected && !_userPickedCategory) ...[
                         const SizedBox(width: 3),
                         Icon(Icons.auto_fix_high, size: 10, color: color),
+                      ],
+                      // Budget warning indicator khi không được select
+                      if (!selected && progress != null) ...[
+                        const SizedBox(width: 3),
+                        _BudgetDot(percent: progress.percent, isOver: progress.isOver),
                       ],
                     ],
                   ),
@@ -270,11 +340,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                     _userPickedCategory = true;
                   }),
                   selectedColor: color.withOpacity(0.15),
+                  backgroundColor: chipBgColor,
                   side: BorderSide(
-                    color: selected ? color : cs.outlineVariant,
+                    color: _resolveChipBorderColor(
+                      progress: progress,
+                      selected: selected,
+                      baseColor: color,
+                      cs: cs,
+                    ),
                     width: 0.8,
                   ),
-                  backgroundColor: Colors.transparent,
                   showCheckmark: false,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                 );
@@ -344,7 +419,197 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       ),
     );
   }
+
+  /// Màu background chip dựa trên % đã dùng budget
+  Color _resolveChipBgColor({
+    required ({int budget, int spent, double percent, bool isOver})? progress,
+    required bool selected,
+    required Color baseColor,
+    required ColorScheme cs,
+  }) {
+    if (selected) return baseColor.withOpacity(0.15);
+    if (progress == null) return Colors.transparent;
+
+    if (progress.isOver) {
+      return Colors.red.withOpacity(0.08);
+    } else if (progress.percent >= 0.8) {
+      return Colors.orange.withOpacity(0.08);
+    } else if (progress.percent >= 0.5) {
+      return Colors.amber.withOpacity(0.06);
+    }
+    return Colors.green.withOpacity(0.06);
+  }
+
+  Color _resolveChipBorderColor({
+    required ({int budget, int spent, double percent, bool isOver})? progress,
+    required bool selected,
+    required Color baseColor,
+    required ColorScheme cs,
+  }) {
+    if (selected) return baseColor;
+    if (progress == null) return cs.outlineVariant;
+
+    if (progress.isOver) return Colors.red.withOpacity(0.5);
+    if (progress.percent >= 0.8) return Colors.orange.withOpacity(0.5);
+    if (progress.percent >= 0.5) return Colors.amber.withOpacity(0.4);
+    return Colors.green.withOpacity(0.4);
+  }
 }
+
+// ── Budget dot indicator ──────────────────────────────────────────────────────
+
+class _BudgetDot extends StatelessWidget {
+  final double percent;
+  final bool isOver;
+
+  const _BudgetDot({required this.percent, required this.isOver});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isOver
+        ? Colors.red
+        : percent >= 0.8
+        ? Colors.orange
+        : Colors.green;
+
+    return Container(
+      width: 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
+// ── Budget warning dialog ─────────────────────────────────────────────────────
+
+class _BudgetWarningDialog extends StatelessWidget {
+  final String categoryName;
+  final int budgetAmount;
+  final int spentAmount;
+  final int newAmount;
+  final int remaining;
+  final int overAmount;
+  final bool isAlreadyOver;
+
+  const _BudgetWarningDialog({
+    required this.categoryName,
+    required this.budgetAmount,
+    required this.spentAmount,
+    required this.newAmount,
+    required this.remaining,
+    required this.overAmount,
+    required this.isAlreadyOver,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return AlertDialog(
+      icon: const Text('⚠️', style: TextStyle(fontSize: 32)),
+      title: Text(
+        isAlreadyOver ? 'Đã vượt hạn mức!' : 'Sắp vượt hạn mức',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Danh mục: $categoryName',
+            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          _InfoRow(
+            label: 'Hạn mức',
+            value: formatVND(budgetAmount),
+            color: cs.onSurface,
+          ),
+          _InfoRow(
+            label: 'Đã chi',
+            value: formatVND(spentAmount),
+            color: Colors.orange,
+          ),
+          _InfoRow(
+            label: 'Khoản này',
+            value: formatVND(newAmount),
+            color: Colors.red,
+          ),
+          const Divider(height: 16),
+          _InfoRow(
+            label: 'Vượt hạn',
+            value: '+${formatVND(overAmount)}',
+            color: Colors.red,
+            bold: true,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isAlreadyOver
+                ? 'Danh mục này đã vượt hạn mức. Thêm khoản này sẽ làm tăng thêm số tiền vượt hạn.'
+                : 'Thêm khoản chi này sẽ khiến danh mục "$categoryName" vượt hạn mức đặt ra.',
+            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text('Huỷ bỏ',
+              style: TextStyle(color: cs.onSurfaceVariant)),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          style:
+          FilledButton.styleFrom(backgroundColor: Colors.red.shade600),
+          child: const Text('Vẫn thêm'),
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  final bool bold;
+
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.bold = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight:
+                  bold ? FontWeight.w600 : FontWeight.w400)),
+          Text(value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Type toggle ───────────────────────────────────────────────────────────────
 
 class _TypeToggle extends StatelessWidget {
   final String label;
