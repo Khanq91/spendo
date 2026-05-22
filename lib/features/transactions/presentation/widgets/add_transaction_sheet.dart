@@ -287,7 +287,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
           // Category chips
           SizedBox(
-            height: 36,
+            height: _selectedCategoryId != null &&
+                    budgetProgressMap.containsKey(_selectedCategoryId)
+                ? 48
+                : 36,
             child: ListView.separated(
               controller: _categoryScrollCtrl,
               scrollDirection: Axis.horizontal,
@@ -308,29 +311,48 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                   cs: cs,
                 );
 
+                // ── Selected color: tint theo budget level ──────────
+                final chipSelectedColor = progress != null
+                    ? _resolveSelectedColor(progress)
+                    : color.withOpacity(0.15);
+
                 return ChoiceChip(
                   key: _chipKeys[cat.id],
-                  label: Row(
+                  label: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        cat.name,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w400,
-                          color: selected ? color : cs.onSurfaceVariant,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            cat.name,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight:
+                              selected ? FontWeight.w600 : FontWeight.w400,
+                              color: selected ? color : cs.onSurfaceVariant,
+                            ),
+                          ),
+                          // Auto-select indicator
+                          if (selected && !_userPickedCategory) ...[
+                            const SizedBox(width: 3),
+                            Icon(Icons.auto_fix_high, size: 10, color: color),
+                          ],
+                          // Budget warning indicator khi không được select
+                          if (!selected && progress != null) ...[
+                            const SizedBox(width: 3),
+                            _BudgetDot(percent: progress.percent, isOver: progress.isOver),
+                          ],
+                        ],
                       ),
-                      // Auto-select indicator
-                      if (selected && !_userPickedCategory) ...[
-                        const SizedBox(width: 3),
-                        Icon(Icons.auto_fix_high, size: 10, color: color),
-                      ],
-                      // Budget warning indicator khi không được select
-                      if (!selected && progress != null) ...[
-                        const SizedBox(width: 3),
-                        _BudgetDot(percent: progress.percent, isOver: progress.isOver),
+                      // Mini progress bar khi chip được chọn và có budget
+                      if (selected && progress != null) ...[
+                        const SizedBox(height: 3),
+                        _MiniProgressBar(
+                          percent: progress.percent,
+                          isOver: progress.isOver,
+                        ),
                       ],
                     ],
                   ),
@@ -339,7 +361,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                     _selectedCategoryId = cat.id;
                     _userPickedCategory = true;
                   }),
-                  selectedColor: color.withOpacity(0.15),
+                  selectedColor: chipSelectedColor,
                   backgroundColor: chipBgColor,
                   side: BorderSide(
                     color: _resolveChipBorderColor(
@@ -440,6 +462,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     return Colors.green.withOpacity(0.06);
   }
 
+  /// Selected color có tint theo budget level
+  Color _resolveSelectedColor(
+    ({int budget, int spent, double percent, bool isOver}) progress,
+  ) {
+    if (progress.isOver) return Colors.red.withOpacity(0.12);
+    if (progress.percent >= 0.8) return Colors.orange.withOpacity(0.12);
+    if (progress.percent >= 0.5) return Colors.amber.withOpacity(0.10);
+    return Colors.green.withOpacity(0.10);
+  }
+
   Color _resolveChipBorderColor({
     required ({int budget, int spent, double percent, bool isOver})? progress,
     required bool selected,
@@ -479,6 +511,54 @@ class _BudgetDot extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
       ),
+    );
+  }
+}
+
+// ── Mini progress bar cho selected chip ───────────────────────────────────────
+
+class _MiniProgressBar extends StatelessWidget {
+  final double percent;
+  final bool isOver;
+
+  const _MiniProgressBar({required this.percent, required this.isOver});
+
+  @override
+  Widget build(BuildContext context) {
+    final barColor = isOver
+        ? Colors.red
+        : percent >= 0.8
+            ? Colors.orange
+            : Colors.green;
+    final displayPercent = (percent * 100).clamp(0, 999).toInt();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 48,
+          height: 3,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: percent.clamp(0.0, 1.0),
+              backgroundColor: barColor.withOpacity(0.15),
+              valueColor: AlwaysStoppedAnimation(barColor),
+              minHeight: 3,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$displayPercent%',
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            color: barColor,
+            height: 1,
+          ),
+        ),
+      ],
     );
   }
 }
