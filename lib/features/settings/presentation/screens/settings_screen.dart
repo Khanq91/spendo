@@ -87,7 +87,7 @@ class SettingsScreen extends ConsumerWidget {
 
           // ── Backup & Restore ─────────────────────────────────────────────
           _SectionHeader(title: 'Sao lưu & khôi phục'),
-          Container(
+          Material(
             color: surface,
             child: Column(
               children: [
@@ -99,17 +99,25 @@ class SettingsScreen extends ConsumerWidget {
                       color: const Color(0xFF6C63FF).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(LucideIcons.hardDriveDownload,
-                        size: 18, color: Color(0xFF6C63FF)),
+                    child: const Icon(
+                      LucideIcons.hardDriveDownload,
+                      size: 18,
+                      color: Color(0xFF6C63FF),
+                    ),
                   ),
-                  title: const Text('Xuất backup toàn bộ',
-                      style: TextStyle(fontSize: 14)),
+                  title: const Text(
+                    'Xuất backup toàn bộ',
+                    style: TextStyle(fontSize: 14),
+                  ),
                   subtitle: Text(
                     'Lưu toàn bộ dữ liệu ra file JSON để khôi phục sau',
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                   ),
-                  trailing: Icon(LucideIcons.chevronRight,
-                      size: 18, color: cs.onSurfaceVariant),
+                  trailing: Icon(
+                    LucideIcons.chevronRight,
+                    size: 18,
+                    color: cs.onSurfaceVariant,
+                  ),
                   onTap: () => _exportBackup(context),
                 ),
                 Divider(height: 1, indent: 16, color: cs.outlineVariant),
@@ -121,17 +129,25 @@ class SettingsScreen extends ConsumerWidget {
                       color: const Color(0xFF6C63FF).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(LucideIcons.hardDriveUpload,
-                        size: 18, color: Color(0xFF6C63FF)),
+                    child: const Icon(
+                      LucideIcons.hardDriveUpload,
+                      size: 18,
+                      color: Color(0xFF6C63FF),
+                    ),
                   ),
-                  title: const Text('Khôi phục từ backup',
-                      style: TextStyle(fontSize: 14)),
+                  title: const Text(
+                    'Khôi phục từ backup',
+                    style: TextStyle(fontSize: 14),
+                  ),
                   subtitle: Text(
                     'Nhập file JSON backup để khôi phục dữ liệu',
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                   ),
-                  trailing: Icon(LucideIcons.chevronRight,
-                      size: 18, color: cs.onSurfaceVariant),
+                  trailing: Icon(
+                    LucideIcons.chevronRight,
+                    size: 18,
+                    color: cs.onSurfaceVariant,
+                  ),
                   onTap: () => _restore(context, ref),
                 ),
               ],
@@ -145,7 +161,7 @@ class SettingsScreen extends ConsumerWidget {
           Consumer(
             builder: (context, ref, _) {
               final mode = ref.watch(themeModeProvider);
-              return Container(
+              return Material(
                 color: surface,
                 child: Column(
                   children: [
@@ -153,25 +169,28 @@ class SettingsScreen extends ConsumerWidget {
                       label: 'Theo hệ thống',
                       icon: LucideIcons.monitor,
                       selected: mode == ThemeMode.system,
-                      onTap: () => ref
-                          .read(themeModeProvider.notifier)
-                          .setMode(ThemeMode.system),
+                      onTap:
+                          () => ref
+                              .read(themeModeProvider.notifier)
+                              .setMode(ThemeMode.system),
                     ),
                     _ThemeTile(
                       label: 'Sáng',
                       icon: LucideIcons.sun,
                       selected: mode == ThemeMode.light,
-                      onTap: () => ref
-                          .read(themeModeProvider.notifier)
-                          .setMode(ThemeMode.light),
+                      onTap:
+                          () => ref
+                              .read(themeModeProvider.notifier)
+                              .setMode(ThemeMode.light),
                     ),
                     _ThemeTile(
                       label: 'Tối',
                       icon: LucideIcons.moon,
                       selected: mode == ThemeMode.dark,
-                      onTap: () => ref
-                          .read(themeModeProvider.notifier)
-                          .setMode(ThemeMode.dark),
+                      onTap:
+                          () => ref
+                              .read(themeModeProvider.notifier)
+                              .setMode(ThemeMode.dark),
                     ),
                   ],
                 ),
@@ -189,7 +208,7 @@ class SettingsScreen extends ConsumerWidget {
               final minute = ref.watch(notificationMinuteProvider);
               final cs = Theme.of(context).colorScheme;
 
-              return Container(
+              return Material(
                 color: surface,
                 child: Column(
                   children: [
@@ -197,24 +216,26 @@ class SettingsScreen extends ConsumerWidget {
                       leading: Icon(
                         LucideIcons.bell,
                         size: 18,
-                        color: enabled
-                            ? AppTheme.primary
-                            : cs.onSurfaceVariant,
+                        color: enabled ? AppTheme.primary : cs.onSurfaceVariant,
                       ),
-                      title: const Text('Nhắc nhập chi tiêu',
-                          style: TextStyle(fontSize: 14)),
+                      title: const Text(
+                        'Nhắc nhập chi tiêu',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       subtitle: Text(
                         'Mỗi ngày lúc ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
                         style: TextStyle(
-                            fontSize: 12, color: cs.onSurfaceVariant),
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
                       trailing: Switch(
                         value: enabled,
                         activeColor: AppTheme.primary,
                         onChanged: (val) async {
                           if (val) {
-                            final granted = await NotificationService
-                                .requestPermission();
+                            final granted =
+                                await NotificationService.requestPermission();
                             if (!granted) return;
                           }
                           ref
@@ -225,10 +246,15 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     if (enabled)
                       ListTile(
-                        leading: Icon(LucideIcons.clock,
-                            size: 18, color: cs.onSurfaceVariant),
-                        title: const Text('Giờ nhắc nhở',
-                            style: TextStyle(fontSize: 14)),
+                        leading: Icon(
+                          LucideIcons.clock,
+                          size: 18,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        title: const Text(
+                          'Giờ nhắc nhở',
+                          style: TextStyle(fontSize: 14),
+                        ),
                         trailing: Text(
                           '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
                           style: const TextStyle(
@@ -240,8 +266,7 @@ class SettingsScreen extends ConsumerWidget {
                         onTap: () async {
                           final picked = await showTimePicker(
                             context: context,
-                            initialTime:
-                            TimeOfDay(hour: hour, minute: minute),
+                            initialTime: TimeOfDay(hour: hour, minute: minute),
                           );
                           if (picked != null) {
                             await ref
@@ -259,23 +284,33 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     if (enabled)
                       ListTile(
-                        leading: Icon(LucideIcons.bellRing,
-                            size: 18, color: cs.onSurfaceVariant),
-                        title: const Text('Gửi thông báo thử',
-                            style: TextStyle(fontSize: 14)),
-                        subtitle: Text('Hiện sau 5 giây',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: cs.onSurfaceVariant)),
-                        trailing: Icon(Icons.chevron_right,
-                            size: 18, color: cs.onSurfaceVariant),
+                        leading: Icon(
+                          LucideIcons.bellRing,
+                          size: 18,
+                          color: cs.onSurfaceVariant,
+                        ),
+                        title: const Text(
+                          'Gửi thông báo thử',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        subtitle: Text(
+                          'Hiện sau 5 giây',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: cs.onSurfaceVariant,
+                        ),
                         onTap: () async {
                           await NotificationService.sendTestNotification();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content:
-                                Text('Thông báo sẽ hiện sau 5 giây'),
+                                content: Text('Thông báo sẽ hiện sau 5 giây'),
                                 duration: Duration(seconds: 2),
                               ),
                             );
@@ -300,17 +335,25 @@ class SettingsScreen extends ConsumerWidget {
                 color: AppTheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(LucideIcons.bellRing,
-                  size: 18, color: AppTheme.primary),
+              child: Icon(
+                LucideIcons.bellRing,
+                size: 18,
+                color: AppTheme.primary,
+              ),
             ),
-            title: const Text('Quản lý nhắc nhở',
-                style: TextStyle(fontSize: 14)),
+            title: const Text(
+              'Quản lý nhắc nhở',
+              style: TextStyle(fontSize: 14),
+            ),
             subtitle: Text(
               'Nhắc mua đồ và ghi chi tiêu định kỳ',
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
-            trailing: Icon(LucideIcons.chevronRight,
-                size: 18, color: cs.onSurfaceVariant),
+            trailing: Icon(
+              LucideIcons.chevronRight,
+              size: 18,
+              color: cs.onSurfaceVariant,
+            ),
             onTap: () => context.push('/reminders'),
           ),
           const SizedBox(height: 8),
@@ -320,7 +363,10 @@ class SettingsScreen extends ConsumerWidget {
           Container(
             color: surface,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: const WidgetPinSection(),
+            child: const Material(
+              color: Colors.transparent,
+              child: WidgetPinSection(),
+            ),
           ),
           const SizedBox(height: 8),
 
@@ -355,32 +401,33 @@ class SettingsScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) =>
-          CategoryFormSheet(existing: cat, isIncome: cat.isIncome),
+      builder: (_) => CategoryFormSheet(existing: cat, isIncome: cat.isIncome),
     );
   }
 
   Future<void> _confirmDelete(BuildContext context, Category cat) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Xoá danh mục?'),
-        content: Text(
-          'Xoá "${cat.name}"?\nDanh mục đang có giao dịch sẽ không thể xoá.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Huỷ'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Xoá danh mục?'),
+            content: Text(
+              'Xoá "${cat.name}"?\nDanh mục đang có giao dịch sẽ không thể xoá.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Huỷ'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.expenseAltColor,
+                ),
+                child: const Text('Xoá'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-                foregroundColor: AppTheme.expenseAltColor),
-            child: const Text('Xoá'),
-          ),
-        ],
-      ),
     );
 
     if (confirm == true && context.mounted) {
@@ -390,8 +437,7 @@ class SettingsScreen extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content:
-              Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(e.toString().replaceAll('Exception: ', '')),
               backgroundColor: AppTheme.expenseAltColor,
             ),
           );
@@ -405,9 +451,9 @@ class SettingsScreen extends ConsumerWidget {
       await ExportService.exportCSV(range);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi xuất file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi xuất file: $e')));
       }
     }
   }
@@ -420,8 +466,7 @@ class SettingsScreen extends ConsumerWidget {
         context: context,
         barrierDismissible: false,
         useRootNavigator: true,
-        builder: (_) =>
-        const Center(child: CircularProgressIndicator()),
+        builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
       final result = await BackupService.exportBackup();
@@ -469,8 +514,7 @@ class SettingsScreen extends ConsumerWidget {
         context: context,
         barrierDismissible: false,
         useRootNavigator: true,
-        builder: (_) =>
-        const Center(child: CircularProgressIndicator()),
+        builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
       // 3. Preview
@@ -501,8 +545,7 @@ class SettingsScreen extends ConsumerWidget {
         context: context,
         barrierDismissible: false,
         useRootNavigator: true,
-        builder: (_) =>
-        const Center(child: CircularProgressIndicator()),
+        builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
       final result = await BackupService.restore(filePath);
@@ -519,8 +562,8 @@ class SettingsScreen extends ConsumerWidget {
         SnackBar(
           content: Text(
             '✅ Đã khôi phục ${result.transactionsAdded} giao dịch, '
-                '${result.categoriesAdded} danh mục'
-                '${result.transactionsSkipped > 0 ? ' · bỏ qua ${result.transactionsSkipped} trùng' : ''}',
+            '${result.categoriesAdded} danh mục'
+            '${result.transactionsSkipped > 0 ? ' · bỏ qua ${result.transactionsSkipped} trùng' : ''}',
           ),
           duration: const Duration(seconds: 4),
         ),
@@ -554,8 +597,7 @@ class SettingsScreen extends ConsumerWidget {
         context: context,
         barrierDismissible: false,
         useRootNavigator: true,
-        builder: (_) =>
-        const Center(child: CircularProgressIndicator()),
+        builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
       final preview = await ImportService.previewCSV(filePath);
@@ -582,8 +624,7 @@ class SettingsScreen extends ConsumerWidget {
         context: context,
         barrierDismissible: false,
         useRootNavigator: true,
-        builder: (_) =>
-        const Center(child: CircularProgressIndicator()),
+        builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
       final result2 = await ImportService.importCSV(filePath);
@@ -598,8 +639,8 @@ class SettingsScreen extends ConsumerWidget {
         SnackBar(
           content: Text(
             '✅ Đã nhập ${result2.added} giao dịch'
-                '${result2.skipped > 0 ? ', bỏ qua ${result2.skipped} trùng' : ''}'
-                '${result2.newCategories > 0 ? ', tạo ${result2.newCategories} danh mục mới' : ''}',
+            '${result2.skipped > 0 ? ', bỏ qua ${result2.skipped} trùng' : ''}'
+            '${result2.newCategories > 0 ? ', tạo ${result2.newCategories} danh mục mới' : ''}',
           ),
           duration: const Duration(seconds: 4),
         ),
@@ -639,12 +680,16 @@ class _RestorePreviewDialog extends StatelessWidget {
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(LucideIcons.hardDriveUpload,
-              size: 20, color: Color(0xFF6C63FF)),
+          const Icon(
+            LucideIcons.hardDriveUpload,
+            size: 20,
+            color: Color(0xFF6C63FF),
+          ),
           const SizedBox(width: 8),
-          const Text('Xác nhận khôi phục',
-              style:
-              TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text(
+            'Xác nhận khôi phục',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
       content: Column(
@@ -655,29 +700,26 @@ class _RestorePreviewDialog extends StatelessWidget {
             _PreviewRow(
               icon: LucideIcons.circlePlus,
               color: const Color(0xFF6C63FF),
-              text:
-              '${preview.transactionsAdded} giao dịch mới sẽ được thêm',
+              text: '${preview.transactionsAdded} giao dịch mới sẽ được thêm',
             ),
           if (preview.categoriesAdded > 0)
             _PreviewRow(
               icon: LucideIcons.tag,
               color: Colors.orange,
-              text:
-              '${preview.categoriesAdded} danh mục mới sẽ được tạo',
+              text: '${preview.categoriesAdded} danh mục mới sẽ được tạo',
             ),
           if (preview.transactionsSkipped > 0)
             _PreviewRow(
               icon: LucideIcons.circleArrowRight,
               color: cs.onSurfaceVariant,
               text:
-              '${preview.transactionsSkipped} giao dịch đã tồn tại → bỏ qua',
+                  '${preview.transactionsSkipped} giao dịch đã tồn tại → bỏ qua',
             ),
           if (preview.categoriesSkipped > 0)
             _PreviewRow(
               icon: LucideIcons.circleArrowRight,
               color: cs.onSurfaceVariant,
-              text:
-              '${preview.categoriesSkipped} danh mục đã tồn tại → bỏ qua',
+              text: '${preview.categoriesSkipped} danh mục đã tồn tại → bỏ qua',
             ),
           if (preview.errors.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -691,8 +733,7 @@ class _RestorePreviewDialog extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Tất cả dữ liệu trong backup đã tồn tại trên thiết bị này.',
-              style:
-              TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
             ),
           ],
         ],
@@ -700,15 +741,13 @@ class _RestorePreviewDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: Text('Huỷ',
-              style: TextStyle(color: cs.onSurfaceVariant)),
+          child: Text('Huỷ', style: TextStyle(color: cs.onSurfaceVariant)),
         ),
         FilledButton(
-          onPressed: hasAnything
-              ? () => Navigator.pop(context, true)
-              : null,
+          onPressed: hasAnything ? () => Navigator.pop(context, true) : null,
           style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF6C63FF)),
+            backgroundColor: const Color(0xFF6C63FF),
+          ),
           child: const Text('Khôi phục'),
         ),
       ],
@@ -730,9 +769,10 @@ class _ImportPreviewDialog extends StatelessWidget {
         children: [
           Icon(LucideIcons.fileUp, size: 20, color: AppTheme.primary),
           const SizedBox(width: 8),
-          const Text('Xác nhận nhập dữ liệu',
-              style:
-              TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text(
+            'Xác nhận nhập dữ liệu',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
       content: Column(
@@ -754,24 +794,27 @@ class _ImportPreviewDialog extends StatelessWidget {
             _PreviewRow(
               icon: LucideIcons.tag,
               color: Colors.orange,
-              text:
-              '${preview.newCategories} danh mục mới sẽ được tạo:',
+              text: '${preview.newCategories} danh mục mới sẽ được tạo:',
             ),
             Padding(
               padding: const EdgeInsets.only(left: 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: preview.newCategoryNames
-                    .map((name) => Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    '• $name',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: cs.onSurfaceVariant),
-                  ),
-                ))
-                    .toList(),
+                children:
+                    preview.newCategoryNames
+                        .map(
+                          (name) => Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              '• $name',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
               ),
             ),
           ],
@@ -788,15 +831,12 @@ class _ImportPreviewDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: Text('Huỷ',
-              style: TextStyle(color: cs.onSurfaceVariant)),
+          child: Text('Huỷ', style: TextStyle(color: cs.onSurfaceVariant)),
         ),
         FilledButton(
-          onPressed: preview.added > 0
-              ? () => Navigator.pop(context, true)
-              : null,
-          style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.primary),
+          onPressed:
+              preview.added > 0 ? () => Navigator.pop(context, true) : null,
+          style: FilledButton.styleFrom(backgroundColor: AppTheme.primary),
           child: const Text('Nhập ngay'),
         ),
       ],
@@ -823,9 +863,7 @@ class _PreviewRow extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(text, style: const TextStyle(fontSize: 13)),
-          ),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );
@@ -878,15 +916,18 @@ class _ExportTile extends StatelessWidget {
           color: AppTheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child:
-        Icon(LucideIcons.download, size: 18, color: AppTheme.primary),
+        child: Icon(LucideIcons.download, size: 18, color: AppTheme.primary),
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
-      subtitle: Text(subtitle,
-          style:
-          TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-      trailing: Icon(LucideIcons.chevronRight,
-          size: 18, color: cs.onSurfaceVariant),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+      ),
+      trailing: Icon(
+        LucideIcons.chevronRight,
+        size: 18,
+        color: cs.onSurfaceVariant,
+      ),
       onTap: onTap,
     );
   }
@@ -921,24 +962,32 @@ class _CategoryTile extends StatelessWidget {
         ),
       ),
       title: Text(category.name, style: const TextStyle(fontSize: 14)),
-      subtitle: category.isDefault
-          ? Text('Mặc định',
-          style: TextStyle(
-              fontSize: 11, color: cs.onSurfaceVariant))
-          : null,
+      subtitle:
+          category.isDefault
+              ? Text(
+                'Mặc định',
+                style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+              )
+              : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(LucideIcons.pencil,
-                size: 16, color: cs.onSurfaceVariant),
+            icon: Icon(
+              LucideIcons.pencil,
+              size: 16,
+              color: cs.onSurfaceVariant,
+            ),
             onPressed: onEdit,
             visualDensity: VisualDensity.compact,
           ),
           if (!category.isDefault)
             IconButton(
-              icon: Icon(LucideIcons.trash2,
-                  size: 16, color: AppTheme.expenseAltColor),
+              icon: Icon(
+                LucideIcons.trash2,
+                size: 16,
+                color: AppTheme.expenseAltColor,
+              ),
               onPressed: onDelete,
               visualDensity: VisualDensity.compact,
             ),
@@ -971,10 +1020,10 @@ class _ThemeTile extends StatelessWidget {
         color: selected ? AppTheme.primary : cs.onSurfaceVariant,
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
-      trailing: selected
-          ? const Icon(LucideIcons.check,
-          size: 16, color: AppTheme.primary)
-          : null,
+      trailing:
+          selected
+              ? const Icon(LucideIcons.check, size: 16, color: AppTheme.primary)
+              : null,
       onTap: onTap,
     );
   }
@@ -1004,8 +1053,7 @@ class _CategoriesExpansionTile extends StatefulWidget {
       _CategoriesExpansionTileState();
 }
 
-class _CategoriesExpansionTileState
-    extends State<_CategoriesExpansionTile> {
+class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
   bool _expanded = false;
   int _tab = 0;
 
@@ -1013,8 +1061,7 @@ class _CategoriesExpansionTileState
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final cats = _tab == 0 ? widget.expenseCats : widget.incomeCats;
-    final total =
-        widget.expenseCats.length + widget.incomeCats.length;
+    final total = widget.expenseCats.length + widget.incomeCats.length;
 
     return Column(
       children: [
@@ -1022,8 +1069,7 @@ class _CategoriesExpansionTileState
           onTap: () => setState(() => _expanded = !_expanded),
           child: Container(
             color: cs.surface,
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
                 Container(
@@ -1033,21 +1079,27 @@ class _CategoriesExpansionTileState
                     color: AppTheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(LucideIcons.tag,
-                      size: 18, color: AppTheme.primary),
+                  child: Icon(
+                    LucideIcons.tag,
+                    size: 18,
+                    color: AppTheme.primary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Danh mục thu chi',
-                          style: TextStyle(fontSize: 14)),
+                      const Text(
+                        'Danh mục thu chi',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       Text(
                         '$total danh mục · ${widget.expenseCats.length} chi, ${widget.incomeCats.length} thu',
                         style: TextStyle(
-                            fontSize: 12,
-                            color: cs.onSurfaceVariant),
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -1055,8 +1107,11 @@ class _CategoriesExpansionTileState
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: Icon(Icons.keyboard_arrow_down,
-                      size: 20, color: cs.onSurfaceVariant),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 20,
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -1086,12 +1141,15 @@ class _CategoriesExpansionTileState
                       ),
                       const Spacer(),
                       TextButton.icon(
-                        onPressed: _tab == 0
-                            ? widget.onAddExpense
-                            : widget.onAddIncome,
+                        onPressed:
+                            _tab == 0
+                                ? widget.onAddExpense
+                                : widget.onAddIncome,
                         icon: const Icon(Icons.add, size: 15),
-                        label: const Text('Thêm',
-                            style: TextStyle(fontSize: 12)),
+                        label: const Text(
+                          'Thêm',
+                          style: TextStyle(fontSize: 12),
+                        ),
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
                           foregroundColor: AppTheme.primary,
@@ -1100,18 +1158,19 @@ class _CategoriesExpansionTileState
                     ],
                   ),
                 ),
-                ...cats.map((cat) => _CategoryTile(
-                  category: cat,
-                  onEdit: () => widget.onEdit(cat),
-                  onDelete: () => widget.onDelete(cat),
-                )),
+                ...cats.map(
+                  (cat) => _CategoryTile(
+                    category: cat,
+                    onEdit: () => widget.onEdit(cat),
+                    onDelete: () => widget.onDelete(cat),
+                  ),
+                ),
                 const SizedBox(height: 4),
               ],
             ),
           ),
-          crossFadeState: _expanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
+          crossFadeState:
+              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 220),
           sizeCurve: Curves.easeOutCubic,
         ),
@@ -1138,16 +1197,15 @@ class _TabChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding:
-        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: selected
-              ? AppTheme.primary.withOpacity(0.12)
-              : Colors.transparent,
+          color:
+              selected
+                  ? AppTheme.primary.withOpacity(0.12)
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color:
-            selected ? AppTheme.primary : cs.outlineVariant,
+            color: selected ? AppTheme.primary : cs.outlineVariant,
             width: 0.8,
           ),
         ),
@@ -1156,8 +1214,7 @@ class _TabChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             color: selected ? AppTheme.primary : cs.onSurfaceVariant,
-            fontWeight:
-            selected ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ),

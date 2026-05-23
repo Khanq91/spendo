@@ -37,4 +37,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: build/app/outputs/flutter-apk/spendo.apk

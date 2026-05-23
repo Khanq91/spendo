@@ -20,8 +20,6 @@ const schema = Schema([
     Column.text('amount'),
     Column.text('month'),
   ]),
-  // Hạn mức theo danh mục — local only, không sync Supabase
-  // amount: số tiền hạn mức (text để nhất quán với các table khác)
   Table.localOnly('category_budgets', [
     Column.text('category_id'),
     Column.text('amount'),
@@ -30,14 +28,23 @@ const schema = Schema([
     Column.text('title'),
     Column.text('category_id'),
     Column.text('amount_hint'),
-    Column.text('frequency'),       // 'daily' | 'weekly' | 'monthly'
-    Column.integer('day_of_week'),  // 1-7, weekly only
-    Column.integer('day_of_month'), // 1-28, monthly only
+    Column.text('frequency'),
+    Column.integer('day_of_week'),
+    Column.integer('day_of_month'),
     Column.integer('hour'),
     Column.integer('minute'),
     Column.integer('is_active'),
-    Column.text('next_trigger'),    // ISO8601 string
-    // "Sắp hết đồ" mode: cảnh báo trước N giờ (0 = tắt)
+    Column.text('next_trigger'),
     Column.integer('warn_before_hours'),
+  ]),
+  // Habit suggestions detected from transaction history — local only
+  Table.localOnly('detected_habits', [
+    Column.text('keyword'),           // normalized note text
+    Column.text('category_id'),
+    Column.integer('median_gap_days'),
+    Column.text('last_occurrence'),   // ISO8601
+    Column.integer('occurrence_count'),
+    Column.integer('is_dismissed'),   // 1 = user dismissed
+    Column.text('analyzed_at'),       // ISO8601
   ]),
 ]);
