@@ -49,6 +49,7 @@ class ReminderActions {
         hour: r.hour,
         minute: r.minute,
         isActive: true,
+        warnBeforeHours: r.warnBeforeHours,
         nextTrigger: RecurringReminder.calcNextTrigger(
           frequency: r.frequency,
           hour: r.hour,

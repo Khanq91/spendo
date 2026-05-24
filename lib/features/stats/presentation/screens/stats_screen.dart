@@ -9,6 +9,7 @@ import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/domain/category.dart';
 import 'package:collection/collection.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
+import '../../../home/presentation/widgets/month_selector.dart';
 
 class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
@@ -36,14 +37,20 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
   @override
   Widget build(BuildContext context) {
     final month = ref.watch(selectedMonthProvider);
-    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          formatMonthYear(month),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        title: MonthSelector(
+          month: month,
+          onPrev: () =>
+          ref.read(selectedMonthProvider.notifier).state =
+              DateTime(month.year, month.month - 1),
+          onNext: () =>
+          ref.read(selectedMonthProvider.notifier).state =
+              DateTime(month.year, month.month + 1),
+          onMonthPicked: (picked) =>
+          ref.read(selectedMonthProvider.notifier).state = picked,
         ),
         bottom: TabBar(
           controller: _tab,
@@ -131,8 +138,8 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
                         _touchedIndex = -1;
                         return;
                       }
-                      _touchedIndex = response!
-                          .touchedSection!.touchedSectionIndex;
+                      _touchedIndex =
+                          response!.touchedSection!.touchedSectionIndex;
                     });
                   },
                 ),
@@ -233,7 +240,6 @@ class _DailyTab extends ConsumerWidget {
         .fold(0, (a, b) => a > b ? a : b)
         .toDouble();
 
-    // Grid line color adapts to theme
     final gridColor = cs.outlineVariant;
     final labelColor = cs.onSurfaceVariant;
 
@@ -325,9 +331,7 @@ class _DailyTab extends ConsumerWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
           Text(
             'Chi tiết từng ngày',
             style: TextStyle(

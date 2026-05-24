@@ -73,6 +73,44 @@ class ReminderNotificationService {
       matchDateTimeComponents: matchComponents,
       payload: payload,
     );
+
+    // Xử lý warn notification
+    final warnNotifId = _warnNotifId(r.id);
+    await _plugin.cancel(warnNotifId); // Xoá warn cũ nếu có
+
+    final warnTime = r.warnTrigger;
+    if (warnTime != null) {
+      final warnScheduled = tz.TZDateTime.from(warnTime, tz.local);
+      await _plugin.zonedSchedule(
+        warnNotifId,
+        '⏰ Còn ${r.warnBeforeHours} giờ nữa: ${r.title}',
+        'Sắp đến hạn mua sắm/thanh toán. Bạn nhớ chuẩn bị nhé!',
+        warnScheduled,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            'spendo_reminders',
+            'Nhắc chi tiêu định kỳ',
+            channelDescription: 'Nhắc nhở mua đồ và ghi chi tiêu định kỳ',
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+            icon: '@mipmap/ic_launcher',
+            actions: [
+              AndroidNotificationAction(
+                'dismiss',
+                'Bỏ qua',
+                cancelNotification: true,
+              ),
+            ],
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime,
+        // Warn notification KHÔNG dùng matchDateTimeComponents vì warnTime
+        // thay đổi theo nextTrigger, sẽ được reschedule cùng main trigger.
+        payload: payload,
+      );
+    }
   }
 
   /// Dùng cho debug testing — fire một lần sau N giây, không repeat
@@ -127,10 +165,15 @@ class ReminderNotificationService {
 
   static Future<void> cancel(String reminderId) async {
     await _plugin.cancel(_notifId(reminderId));
+    await _plugin.cancel(_warnNotifId(reminderId));
   }
 
   static int _notifId(String reminderId) {
     return _kReminderIdBase + reminderId.hashCode.abs() % 8000;
+  }
+
+  static int _warnNotifId(String reminderId) {
+    return _kReminderIdBase + 8000 + reminderId.hashCode.abs() % 8000;
   }
 
   static String _fmt(int amount) {

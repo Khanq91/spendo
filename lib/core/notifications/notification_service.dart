@@ -5,12 +5,12 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'reminder_reschedule_service.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
-  // Injected after app starts — used to navigate on notification tap
   static GlobalKey<NavigatorState>? navigatorKey;
 
   static Future<void> init() async {
@@ -18,6 +18,7 @@ class NotificationService {
 
     try {
       tz.initializeTimeZones();
+
       final timezoneName = await FlutterTimezone.getLocalTimezone()
           .timeout(
         const Duration(seconds: 5),
@@ -28,11 +29,13 @@ class NotificationService {
       const android = AndroidInitializationSettings('@mipmap/ic_launcher');
       const settings = InitializationSettings(android: android);
 
-      await _plugin.initialize(
+      await _plugin
+          .initialize(
         settings,
         onDidReceiveNotificationResponse: _onResponse,
         onDidReceiveBackgroundNotificationResponse: _onBackgroundResponse,
-      ).timeout(const Duration(seconds: 5), onTimeout: () {});
+      )
+          .timeout(const Duration(seconds: 5), onTimeout: () {});
 
       _initialized = true;
     } catch (e) {
@@ -51,16 +54,23 @@ class NotificationService {
   }
 
   static void _handlePayload(String? payload, String? actionId) {
-    // 'dismiss' action → do nothing
     if (actionId == 'dismiss' || payload == null) return;
 
-    // 'add_expense' action or tap on body → navigate to /add
     try {
       final data = jsonDecode(payload) as Map<String, dynamic>;
+      final reminderId = data['reminder_id'] as String?;
       final categoryId = data['category_id'] as String?;
       final note = Uri.encodeComponent(data['note'] as String? ?? '');
       final amount = data['amount'] as String? ?? '';
 
+      // Reschedule nextTrigger sau khi reminder fire (chạy async, không block)
+      if (reminderId != null && reminderId.isNotEmpty) {
+        Future.microtask(
+              () => ReminderRescheduleService.rescheduleAfterFire(reminderId),
+        );
+      }
+
+      // 'dismiss' action đã handled ở trên — chỉ navigate khi tap body hoặc 'add_expense'
       String path = '/add';
       final params = <String>[];
       if (categoryId != null && categoryId.isNotEmpty) {
@@ -70,7 +80,6 @@ class NotificationService {
       if (amount.isNotEmpty) params.add('amount=$amount');
       if (params.isNotEmpty) path = '$path?${params.join('&')}';
 
-      // Navigate — works if app is in foreground or background
       final context = navigatorKey?.currentContext;
       if (context != null) {
         GoRouter.of(context).go(path);
@@ -78,7 +87,6 @@ class NotificationService {
     } catch (_) {}
   }
 
-  /// Handle the case where app was fully killed and launched via notification
   static Future<void> handleLaunchNotification(BuildContext context) async {
     final details = await _plugin.getNotificationAppLaunchDetails();
     if (details?.didNotificationLaunchApp == true) {
@@ -87,7 +95,6 @@ class NotificationService {
     }
   }
 
-  /// Đặt lịch nhắc nhở hàng ngày lúc [hour]:[minute]
   static Future<void> scheduleDailyReminder({
     int hour = 21,
     int minute = 0,
@@ -135,13 +142,14 @@ class NotificationService {
   }
 
   static Future<bool> requestPermission() async {
-    final android = _plugin.resolvePlatformSpecificImplementation
-    <AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
     return await android?.requestNotificationsPermission() ?? false;
   }
 
   static Future<void> sendTestNotification() async {
-    final scheduled = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5));
+    final scheduled =
+    tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5));
 
     await _plugin.zonedSchedule(
       99,

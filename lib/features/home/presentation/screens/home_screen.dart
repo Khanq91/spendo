@@ -37,6 +37,8 @@ class HomeScreen extends ConsumerWidget {
               DateTime(month.year, month.month - 1),
           onNext: () => ref.read(selectedMonthProvider.notifier).state =
               DateTime(month.year, month.month + 1),
+          onMonthPicked: (picked) =>
+              ref.read(selectedMonthProvider.notifier).state = picked,
         ),
         actions: [
           IconButton(

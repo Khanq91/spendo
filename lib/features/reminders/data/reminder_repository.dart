@@ -27,8 +27,9 @@ class ReminderRepository {
     await db.execute(
       '''INSERT INTO recurring_reminders(
           id, title, category_id, amount_hint, frequency,
-          day_of_week, day_of_month, hour, minute, is_active, next_trigger
-        ) VALUES(uuid(), ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)''',
+          day_of_week, day_of_month, hour, minute, is_active, next_trigger,
+          warn_before_hours
+        ) VALUES(uuid(), ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)''',
       [
         r.title,
         r.categoryId,
@@ -39,6 +40,7 @@ class ReminderRepository {
         r.hour,
         r.minute,
         r.nextTrigger.toIso8601String(),
+        r.warnBeforeHours,
       ],
     );
   }
@@ -48,7 +50,7 @@ class ReminderRepository {
       '''UPDATE recurring_reminders SET
           title=?, category_id=?, amount_hint=?, frequency=?,
           day_of_week=?, day_of_month=?, hour=?, minute=?,
-          is_active=?, next_trigger=?
+          is_active=?, next_trigger=?, warn_before_hours=?
          WHERE id=?''',
       [
         r.title,
@@ -61,6 +63,7 @@ class ReminderRepository {
         r.minute,
         r.isActive ? 1 : 0,
         r.nextTrigger.toIso8601String(),
+        r.warnBeforeHours,
         r.id,
       ],
     );

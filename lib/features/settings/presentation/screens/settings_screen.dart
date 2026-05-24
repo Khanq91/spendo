@@ -474,11 +474,15 @@ class SettingsScreen extends ConsumerWidget {
       if (!context.mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
 
+      final parts = <String>[
+        '${result.transactions} giao dịch',
+        '${result.categories} danh mục',
+        if (result.reminders > 0) '${result.reminders} nhắc nhở',
+        if (result.categoryBudgets > 0) '${result.categoryBudgets} hạn mức',
+      ];
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            '✅ Đã xuất ${result.transactions} giao dịch, ${result.categories} danh mục',
-          ),
+          content: Text('✅ Đã xuất ${parts.join(', ')}'),
           duration: const Duration(seconds: 3),
         ),
       );
@@ -526,6 +530,8 @@ class SettingsScreen extends ConsumerWidget {
       // 4. Lỗi nghiêm trọng
       if (preview.categoriesAdded == 0 &&
           preview.transactionsAdded == 0 &&
+          preview.remindersAdded == 0 &&
+          preview.budgetsAdded == 0 &&
           preview.errors.isNotEmpty) {
         _showError(context, preview.errors.first);
         return;
@@ -558,12 +564,21 @@ class SettingsScreen extends ConsumerWidget {
       ref.invalidate(categoriesProvider);
 
       // 8. Kết quả
+      final added = <String>[
+        if (result.transactionsAdded > 0) '${result.transactionsAdded} giao dịch',
+        if (result.categoriesAdded > 0) '${result.categoriesAdded} danh mục',
+        if (result.remindersAdded > 0) '${result.remindersAdded} nhắc nhở',
+        if (result.budgetsAdded > 0) '${result.budgetsAdded} hạn mức',
+      ];
+      final skipped = result.transactionsSkipped +
+          result.categoriesSkipped +
+          result.remindersSkipped +
+          result.budgetsSkipped;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '✅ Đã khôi phục ${result.transactionsAdded} giao dịch, '
-            '${result.categoriesAdded} danh mục'
-            '${result.transactionsSkipped > 0 ? ' · bỏ qua ${result.transactionsSkipped} trùng' : ''}',
+            '✅ Đã khôi phục ${added.join(', ')}'
+            '${skipped > 0 ? ' · bỏ qua $skipped trùng' : ''}',
           ),
           duration: const Duration(seconds: 4),
         ),
@@ -675,7 +690,8 @@ class _RestorePreviewDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final hasAnything =
-        preview.categoriesAdded > 0 || preview.transactionsAdded > 0;
+        preview.categoriesAdded > 0 || preview.transactionsAdded > 0 ||
+        preview.remindersAdded > 0 || preview.budgetsAdded > 0;
 
     return AlertDialog(
       title: Row(
@@ -707,6 +723,18 @@ class _RestorePreviewDialog extends StatelessWidget {
               icon: LucideIcons.tag,
               color: Colors.orange,
               text: '${preview.categoriesAdded} danh mục mới sẽ được tạo',
+            ),
+          if (preview.remindersAdded > 0)
+            _PreviewRow(
+              icon: LucideIcons.bellRing,
+              color: AppTheme.primary,
+              text: '${preview.remindersAdded} nhắc nhở sẽ được khôi phục',
+            ),
+          if (preview.budgetsAdded > 0)
+            _PreviewRow(
+              icon: LucideIcons.wallet,
+              color: AppTheme.incomeColor,
+              text: '${preview.budgetsAdded} hạn mức danh mục sẽ được khôi phục',
             ),
           if (preview.transactionsSkipped > 0)
             _PreviewRow(

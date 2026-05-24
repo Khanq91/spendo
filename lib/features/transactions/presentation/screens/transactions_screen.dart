@@ -9,6 +9,7 @@ import '../../../categories/presentation/providers/category_provider.dart';
 import '../../domain/transaction.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/transaction_list_item.dart';
+import '../../../home/presentation/widgets/month_selector.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -59,10 +60,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           onChanged: (v) =>
           ref.read(searchQueryProvider.notifier).state = v,
         )
-            : Text(
-          'Tháng ${month.month}/${month.year}',
-          style: const TextStyle(
-              fontSize: 16, fontWeight: FontWeight.w600),
+            : MonthSelector(
+          month: month,
+          onPrev: () =>
+          ref.read(selectedMonthProvider.notifier).state =
+              DateTime(month.year, month.month - 1),
+          onNext: () =>
+          ref.read(selectedMonthProvider.notifier).state =
+              DateTime(month.year, month.month + 1),
+          onMonthPicked: (picked) =>
+          ref.read(selectedMonthProvider.notifier).state = picked,
         ),
         actions: [
           IconButton(
