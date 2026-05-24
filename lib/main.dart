@@ -52,12 +52,18 @@ Future<void> _initServices(
   // 3. Notifications
   report(0.65, 'Setting up notifications…');
   await NotificationService.init();
-
+  
   // 4. Schedule recurring reminders
   report(0.80, 'Scheduling reminders…');
-  final reminders = await ReminderRepository().getAll();
-  await ReminderNotificationService.scheduleAll(reminders);
-
+  try {
+    final reminders = await ReminderRepository().getAll()
+        .timeout(const Duration(seconds: 5));
+    await ReminderNotificationService.scheduleAll(reminders)
+        .timeout(const Duration(seconds: 5));
+  } catch (e) {
+    debugPrint('[Init] Reminder scheduling error: $e');
+  }
+  
   // 5. Home widgets sync
   report(0.90, 'Syncing widgets…');
   await WidgetSync.syncCategories();

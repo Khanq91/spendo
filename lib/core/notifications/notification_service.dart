@@ -16,20 +16,29 @@ class NotificationService {
   static Future<void> init() async {
     if (_initialized) return;
 
-    tz.initializeTimeZones();
-    final timezoneName = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timezoneName));
+    try {
+      tz.initializeTimeZones();
+      final timezoneName = await FlutterTimezone.getLocalTimezone()
+          .timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => 'Asia/Ho_Chi_Minh',
+      );
+      tz.setLocalLocation(tz.getLocation(timezoneName));
 
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const settings = InitializationSettings(android: android);
+      const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const settings = InitializationSettings(android: android);
 
-    await _plugin.initialize(
-      settings,
-      onDidReceiveNotificationResponse: _onResponse,
-      onDidReceiveBackgroundNotificationResponse: _onBackgroundResponse,
-    );
+      await _plugin.initialize(
+        settings,
+        onDidReceiveNotificationResponse: _onResponse,
+        onDidReceiveBackgroundNotificationResponse: _onBackgroundResponse,
+      ).timeout(const Duration(seconds: 5), onTimeout: () {});
 
-    _initialized = true;
+      _initialized = true;
+    } catch (e) {
+      debugPrint('[NotificationService] init error: $e');
+      _initialized = true;
+    }
   }
 
   static void _onResponse(NotificationResponse response) {
