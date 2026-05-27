@@ -167,6 +167,73 @@ class BackupService {
     );
   }
 
+  // ── Export as string (for Google Drive) ──────────────────────────────────────
+
+  /// Export backup data as a JSON string without sharing.
+  /// Used by GDriveBackupService to upload to Google Drive.
+  static Future<String> exportBackupAsString() async {
+    final catRepo = CategoryRepository();
+    final txRepo = TransactionRepository();
+    final reminderRepo = ReminderRepository();
+    final budgetRepo = CategoryBudgetRepository();
+
+    final categories = await catRepo.getAll();
+    final transactions = await txRepo.getAll();
+    final reminders = await reminderRepo.getAll();
+    final budgets = await budgetRepo.getAll();
+
+    final payload = {
+      'version': _kBackupVersion,
+      'app': _kBackupAppTag,
+      'exported_at': DateTime.now().millisecondsSinceEpoch,
+      'categories': categories
+          .map((c) => {
+                'id': c.id,
+                'name': c.name,
+                'color_hex': c.colorHex,
+                'icon_name': c.iconName,
+                'is_income': c.isIncome,
+                'sort_order': c.sortOrder,
+              })
+          .toList(),
+      'transactions': transactions
+          .map((t) => {
+                'id': t.id,
+                'amount': t.amount,
+                'type': t.type,
+                'category_id': t.categoryId,
+                'note': t.note,
+                'created_at': t.createdAt.millisecondsSinceEpoch,
+              })
+          .toList(),
+      'recurring_reminders': reminders
+          .map((r) => {
+                'id': r.id,
+                'title': r.title,
+                'category_id': r.categoryId,
+                'amount_hint': r.amountHint,
+                'frequency': r.frequency.name,
+                'day_of_week': r.dayOfWeek,
+                'day_of_month': r.dayOfMonth,
+                'hour': r.hour,
+                'minute': r.minute,
+                'is_active': r.isActive,
+                'next_trigger': r.nextTrigger.toIso8601String(),
+                'warn_before_hours': r.warnBeforeHours,
+              })
+          .toList(),
+      'category_budgets': budgets
+          .map((b) => {
+                'id': b.id,
+                'category_id': b.categoryId,
+                'amount': b.amount,
+              })
+          .toList(),
+    };
+
+    return const JsonEncoder.withIndent('  ').convert(payload);
+  }
+
   // ── Preview (dry-run) ───────────────────────────────────────────────────────
 
   static Future<RestoreResult> previewRestore(String filePath) async {

@@ -17,6 +17,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../widgets/widget_pin_section.dart';
+import '../widgets/gdrive_backup_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -153,6 +154,12 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+
+          const SizedBox(height: 8),
+
+          // ── GDrive Backup ────────────────────────────────────────────────
+          _SectionHeader(title: 'Sao lưu Google Drive'),
+          const GDriveBackupSection(),
 
           const SizedBox(height: 8),
 

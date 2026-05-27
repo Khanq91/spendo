@@ -2,17 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:workmanager/workmanager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/config.dart';
 import 'core/db/powersync_db.dart';
 import 'app.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/reminder_notification_service.dart';
 import 'core/utils/widget_sync.dart';
+import 'core/services/gdrive_auth_service.dart';
+import 'core/services/gdrive_backup_service.dart';
 import 'features/reminders/data/reminder_repository.dart';
 import 'shared/widgets/splash_screen.dart';
 
+import 'package:flutter/foundation.dart';
+
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((taskName, inputData) async {
+    try {
+      if (taskName == 'autoGDriveBackup') {
+        debugPrint('[WorkManager] Starting autoGDriveBackup task');
+        
+        // Cần init database trong background isolate
+        await openDatabase();
+
+        // Thử sign in silently, nếu fail thì không làm gì thêm
+        final signedIn = await GDriveAuthService.instance.signInSilently();
+        if (!signedIn) {
+          debugPrint('[WorkManager] Not signed in, aborting backup');
+          return Future.value(true);
+        }
+
+        await GDriveBackupService.instance.uploadBackup();
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('gdrive_last_backup_time', DateTime.now().millisecondsSinceEpoch);
+        
+        debugPrint('[WorkManager] autoGDriveBackup completed successfully');
+      }
+      return Future.value(true);
+    } catch (e) {
+      debugPrint('[WorkManager] Task failed: $e');
+      return Future.value(false);
+    }
+  });
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
   runApp(const ProviderScope(child: _AppRoot()));
 }
 
@@ -68,6 +107,32 @@ Future<void> _initServices(
   report(0.90, 'Syncing widgets…');
   await WidgetSync.syncCategories();
 
+  // 6. Data cleanup
+  report(0.95, 'Cleaning up…');
+  try {
+    await _cleanupOldData();
+  } catch (e) {
+    debugPrint('[Init] Cleanup error: $e');
+  }
+
   report(1.0, 'All done!');
   await Future.delayed(const Duration(milliseconds: 200));
+}
+
+Future<void> _cleanupOldData() async {
+  // Chỉ xóa vĩnh viễn (giao dịch > 2 năm) nếu ĐÃ CÓ backup trên Drive thành công
+  // để tránh mất dữ liệu đáng tiếc.
+  final hasBackup = await GDriveBackupService.instance.hasRecentBackup();
+  if (hasBackup) {
+    final twoYearsAgo = DateTime.now().subtract(const Duration(days: 730));
+    
+    // PowerSync SQLite executes
+    await db.execute(
+      'DELETE FROM transactions WHERE created_at < ?',
+      [twoYearsAgo.millisecondsSinceEpoch.toString()],
+    );
+    debugPrint('[Cleanup] Xoá giao dịch quá 2 năm (do đã có backup Drive)');
+  } else {
+    debugPrint('[Cleanup] Bỏ qua xoá giao dịch do chưa có backup Drive gần đây');
+  }
 }

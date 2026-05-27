@@ -5,6 +5,8 @@ import '../../features/transactions/presentation/screens/transactions_screen.dar
 import '../../features/stats/presentation/screens/stats_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -15,6 +17,48 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowRetentionPolicy();
+    });
+  }
+
+  Future<void> _checkAndShowRetentionPolicy() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasShown = prefs.getBool('shown_retention_policy_notice') ?? false;
+
+    if (!hasShown && mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(LucideIcons.shieldAlert, color: Theme.of(ctx).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Text('Chính sách lưu trữ', style: TextStyle(fontSize: 18)),
+            ],
+          ),
+          content: const Text(
+            'Để giữ ứng dụng nhanh và mượt mà:\n\n'
+            '• Giao dịch > 1 năm sẽ được ẩn khỏi màn hình chính.\n'
+            '• Giao dịch > 2 năm sẽ bị xóa vĩnh viễn.\n\n'
+            '⚠️ Hãy vào Cài đặt > Kết nối Google Drive để tự động sao lưu dữ liệu nhé!',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Đã hiểu'),
+            ),
+          ],
+        ),
+      );
+      await prefs.setBool('shown_retention_policy_notice', true);
+    }
+  }
 
   static const _screens = [
     HomeScreen(),
