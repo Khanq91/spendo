@@ -47,7 +47,9 @@ class GDriveBackupSection extends ConsumerWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4285F4).withOpacity(0.1), // Google Blue
+                  color: const Color(
+                    0xFF4285F4,
+                  ).withOpacity(0.1), // Google Blue
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -64,17 +66,22 @@ class GDriveBackupSection extends ConsumerWidget {
                 'Đăng nhập để tự động sao lưu dữ liệu',
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
-              trailing: state.isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(LucideIcons.chevronRight,
-                      size: 18, color: cs.onSurfaceVariant),
-              onTap: state.isLoading
-                  ? null
-                  : () => ref.read(gdriveProvider.notifier).signIn(),
+              trailing:
+                  state.isLoading
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : Icon(
+                        LucideIcons.chevronRight,
+                        size: 18,
+                        color: cs.onSurfaceVariant,
+                      ),
+              onTap:
+                  state.isLoading
+                      ? null
+                      : () => ref.read(gdriveProvider.notifier).signIn(),
             ),
           ] else ...[
             ListTile(
@@ -93,7 +100,10 @@ class GDriveBackupSection extends ConsumerWidget {
               ),
               title: Text(
                 state.email ?? 'Đã kết nối Google Drive',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               subtitle: Text(
                 state.lastBackupTime != null
@@ -104,64 +114,110 @@ class GDriveBackupSection extends ConsumerWidget {
               trailing: IconButton(
                 icon: const Icon(LucideIcons.logOut, size: 20),
                 color: cs.onSurfaceVariant,
-                onPressed: state.isLoading
-                    ? null
-                    : () => ref.read(gdriveProvider.notifier).signOut(),
+                onPressed:
+                    state.isLoading
+                        ? null
+                        : () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder:
+                                (ctx) => AlertDialog(
+                                  title: const Text(
+                                    'Ngắt kết nối Google Drive!',
+                                  ),
+                                  content: const Text(
+                                    'Dữ liệu trên thiết bị sẽ không bị xóa, nhưng tính năng sao lưu tự động sẽ bị tắt. Bạn chắc chắn chứ?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.pop(ctx, false),
+                                      child: const Text('Hủy'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('Ngắt kết nối'),
+                                    ),
+                                  ],
+                                ),
+                          );
+                          if (confirm == true) {
+                            ref.read(gdriveProvider.notifier).signOut();
+                          }
+                        },
                 tooltip: 'Ngắt kết nối',
               ),
             ),
             Divider(height: 1, indent: 68, color: cs.outlineVariant),
             ListTile(
               contentPadding: const EdgeInsets.only(left: 68, right: 16),
-              title: const Text('Tự động sao lưu', style: TextStyle(fontSize: 14)),
+              title: const Text(
+                'Tự động sao lưu',
+                style: TextStyle(fontSize: 14),
+              ),
               trailing: DropdownButton<BackupFrequency>(
                 value: state.frequency,
                 underline: const SizedBox.shrink(),
-                icon: Icon(LucideIcons.chevronDown,
-                    size: 16, color: cs.onSurfaceVariant),
+                icon: Icon(
+                  LucideIcons.chevronDown,
+                  size: 16,
+                  color: cs.onSurfaceVariant,
+                ),
                 style: TextStyle(
-                    fontSize: 14,
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w500),
-                items: BackupFrequency.values.map((freq) {
-                  return DropdownMenuItem(
-                    value: freq,
-                    child: Text(freq.label),
-                  );
-                }).toList(),
-                onChanged: state.isLoading
-                    ? null
-                    : (val) {
-                        if (val != null) {
-                          ref.read(gdriveProvider.notifier).setFrequency(val);
-                        }
-                      },
+                  fontSize: 14,
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+                items:
+                    BackupFrequency.values.map((freq) {
+                      return DropdownMenuItem(
+                        value: freq,
+                        child: Text(freq.label),
+                      );
+                    }).toList(),
+                onChanged:
+                    state.isLoading
+                        ? null
+                        : (val) {
+                          if (val != null) {
+                            ref.read(gdriveProvider.notifier).setFrequency(val);
+                          }
+                        },
               ),
             ),
             Divider(height: 1, indent: 68, color: cs.outlineVariant),
             ListTile(
               contentPadding: const EdgeInsets.only(left: 68, right: 16),
               title: const Text('Sao lưu ngay', style: TextStyle(fontSize: 14)),
-              trailing: state.isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(LucideIcons.uploadCloud,
-                      size: 20, color: Color(0xFF4285F4)),
-              onTap: state.isLoading
-                  ? null
-                  : () => ref.read(gdriveProvider.notifier).backupNow(),
+              trailing:
+                  state.isLoading
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(
+                        LucideIcons.uploadCloud,
+                        size: 20,
+                        color: Color(0xFF4285F4),
+                      ),
+              onTap:
+                  state.isLoading
+                      ? null
+                      : () => ref.read(gdriveProvider.notifier).backupNow(),
             ),
             Divider(height: 1, indent: 68, color: cs.outlineVariant),
             ListTile(
               contentPadding: const EdgeInsets.only(left: 68, right: 16),
-              title: const Text('Khôi phục từ Drive', style: TextStyle(fontSize: 14)),
+              title: const Text(
+                'Khôi phục từ Drive',
+                style: TextStyle(fontSize: 14),
+              ),
               trailing: const Icon(LucideIcons.downloadCloud, size: 20),
-              onTap: state.isLoading
-                  ? null
-                  : () => _showRestoreDialog(context, ref),
+              onTap:
+                  state.isLoading
+                      ? null
+                      : () => _showRestoreDialog(context, ref),
             ),
           ],
         ],
@@ -178,53 +234,60 @@ class GDriveBackupSection extends ConsumerWidget {
 
     try {
       final backups = await ref.read(gdriveProvider.notifier).listBackups();
-      
+
       if (!context.mounted) return;
       Navigator.pop(context); // close loading
 
       if (backups.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy bản sao lưu nào trên Drive.')),
+          const SnackBar(
+            content: Text('Không tìm thấy bản sao lưu nào trên Drive.'),
+          ),
         );
         return;
       }
 
       showDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Chọn bản sao lưu'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: backups.length,
-              itemBuilder: (context, index) {
-                final backup = backups[index];
-                final dateStr = backup.createdTime != null
-                    ? DateFormat('dd/MM/yyyy HH:mm').format(backup.createdTime!)
-                    : 'Không rõ ngày';
-                final sizeStr = backup.sizeBytes != null
-                    ? '${(backup.sizeBytes! / 1024).toStringAsFixed(1)} KB'
-                    : '';
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Chọn bản sao lưu'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: backups.length,
+                  itemBuilder: (context, index) {
+                    final backup = backups[index];
+                    final dateStr =
+                        backup.createdTime != null
+                            ? DateFormat(
+                              'dd/MM/yyyy HH:mm',
+                            ).format(backup.createdTime!)
+                            : 'Không rõ ngày';
+                    final sizeStr =
+                        backup.sizeBytes != null
+                            ? '${(backup.sizeBytes! / 1024).toStringAsFixed(1)} KB'
+                            : '';
 
-                return ListTile(
-                  title: Text(dateStr),
-                  subtitle: sizeStr.isNotEmpty ? Text(sizeStr) : null,
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _confirmRestore(context, ref, backup);
+                    return ListTile(
+                      title: Text(dateStr),
+                      subtitle: sizeStr.isNotEmpty ? Text(sizeStr) : null,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _confirmRestore(context, ref, backup);
+                      },
+                    );
                   },
-                );
-              },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Đóng'),
+                ),
+              ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Đóng'),
-            ),
-          ],
-        ),
       );
     } catch (e) {
       if (!context.mounted) return;
@@ -239,7 +302,10 @@ class GDriveBackupSection extends ConsumerWidget {
   }
 
   Future<void> _confirmRestore(
-      BuildContext context, WidgetRef ref, DriveBackupInfo backup) async {
+    BuildContext context,
+    WidgetRef ref,
+    DriveBackupInfo backup,
+  ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -247,8 +313,9 @@ class GDriveBackupSection extends ConsumerWidget {
     );
 
     try {
-      final result = await GDriveBackupService.instance
-          .previewRestoreFromDrive(backup.fileId);
+      final result = await GDriveBackupService.instance.previewRestoreFromDrive(
+        backup.fileId,
+      );
 
       if (!context.mounted) return;
       Navigator.pop(context); // close loading
@@ -265,25 +332,27 @@ class GDriveBackupSection extends ConsumerWidget {
 
       final confirm = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Xác nhận khôi phục'),
-          content: Text(
-              'Bạn sắp khôi phục dữ liệu ngày ${DateFormat('dd/MM/yyyy HH:mm').format(backup.createdTime!)}.\n\n'
-              'Sẽ thêm:\n'
-              '• ${result.transactionsAdded} giao dịch\n'
-              '• ${result.categoriesAdded} danh mục\n\n'
-              'Dữ liệu trùng lặp sẽ tự động bị bỏ qua.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Hủy'),
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Xác nhận khôi phục'),
+              content: Text(
+                'Bạn sắp khôi phục dữ liệu ngày ${DateFormat('dd/MM/yyyy HH:mm').format(backup.createdTime!)}.\n\n'
+                'Sẽ thêm:\n'
+                '• ${result.transactionsAdded} giao dịch\n'
+                '• ${result.categoriesAdded} danh mục\n\n'
+                'Dữ liệu trùng lặp sẽ tự động bị bỏ qua.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Hủy'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Khôi phục'),
+                ),
+              ],
             ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Khôi phục'),
-            ),
-          ],
-        ),
       );
 
       if (confirm != true || !context.mounted) return;
@@ -294,20 +363,22 @@ class GDriveBackupSection extends ConsumerWidget {
         builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
-      final finalResult =
-          await GDriveBackupService.instance.restoreFromDrive(backup.fileId);
+      final finalResult = await GDriveBackupService.instance.restoreFromDrive(
+        backup.fileId,
+      );
 
       if (!context.mounted) return;
       Navigator.pop(context); // close loading
 
-      // Force UI refresh (providers need to be invalidated in the parent screen usually, 
-      // but here we just show a message. The parent screen can handle the refresh if needed, 
+      // Force UI refresh (providers need to be invalidated in the parent screen usually,
+      // but here we just show a message. The parent screen can handle the refresh if needed,
       // or we can assume Riverpod stream providers will auto-update if the DB changes)
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              '✅ Khôi phục thành công ${finalResult.transactionsAdded} giao dịch.'),
+            '✅ Khôi phục thành công ${finalResult.transactionsAdded} giao dịch.',
+          ),
         ),
       );
     } catch (e) {
