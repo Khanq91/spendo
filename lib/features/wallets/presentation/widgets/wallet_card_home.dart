@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/wallet.dart';
@@ -16,7 +15,6 @@ class WalletCardHome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final walletsAsync = ref.watch(walletsProvider);
     final netWorthAsync = ref.watch(totalNetWorthProvider);
-    final visible = ref.watch(amountVisibleProvider);
     final cs = Theme.of(context).colorScheme;
 
     return walletsAsync.when(
@@ -115,7 +113,7 @@ class WalletCardHome extends ConsumerWidget {
                   data: (total) {
                     final isNeg = total < 0;
                     return Text(
-                      visible ? formatVND(total) : '••••••',
+                      formatVND(total),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,

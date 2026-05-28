@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -291,7 +290,6 @@ class _MiniSummaryRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final visible = ref.watch(amountVisibleProvider);
     final income = txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
     final expense = txs
         .where((t) => t.isExpense)
@@ -307,7 +305,7 @@ class _MiniSummaryRow extends ConsumerWidget {
           ),
           const Spacer(),
           Text(
-            '+${visible ? formatVND(income) : '••••••'}',
+            '+${formatVND(income)}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -316,7 +314,7 @@ class _MiniSummaryRow extends ConsumerWidget {
           ),
           const SizedBox(width: 10),
           Text(
-            '-${visible ? formatVND(expense) : '••••••'}',
+            '-${formatVND(expense)}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,

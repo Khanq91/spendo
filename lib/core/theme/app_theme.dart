@@ -10,7 +10,9 @@ class AppTheme {
   // Semantic colors — use these everywhere instead of magic hex
   static const incomeColor = Color(0xFF43A047);
   static const expenseColor = Color(0xFFF06292);
-  static const expenseAltColor = Color(0xFFE53935); // for destructive actions (delete)
+  static const expenseAltColor = Color(
+    0xFFE53935,
+  ); // for destructive actions (delete)
 
   static ThemeData light() {
     return ThemeData(
@@ -49,7 +51,11 @@ class AppTheme {
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: primary);
+            return const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: primary,
+            );
           }
           return const TextStyle(fontSize: 11, color: Color(0xFF9E9E9E));
         }),
@@ -145,7 +151,11 @@ class AppTheme {
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: primaryLight);
+            return const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: primaryLight,
+            );
           }
           return const TextStyle(fontSize: 11, color: Color(0xFF757575));
         }),

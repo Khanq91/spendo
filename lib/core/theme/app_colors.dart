@@ -19,6 +19,7 @@ class AppColors {
     '#EC407A',
     '#66BB6A',
     '#B0BEC5',
+    '#FFD3B6',
   ];
 
   static Color fromHex(String hex) {

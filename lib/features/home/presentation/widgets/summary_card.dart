@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/presentation/providers/amount_visibility_provider.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 
-class SummaryCards extends ConsumerWidget {
+class SummaryCards extends StatefulWidget {
   final int income;
   final int expense;
   final int balance;
@@ -17,9 +16,15 @@ class SummaryCards extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<SummaryCards> createState() => _SummaryCardsState();
+}
+
+class _SummaryCardsState extends State<SummaryCards> {
+  bool _balanceVisible = false;
+
+  @override
+  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final visible = ref.watch(amountVisibleProvider);
 
     return Column(
       children: [
@@ -48,7 +53,7 @@ class SummaryCards extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      visible ? formatVND(balance) : '••••••',
+                      _balanceVisible ? formatVND(widget.balance) : '••••••',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -61,11 +66,11 @@ class SummaryCards extends ConsumerWidget {
               ),
               // Toggle button
               GestureDetector(
-                onTap: () => ref.read(amountVisibleProvider.notifier).toggle(),
+                onTap: () => setState(() => _balanceVisible = !_balanceVisible),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: Icon(
-                    visible
+                    _balanceVisible
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
                     color: Colors.white70,
@@ -87,20 +92,18 @@ class SummaryCards extends ConsumerWidget {
               Expanded(
                 child: _MiniCard(
                   label: 'Thu nhập',
-                  amount: income,
+                  amount: widget.income,
                   color: AppTheme.incomeColor,
                   icon: Icons.arrow_downward_rounded,
-                  visible: visible,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _MiniCard(
                   label: 'Chi tiêu',
-                  amount: expense,
+                  amount: widget.expense,
                   color: AppTheme.expenseAltColor,
                   icon: Icons.arrow_upward_rounded,
-                  visible: visible,
                 ),
               ),
             ],
@@ -111,20 +114,25 @@ class SummaryCards extends ConsumerWidget {
   }
 }
 
-class _MiniCard extends StatelessWidget {
+class _MiniCard extends StatefulWidget {
   final String label;
   final int amount;
   final Color color;
   final IconData icon;
-  final bool visible;
 
   const _MiniCard({
     required this.label,
     required this.amount,
     required this.color,
     required this.icon,
-    required this.visible,
   });
+
+  @override
+  State<_MiniCard> createState() => _MiniCardState();
+}
+
+class _MiniCardState extends State<_MiniCard> {
+  bool _visible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -135,17 +143,17 @@ class _MiniCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2), width: 0.5),
+        border: Border.all(color: widget.color.withOpacity(0.2), width: 0.5),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: widget.color.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 14, color: color),
+            child: Icon(widget.icon, size: 14, color: widget.color),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -153,20 +161,34 @@ class _MiniCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  label,
+                  widget.label,
                   style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  visible ? formatVND(amount) : '••••••',
+                  _visible ? formatVND(widget.amount) : '••••••',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: color,
+                    color: widget.color,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
+            ),
+          ),
+          // Toggle button
+          GestureDetector(
+            onTap: () => setState(() => _visible = !_visible),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                _visible
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: cs.onSurfaceVariant,
+                size: 16,
+              ),
             ),
           ),
         ],

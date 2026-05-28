@@ -91,6 +91,78 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
     }
   }
 
+  void _showColorPickerPopup() {
+    FocusScope.of(context).unfocus(); // Ẩn bàn phím ảo nếu đang mở
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return AlertDialog(
+          title: const Text(
+            'Chọn màu',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          contentPadding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 5, // Hiển thị dưới dạng table 5 cột
+                crossAxisSpacing: 6,
+                mainAxisSpacing: 6,
+              ),
+              itemCount: AppColors.palette.length,
+              itemBuilder: (context, index) {
+                final hex = AppColors.palette[index];
+                final color = AppColors.fromHex(hex);
+                final selected = hex == _colorHex;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _colorHex = hex);
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.rectangle,
+                      border:
+                          selected
+                              ? Border.all(color: cs.onSurface, width: 2)
+                              : null,
+                      boxShadow:
+                          selected
+                              ? [
+                                BoxShadow(
+                                  color: color.withOpacity(0.5),
+                                  blurRadius: 4,
+                                ),
+                              ]
+                              : null,
+                    ),
+                    child:
+                        selected
+                            ? const Icon(
+                              Icons.check,
+                              size: 18,
+                              color: Colors.white,
+                            )
+                            : null,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -101,7 +173,7 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
         left: 16,
         right: 16,
-        top: 12,
+        top: 12 + MediaQuery.of(context).padding.top,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -121,9 +193,29 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
             ),
             const SizedBox(height: 16),
 
-            Text(
-              _isEdit ? 'Chỉnh sửa nguồn tiền' : 'Thêm nguồn tiền',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    _isEdit ? 'Chỉnh sửa nguồn tiền' : 'Thêm nguồn tiền',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 24), // Để cân bằng với icon Hủy bên trái
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -137,7 +229,8 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 10,
+                  horizontal: 12,
+                  vertical: 10,
                 ),
               ),
             ),
@@ -156,92 +249,112 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: WalletType.values.map((t) {
-                final selected = t == _type;
-                return GestureDetector(
-                  onTap: () => setState(() => _type = t),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
+              children:
+                  WalletType.values.map((t) {
+                    final selected = t == _type;
+                    return GestureDetector(
+                      onTap: () => setState(() => _type = t),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              selected
+                                  ? accentColor.withOpacity(0.15)
+                                  : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: selected ? accentColor : cs.outlineVariant,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              categoryIcon(t.iconName),
+                              size: 13,
+                              color:
+                                  selected ? accentColor : cs.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              t.label,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color:
+                                    selected
+                                        ? accentColor
+                                        : cs.onSurfaceVariant,
+                                fontWeight:
+                                    selected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 12),
+
+            // Màu
+            Row(
+              children: [
+                Text(
+                  'Màu sắc',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                InkWell(
+                  onTap: _showColorPickerPopup,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6,
+                      horizontal: 12,
+                      vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: selected
-                          ? accentColor.withOpacity(0.15)
-                          : Colors.transparent,
+                      color: accentColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: selected ? accentColor : cs.outlineVariant,
-                        width: 0.8,
-                      ),
+                      border: Border.all(color: accentColor, width: 0.8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          categoryIcon(t.iconName),
-                          size: 13,
-                          color: selected ? accentColor : cs.onSurfaceVariant,
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: accentColor,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Text(
-                          t.label,
+                          'Chọn màu',
                           style: TextStyle(
                             fontSize: 12,
-                            color: selected ? accentColor : cs.onSurfaceVariant,
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                            color: accentColor,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-
-            // Màu
-            Text(
-              'Màu',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: cs.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: AppColors.palette.map((hex) {
-                final color = AppColors.fromHex(hex);
-                final selected = hex == _colorHex;
-                return GestureDetector(
-                  onTap: () => setState(() => _colorHex = hex),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: selected
-                          ? Border.all(color: cs.surface, width: 3)
-                          : null,
-                      boxShadow: selected
-                          ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 6)]
-                          : null,
-                    ),
-                    child: selected
-                        ? const Icon(Icons.check, size: 14, color: Colors.white)
-                        : null,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             // Ghi chú
             TextField(
@@ -252,7 +365,8 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 10,
+                  horizontal: 12,
+                  vertical: 10,
                 ),
               ),
             ),
@@ -274,7 +388,10 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
               decoration: BoxDecoration(
                 color: accentColor.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: accentColor.withOpacity(0.2), width: 0.8),
+                border: Border.all(
+                  color: accentColor.withOpacity(0.2),
+                  width: 0.8,
+                ),
               ),
               child: Row(
                 children: [
@@ -297,18 +414,22 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
               children: [
                 ListenableBuilder(
                   listenable: _balanceCtrl,
-                  builder: (_, __) => Text(
-                    _balanceCtrl.formatted,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
-                      color: accentColor,
-                      letterSpacing: -1,
-                    ),
-                  ),
+                  builder:
+                      (_, __) => Text(
+                        _balanceCtrl.formatted,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          color: accentColor,
+                          letterSpacing: -1,
+                        ),
+                      ),
                 ),
                 const SizedBox(width: 4),
-                Text('₫', style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+                Text(
+                  '₫',
+                  style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+                ),
               ],
             ),
             const Divider(height: 12, thickness: 0.5),
@@ -332,20 +453,23 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white,
+                  child:
+                      _loading
+                          ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : Text(
+                            _isEdit ? 'Lưu thay đổi' : 'Tạo nguồn tiền',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        )
-                      : Text(
-                          _isEdit ? 'Lưu thay đổi' : 'Tạo nguồn tiền',
-                          style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600,
-                          ),
-                        ),
                 ),
               ),
             ),

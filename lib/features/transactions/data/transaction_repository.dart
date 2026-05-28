@@ -19,6 +19,21 @@ class TransactionRepository {
         .map((rows) => rows.map(Transaction.fromMap).toList());
   }
 
+  /// Query transactions trong khoảng [start, end).
+  Stream<List<Transaction>> watchByDateRange(DateTime start, DateTime end) {
+    return db
+        .watch(
+          'SELECT * FROM transactions '
+          'WHERE created_at >= ? AND created_at < ? '
+          'ORDER BY created_at DESC',
+          parameters: [
+            start.millisecondsSinceEpoch.toString(),
+            end.millisecondsSinceEpoch.toString(),
+          ],
+        )
+        .map((rows) => rows.map(Transaction.fromMap).toList());
+  }
+
   Future<void> add({
     required int amount,
     required String type,

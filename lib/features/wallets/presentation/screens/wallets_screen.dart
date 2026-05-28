@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -19,7 +18,6 @@ class WalletsScreen extends ConsumerWidget {
     final walletsAsync = ref.watch(walletsProvider);
     final archivedAsync = ref.watch(archivedWalletsProvider);
     final netWorthAsync = ref.watch(totalNetWorthProvider);
-    final visible = ref.watch(amountVisibleProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -41,8 +39,6 @@ class WalletsScreen extends ConsumerWidget {
           children: [
             _NetWorthCard(
               netWorthAsync: netWorthAsync,
-              visible: visible,
-              onToggle: () => ref.read(amountVisibleProvider.notifier).toggle(),
             ),
             if (wallets.isEmpty)
               _EmptyState(onAdd: () => _openForm(context))
@@ -91,13 +87,9 @@ class WalletsScreen extends ConsumerWidget {
 
 class _NetWorthCard extends StatelessWidget {
   final AsyncValue<int> netWorthAsync;
-  final bool visible;
-  final VoidCallback onToggle;
 
   const _NetWorthCard({
     required this.netWorthAsync,
-    required this.visible,
-    required this.onToggle,
   });
 
   @override
@@ -129,7 +121,7 @@ class _NetWorthCard extends StatelessWidget {
                       style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (total) => Text(
-                    visible ? formatVND(total) : '••••••',
+                    formatVND(total),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -139,14 +131,6 @@ class _NetWorthCard extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-          GestureDetector(
-            onTap: onToggle,
-            child: Icon(
-              visible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-              color: Colors.white70,
-              size: 20,
             ),
           ),
         ],
@@ -165,7 +149,6 @@ class _WalletTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final balanceAsync = ref.watch(walletBalanceProvider(wallet.id));
-    final visible = ref.watch(amountVisibleProvider);
     final color = wallet.color;
 
     return ListTile(
@@ -194,7 +177,7 @@ class _WalletTile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                visible ? formatVND(balance.abs()) : '••••••',
+                formatVND(balance.abs()),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

@@ -2,15 +2,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/domain/category.dart';
 import 'package:collection/collection.dart';
-import '../../../transactions/presentation/providers/transaction_provider.dart';
-import '../../../home/presentation/widgets/month_selector.dart';
+import '../providers/stats_provider.dart';
+import '../widgets/stats_time_selector.dart';
 
 class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
@@ -37,29 +36,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final month = ref.watch(selectedMonthProvider);
-
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: MonthSelector(
-          month: month,
-          onPrev:
-              () =>
-                  ref.read(selectedMonthProvider.notifier).state = DateTime(
-                    month.year,
-                    month.month - 1,
-                  ),
-          onNext:
-              () =>
-                  ref.read(selectedMonthProvider.notifier).state = DateTime(
-                    month.year,
-                    month.month + 1,
-                  ),
-          onMonthPicked:
-              (picked) =>
-                  ref.read(selectedMonthProvider.notifier).state = picked,
-        ),
+        title: const StatsTimeSelector(),
         bottom: TabBar(
           controller: _tab,
           tabs: const [Tab(text: 'Danh mục'), Tab(text: 'Theo ngày')],
@@ -88,11 +68,10 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final byCategory = ref.watch(expensesByCategoryProvider);
+    final byCategory = ref.watch(statsExpensesByCategoryProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
     final allCats = categoriesAsync.valueOrNull ?? [];
     final cs = Theme.of(context).colorScheme;
-    final visible = ref.watch(amountVisibleProvider);
 
     final catMap = {for (final c in allCats) c.id: c};
     final total = byCategory.values.fold(0, (s, v) => s + v);
@@ -114,9 +93,9 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
             value: entry.value.toDouble(),
             color: cat?.color ?? cs.outlineVariant,
             radius: isTouched ? 72 : 60,
-            // Ẩn label % trên chart khi không visible
+            // Ẩn label % trên chart
             title:
-                (!visible || pct <= 0.05)
+                (pct <= 0.05)
                     ? ''
                     : '${(pct * 100).toStringAsFixed(0)}%',
             titleStyle: const TextStyle(
@@ -156,7 +135,7 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tổng chi: ${visible ? formatVND(total) : '••••••'}',
+            'Tổng chi: ${formatVND(total)}',
             style: TextStyle(
               fontSize: 13,
               color: cs.onSurfaceVariant,
@@ -171,7 +150,6 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
               category: cat,
               amount: entry.value,
               percent: pct,
-              visible: visible,
             );
           }),
         ],
@@ -184,13 +162,11 @@ class _LegendRow extends StatelessWidget {
   final Category? category;
   final int amount;
   final double percent;
-  final bool visible;
 
   const _LegendRow({
     required this.category,
     required this.amount,
     required this.percent,
-    required this.visible,
   });
 
   @override
@@ -219,9 +195,9 @@ class _LegendRow extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
           const SizedBox(width: 12),
-          // Amount respect visibility
+          // Amount
           Text(
-            visible ? formatVND(amount) : '••••••',
+            formatVND(amount),
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ],
@@ -237,110 +213,40 @@ class _DailyTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dailyTotals = ref.watch(dailyTotalsProvider);
-    final month = ref.watch(selectedMonthProvider);
+    final dailyTotals = ref.watch(statsDailyTotalsProvider);
+    final range = ref.watch(statsDateRangeProvider);
     final cs = Theme.of(context).colorScheme;
-    final visible = ref.watch(amountVisibleProvider);
 
     if (dailyTotals.isEmpty) return const _EmptyStats();
 
-    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
-    final maxVal =
-        dailyTotals.values
-            .map((e) => e.expense > e.income ? e.expense : e.income)
-            .fold(0, (a, b) => a > b ? a : b)
-            .toDouble();
-
-    final gridColor = cs.outlineVariant;
-    final labelColor = cs.onSurfaceVariant;
+    final daySpan = range.daySpan;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Chi tiêu theo ngày',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 200,
-            child: BarChart(
-              BarChartData(
-                maxY: maxVal * 1.2,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: maxVal / 4,
-                  getDrawingHorizontalLine:
-                      (v) => FlLine(color: gridColor, strokeWidth: 0.5),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (val, meta) {
-                        final day = val.toInt();
-                        if (day % 5 != 0 && day != 1) {
-                          return const SizedBox.shrink();
-                        }
-                        return Text(
-                          '$day',
-                          style: TextStyle(fontSize: 10, color: labelColor),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                barGroups: List.generate(daysInMonth, (i) {
-                  final day = i + 1;
-                  final data = dailyTotals[day];
-                  return BarChartGroupData(
-                    x: day,
-                    barRods: [
-                      BarChartRodData(
-                        toY: (data?.expense ?? 0).toDouble(),
-                        color: AppTheme.expenseAltColor.withOpacity(0.8),
-                        width: 6,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ],
-                  );
-                }),
-                barTouchData: BarTouchData(
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (_) => cs.inverseSurface,
-                    getTooltipItem:
-                        (group, _, rod, __) => BarTooltipItem(
-                          // Tooltip respect visibility
-                          'Ngày ${group.x}\n${visible ? formatVND(rod.toY.toInt()) : '••••••'}',
-                          TextStyle(
-                            color: cs.onInverseSurface,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                  ),
-                ),
+          // ── Bar chart ──────────────────────────────────────────────
+          if (daySpan <= 90) ...[
+            Text(
+              daySpan <= 31 ? 'Chi tiêu theo ngày' : 'Chi tiêu theo tuần',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
               ),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 200,
+              child: daySpan <= 31
+                  ? _buildDailyBarChart(context, dailyTotals, range, cs)
+                  : _buildWeeklyBarChart(context, dailyTotals, range, cs),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // ── Daily detail list ──────────────────────────────────────
           Text(
             'Chi tiết từng ngày',
             style: TextStyle(
@@ -354,17 +260,216 @@ class _DailyTab extends ConsumerWidget {
               .toList()
               .sorted((a, b) => b.key.compareTo(a.key))
               .map((entry) {
-                final day = entry.key;
-                final data = entry.value;
-                final date = DateTime(month.year, month.month, day);
                 return _DailyRow(
-                  date: date,
-                  income: data.income,
-                  expense: data.expense,
-                  visible: visible,
+                  date: entry.key,
+                  income: entry.value.income,
+                  expense: entry.value.expense,
                 );
               }),
         ],
+      ),
+    );
+  }
+
+  /// Bar chart theo ngày — dùng khi range ≤ 31 ngày
+  Widget _buildDailyBarChart(
+    BuildContext context,
+    Map<DateTime, ({int income, int expense})> dailyTotals,
+    StatsDateRange range,
+    ColorScheme cs,
+  ) {
+    final daySpan = range.daySpan;
+    final gridColor = cs.outlineVariant;
+    final labelColor = cs.onSurfaceVariant;
+
+    final maxVal = dailyTotals.values
+        .map((e) => e.expense > e.income ? e.expense : e.income)
+        .fold(0, (a, b) => a > b ? a : b)
+        .toDouble();
+
+    return BarChart(
+      BarChartData(
+        maxY: maxVal * 1.2,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxVal > 0 ? maxVal / 4 : 1,
+          getDrawingHorizontalLine:
+              (v) => FlLine(color: gridColor, strokeWidth: 0.5),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (val, meta) {
+                final idx = val.toInt();
+                if (idx < 0 || idx >= daySpan) return const SizedBox.shrink();
+                final date = range.start.add(Duration(days: idx));
+                // Hiện label mỗi 5 ngày hoặc ngày đầu
+                if (idx % 5 != 0 && idx != 0) {
+                  return const SizedBox.shrink();
+                }
+                return Text(
+                  '${date.day}/${date.month}',
+                  style: TextStyle(fontSize: 9, color: labelColor),
+                );
+              },
+            ),
+          ),
+        ),
+        barGroups: List.generate(daySpan, (i) {
+          final date = range.start.add(Duration(days: i));
+          final dateKey = DateTime(date.year, date.month, date.day);
+          final data = dailyTotals[dateKey];
+          return BarChartGroupData(
+            x: i,
+            barRods: [
+              BarChartRodData(
+                toY: (data?.expense ?? 0).toDouble(),
+                color: AppTheme.expenseAltColor.withOpacity(0.8),
+                width: daySpan <= 15 ? 8 : 5,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ],
+          );
+        }),
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (_) => cs.inverseSurface,
+            getTooltipItem: (group, _, rod, __) {
+              final date = range.start.add(Duration(days: group.x));
+              return BarTooltipItem(
+                '${date.day}/${date.month}\n${formatVND(rod.toY.toInt())}',
+                TextStyle(
+                  color: cs.onInverseSurface,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Bar chart gộp theo tuần — dùng khi 32 ≤ range ≤ 90 ngày
+  Widget _buildWeeklyBarChart(
+    BuildContext context,
+    Map<DateTime, ({int income, int expense})> dailyTotals,
+    StatsDateRange range,
+    ColorScheme cs,
+  ) {
+    final gridColor = cs.outlineVariant;
+    final labelColor = cs.onSurfaceVariant;
+
+    // Gộp data theo tuần
+    final weeks = <({DateTime start, DateTime end, int expense, int income})>[];
+    var weekStart = range.start;
+    while (weekStart.isBefore(range.end)) {
+      var weekEnd = weekStart.add(const Duration(days: 7));
+      if (weekEnd.isAfter(range.end)) weekEnd = range.end;
+
+      int weekExpense = 0;
+      int weekIncome = 0;
+      for (var d = weekStart; d.isBefore(weekEnd); d = d.add(const Duration(days: 1))) {
+        final key = DateTime(d.year, d.month, d.day);
+        final data = dailyTotals[key];
+        weekExpense += data?.expense ?? 0;
+        weekIncome += data?.income ?? 0;
+      }
+
+      weeks.add((
+        start: weekStart,
+        end: weekEnd.subtract(const Duration(days: 1)),
+        expense: weekExpense,
+        income: weekIncome,
+      ));
+      weekStart = weekEnd;
+    }
+
+    final maxVal = weeks
+        .map((w) => w.expense > w.income ? w.expense : w.income)
+        .fold(0, (a, b) => a > b ? a : b)
+        .toDouble();
+
+    return BarChart(
+      BarChartData(
+        maxY: maxVal * 1.2,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxVal > 0 ? maxVal / 4 : 1,
+          getDrawingHorizontalLine:
+              (v) => FlLine(color: gridColor, strokeWidth: 0.5),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (val, meta) {
+                final idx = val.toInt();
+                if (idx < 0 || idx >= weeks.length) {
+                  return const SizedBox.shrink();
+                }
+                final w = weeks[idx];
+                return Text(
+                  '${w.start.day}/${w.start.month}',
+                  style: TextStyle(fontSize: 9, color: labelColor),
+                );
+              },
+            ),
+          ),
+        ),
+        barGroups: weeks.asMap().entries.map((e) {
+          return BarChartGroupData(
+            x: e.key,
+            barRods: [
+              BarChartRodData(
+                toY: e.value.expense.toDouble(),
+                color: AppTheme.expenseAltColor.withOpacity(0.8),
+                width: 10,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ],
+          );
+        }).toList(),
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (_) => cs.inverseSurface,
+            getTooltipItem: (group, _, rod, __) {
+              final w = weeks[group.x];
+              return BarTooltipItem(
+                '${w.start.day}/${w.start.month} – ${w.end.day}/${w.end.month}\n${formatVND(rod.toY.toInt())}',
+                TextStyle(
+                  color: cs.onInverseSurface,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -374,13 +479,11 @@ class _DailyRow extends StatelessWidget {
   final DateTime date;
   final int income;
   final int expense;
-  final bool visible;
 
   const _DailyRow({
     required this.date,
     required this.income,
     required this.expense,
-    required this.visible,
   });
 
   @override
@@ -406,7 +509,7 @@ class _DailyRow extends StatelessWidget {
               children: [
                 if (income > 0)
                   Text(
-                    '+${visible ? formatVND(income) : '••••••'}',
+                    '+${formatVND(income)}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppTheme.incomeColor,
@@ -414,7 +517,7 @@ class _DailyRow extends StatelessWidget {
                   ),
                 if (expense > 0)
                   Text(
-                    '-${visible ? formatVND(expense) : '••••••'}',
+                    '-${formatVND(expense)}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppTheme.expenseAltColor,
@@ -425,7 +528,7 @@ class _DailyRow extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Text(
-            '${isPos ? '+' : ''}${visible ? formatVND(net) : '••••••'}',
+            '${isPos ? '+' : ''}${formatVND(net)}',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,

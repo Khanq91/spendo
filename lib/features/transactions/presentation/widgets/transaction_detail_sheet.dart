@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../domain/transaction.dart';
 import '../../data/transaction_repository.dart';
 import '../../../categories/domain/category.dart';
@@ -26,7 +25,6 @@ class TransactionDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isExpense = transaction.isExpense;
     final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
-    final visible = ref.watch(amountVisibleProvider);
 
     // Lấy tên wallet nếu có
     final wallets = ref.watch(walletsProvider).valueOrNull ?? [];
@@ -65,24 +63,12 @@ class TransactionDetailSheet extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${isExpense ? '-' : '+'}${visible ? formatVND(transaction.amount) : '••••••'}',
+                '${isExpense ? '-' : '+'}${formatVND(transaction.amount)}',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: color,
                   letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Toggle inline
-              GestureDetector(
-                onTap: () => ref.read(amountVisibleProvider.notifier).toggle(),
-                child: Icon(
-                  visible
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  size: 18,
-                  color: Colors.grey.shade400,
                 ),
               ),
             ],

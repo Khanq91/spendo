@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../domain/transaction.dart';
 import '../../../categories/domain/category.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -23,7 +22,6 @@ class TransactionListItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isExpense = transaction.isExpense;
     final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
-    final visible = ref.watch(amountVisibleProvider);
 
     return InkWell(
       onTap:
@@ -79,7 +77,7 @@ class TransactionListItem extends ConsumerWidget {
               ),
             ),
             Text(
-              '${isExpense ? '-' : '+'}${visible ? formatVND(transaction.amount) : '••••••'}',
+              '${isExpense ? '-' : '+'}${formatVND(transaction.amount)}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
@@ -35,7 +34,6 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
     final walletsAsync = ref.watch(walletsProvider);
     final archivedAsync = ref.watch(archivedWalletsProvider);
     final balanceAsync = ref.watch(walletBalanceProvider(widget.walletId));
-    final visible = ref.watch(amountVisibleProvider);
     final cs = Theme.of(context).colorScheme;
 
     // Tìm wallet trong cả 2 danh sách
@@ -106,8 +104,6 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
             child: _InfoCard(
               wallet: wallet,
               balanceAsync: balanceAsync,
-              visible: visible,
-              onToggle: () => ref.read(amountVisibleProvider.notifier).toggle(),
             ),
           ),
 
@@ -127,7 +123,7 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
               child: txsAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (txs) => _MiniSummary(txs: txs, visible: visible),
+                data: (txs) => _MiniSummary(txs: txs),
               ),
             ),
 
@@ -316,14 +312,10 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
 class _InfoCard extends StatelessWidget {
   final Wallet wallet;
   final AsyncValue<int> balanceAsync;
-  final bool visible;
-  final VoidCallback onToggle;
 
   const _InfoCard({
     required this.wallet,
     required this.balanceAsync,
-    required this.visible,
-    required this.onToggle,
   });
 
   @override
@@ -405,7 +397,7 @@ class _InfoCard extends StatelessWidget {
                       data: (balance) {
                         final isNeg = balance < 0;
                         return Text(
-                          visible ? formatVND(balance) : '••••••',
+                          formatVND(balance),
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
@@ -416,26 +408,13 @@ class _InfoCard extends StatelessWidget {
                       },
                     ),
                     Text(
-                      'Ban đầu: ${visible ? formatVND(wallet.initialBalance) : '••••••'}',
+                      'Ban đầu: ${formatVND(wallet.initialBalance)}',
                       style: TextStyle(
                         fontSize: 11,
                         color: cs.onSurfaceVariant,
                       ),
                     ),
                   ],
-                ),
-              ),
-              GestureDetector(
-                onTap: onToggle,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(
-                    visible
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    size: 20,
-                    color: cs.onSurfaceVariant,
-                  ),
                 ),
               ),
             ],
@@ -547,9 +526,8 @@ class _FilterChip extends StatelessWidget {
 
 class _MiniSummary extends StatelessWidget {
   final List<Transaction> txs;
-  final bool visible;
 
-  const _MiniSummary({required this.txs, required this.visible});
+  const _MiniSummary({required this.txs});
 
   @override
   Widget build(BuildContext context) {
@@ -569,7 +547,7 @@ class _MiniSummary extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            '+${visible ? formatVND(income) : '••••••'}',
+            '+${formatVND(income)}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -578,7 +556,7 @@ class _MiniSummary extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Text(
-            '-${visible ? formatVND(expense) : '••••••'}',
+            '-${formatVND(expense)}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
