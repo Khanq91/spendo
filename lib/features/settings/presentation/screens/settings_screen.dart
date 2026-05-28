@@ -68,11 +68,11 @@ class SettingsScreen extends ConsumerWidget {
           //     width: 36,
           //     height: 36,
           //     decoration: BoxDecoration(
-          //       color: AppTheme.primary.withOpacity(0.1),
+          //       color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           //       borderRadius: BorderRadius.circular(8),
           //     ),
           //     child:
-          //     Icon(LucideIcons.upload, size: 18, color: AppTheme.primary),
+          //     Icon(LucideIcons.upload, size: 18, color: Theme.of(context).colorScheme.primary),
           //   ),
           //   title: const Text('Nhập từ file CSV', style: TextStyle(fontSize: 14)),
           //   subtitle: Text(
@@ -178,7 +178,7 @@ class SettingsScreen extends ConsumerWidget {
                       selected: mode == ThemeMode.system,
                       onTap:
                           () => ref
-                              .read(themeModeProvider.notifier)
+                              .read(themeProvider.notifier)
                               .setMode(ThemeMode.system),
                     ),
                     _ThemeTile(
@@ -187,7 +187,7 @@ class SettingsScreen extends ConsumerWidget {
                       selected: mode == ThemeMode.light,
                       onTap:
                           () => ref
-                              .read(themeModeProvider.notifier)
+                              .read(themeProvider.notifier)
                               .setMode(ThemeMode.light),
                     ),
                     _ThemeTile(
@@ -196,8 +196,38 @@ class SettingsScreen extends ConsumerWidget {
                       selected: mode == ThemeMode.dark,
                       onTap:
                           () => ref
-                              .read(themeModeProvider.notifier)
+                              .read(themeProvider.notifier)
                               .setMode(ThemeMode.dark),
+                    ),
+                    Divider(height: 1, indent: 16, color: Theme.of(context).colorScheme.outlineVariant),
+                    ListTile(
+                      leading: Icon(
+                        LucideIcons.palette,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      title: const Text('Màu chủ đạo', style: TextStyle(fontSize: 14)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: ref.watch(themeProvider).colorScheme.swatch,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(LucideIcons.chevronRight, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ],
+                      ),
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          builder: (_) => const _ThemeColorSheet(),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -223,7 +253,7 @@ class SettingsScreen extends ConsumerWidget {
                       leading: Icon(
                         LucideIcons.bell,
                         size: 18,
-                        color: enabled ? AppTheme.primary : cs.onSurfaceVariant,
+                        color: enabled ? Theme.of(context).colorScheme.primary : cs.onSurfaceVariant,
                       ),
                       title: const Text(
                         'Nhắc nhập chi tiêu',
@@ -238,7 +268,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       trailing: Switch(
                         value: enabled,
-                        activeColor: AppTheme.primary,
+                        activeColor: Theme.of(context).colorScheme.primary,
                         onChanged: (val) async {
                           if (val) {
                             final granted =
@@ -264,10 +294,10 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         trailing: Text(
                           '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: AppTheme.primary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                         onTap: () async {
@@ -339,13 +369,13 @@ class SettingsScreen extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 LucideIcons.bellRing,
                 size: 18,
-                color: AppTheme.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             title: const Text(
@@ -740,7 +770,7 @@ class _RestorePreviewDialog extends StatelessWidget {
           if (preview.remindersAdded > 0)
             _PreviewRow(
               icon: LucideIcons.bellRing,
-              color: AppTheme.primary,
+              color: Theme.of(context).colorScheme.primary,
               text: '${preview.remindersAdded} nhắc nhở sẽ được khôi phục',
             ),
           if (preview.budgetsAdded > 0)
@@ -821,7 +851,7 @@ class _ImportPreviewDialog extends StatelessWidget {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(LucideIcons.fileUp, size: 20, color: AppTheme.primary),
+          Icon(LucideIcons.fileUp, size: 20, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
           const Text(
             'Xác nhận nhập dữ liệu',
@@ -835,7 +865,7 @@ class _ImportPreviewDialog extends StatelessWidget {
         children: [
           _PreviewRow(
             icon: LucideIcons.circlePlus,
-            color: AppTheme.primary,
+            color: Theme.of(context).colorScheme.primary,
             text: '${preview.added} giao dịch mới sẽ được thêm',
           ),
           if (preview.skipped > 0)
@@ -890,7 +920,7 @@ class _ImportPreviewDialog extends StatelessWidget {
         FilledButton(
           onPressed:
               preview.added > 0 ? () => Navigator.pop(context, true) : null,
-          style: FilledButton.styleFrom(backgroundColor: AppTheme.primary),
+          style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
           child: const Text('Nhập ngay'),
         ),
       ],
@@ -967,10 +997,10 @@ class _ExportTile extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: AppTheme.primary.withOpacity(0.1),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(LucideIcons.download, size: 18, color: AppTheme.primary),
+        child: Icon(LucideIcons.download, size: 18, color: Theme.of(context).colorScheme.primary),
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
       subtitle: Text(
@@ -1071,12 +1101,12 @@ class _ThemeTile extends StatelessWidget {
       leading: Icon(
         icon,
         size: 18,
-        color: selected ? AppTheme.primary : cs.onSurfaceVariant,
+        color: selected ? Theme.of(context).colorScheme.primary : cs.onSurfaceVariant,
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
       trailing:
           selected
-              ? const Icon(LucideIcons.check, size: 16, color: AppTheme.primary)
+              ? Icon(LucideIcons.check, size: 16, color: Theme.of(context).colorScheme.primary)
               : null,
       onTap: onTap,
     );
@@ -1130,13 +1160,13 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     LucideIcons.tag,
                     size: 18,
-                    color: AppTheme.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1206,7 +1236,7 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                         ),
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
-                          foregroundColor: AppTheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
@@ -1255,11 +1285,11 @@ class _TabChip extends StatelessWidget {
         decoration: BoxDecoration(
           color:
               selected
-                  ? AppTheme.primary.withOpacity(0.12)
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppTheme.primary : cs.outlineVariant,
+            color: selected ? Theme.of(context).colorScheme.primary : cs.outlineVariant,
             width: 0.8,
           ),
         ),
@@ -1267,9 +1297,64 @@ class _TabChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: selected ? AppTheme.primary : cs.onSurfaceVariant,
+            color: selected ? Theme.of(context).colorScheme.primary : cs.onSurfaceVariant,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeColorSheet extends ConsumerWidget {
+  const _ThemeColorSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentScheme = ref.watch(themeProvider).colorScheme;
+    final cs = Theme.of(context).colorScheme;
+    
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Text(
+                'Chọn màu chủ đạo',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...AppColorScheme.values.map((scheme) {
+              final isSelected = currentScheme == scheme;
+              return ListTile(
+                leading: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: scheme.swatch,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                title: Text(scheme.label, style: const TextStyle(fontSize: 14)),
+                trailing: isSelected
+                    ? Icon(LucideIcons.check, size: 16, color: cs.primary)
+                    : null,
+                onTap: () {
+                  ref.read(themeProvider.notifier).setColorScheme(scheme);
+                  Navigator.pop(context);
+                },
+              );
+            }),
+          ],
         ),
       ),
     );

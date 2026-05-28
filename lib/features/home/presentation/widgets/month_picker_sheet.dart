@@ -127,13 +127,13 @@ class _MonthPickerSheetState extends State<MonthPickerSheet> {
                 textColor = cs.outlineVariant;
                 borderColor = Colors.transparent;
               } else if (isCurrentSelection) {
-                bgColor = AppTheme.primary;
+                bgColor = Theme.of(context).colorScheme.primary;
                 textColor = Colors.white;
-                borderColor = AppTheme.primary;
+                borderColor = Theme.of(context).colorScheme.primary;
               } else if (isToday) {
-                bgColor = AppTheme.primary.withOpacity(0.1);
-                textColor = AppTheme.primary;
-                borderColor = AppTheme.primary.withOpacity(0.4);
+                bgColor = Theme.of(context).colorScheme.primary.withOpacity(0.1);
+                textColor = Theme.of(context).colorScheme.primary;
+                borderColor = Theme.of(context).colorScheme.primary.withOpacity(0.4);
               }
 
               return GestureDetector(

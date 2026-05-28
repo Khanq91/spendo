@@ -47,7 +47,7 @@ class StatsTimeSelector extends ConsumerWidget {
               borderRadius: BorderRadius.circular(8),
               color: isMonth
                   ? cs.primary.withOpacity(0.06)
-                  : AppTheme.primary.withOpacity(0.10),
+                  : Theme.of(context).colorScheme.primary.withOpacity(0.10),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -58,7 +58,7 @@ class StatsTimeSelector extends ConsumerWidget {
                     child: Icon(
                       Icons.date_range_rounded,
                       size: 14,
-                      color: AppTheme.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 Text(
@@ -66,7 +66,7 @@ class StatsTimeSelector extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: isMonth ? 15 : 13,
                     fontWeight: FontWeight.w600,
-                    color: isMonth ? cs.onSurface : AppTheme.primary,
+                    color: isMonth ? cs.onSurface : Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 2),
@@ -128,19 +128,19 @@ class StatsTimeSelector extends ConsumerWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: AppTheme.primary.withOpacity(0.3),
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                           width: 0.8,
                         ),
                       ),
                       child: Text(
                         isMonth ? 'Hôm nay' : 'Tháng này',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),

@@ -139,7 +139,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                   icon: const Icon(LucideIcons.pencil, size: 16),
                   label: const Text('Chỉnh sửa'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

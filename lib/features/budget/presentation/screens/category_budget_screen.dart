@@ -295,7 +295,7 @@ class _CategoryNobudgetTile extends StatelessWidget {
             icon: const Icon(Icons.add, size: 14),
             label: const Text('Đặt', style: TextStyle(fontSize: 12)),
             style: TextButton.styleFrom(
-              foregroundColor: AppTheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.primary,
               visualDensity: VisualDensity.compact,
             ),
           ),

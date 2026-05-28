@@ -64,10 +64,10 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _resolveMainColor(progress).withOpacity(0.2),
+            color: _resolveMainColor(progress, context).withOpacity(0.2),
             width: 0.8,
           ),
-          color: _resolveMainColor(progress).withOpacity(0.06),
+          color: _resolveMainColor(progress, context).withOpacity(0.06),
         ),
         child: Column(
           children: [
@@ -153,8 +153,9 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
 
   Color _resolveMainColor(
       ({int budget, int spent, double percent, bool isOver})? progress,
+      BuildContext context,
       ) {
-    if (progress == null) return AppTheme.primary;
+    if (progress == null) return Theme.of(context).colorScheme.primary;
     if (progress.isOver) return AppTheme.expenseAltColor;
     if (progress.percent > 0.8) return Colors.orange;
     return const Color(0xFF6C63FF);

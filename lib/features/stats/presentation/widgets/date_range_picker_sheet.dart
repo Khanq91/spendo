@@ -101,15 +101,15 @@ class DateRangePickerSheet extends StatelessWidget {
               dense: true,
               leading: Icon(
                 Icons.date_range_rounded,
-                color: AppTheme.primary,
+                color: Theme.of(context).colorScheme.primary,
                 size: 20,
               ),
-              title: const Text(
+              title: Text(
                 'Tùy chọn...',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               shape: RoundedRectangleBorder(
@@ -151,7 +151,7 @@ class DateRangePickerSheet extends StatelessWidget {
               iconTheme: IconThemeData(color: cs.onSurface),
             ),
             colorScheme: cs.copyWith(
-              primary: AppTheme.primary,
+              primary: Theme.of(context).colorScheme.primary,
               onPrimary: Colors.white,
               surfaceTint: Colors.transparent, // Disable M3 tint
               surface: theme.scaffoldBackgroundColor,
@@ -161,7 +161,7 @@ class DateRangePickerSheet extends StatelessWidget {
               surfaceTintColor: Colors.transparent,
               rangePickerBackgroundColor: theme.scaffoldBackgroundColor,
               rangePickerHeaderBackgroundColor: theme.scaffoldBackgroundColor,
-              rangeSelectionBackgroundColor: AppTheme.primary.withOpacity(0.12),
+              rangeSelectionBackgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
               rangeSelectionOverlayColor: WidgetStateProperty.all(Colors.transparent),
               dayOverlayColor: WidgetStateProperty.all(Colors.transparent),
               headerForegroundColor: cs.onSurface,
@@ -171,7 +171,7 @@ class DateRangePickerSheet extends StatelessWidget {
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: AppTheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.primary,
                 textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
             ),
@@ -188,7 +188,7 @@ class DateRangePickerSheet extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               hintStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
@@ -242,10 +242,10 @@ class _PresetTile extends StatelessWidget {
       child: ListTile(
         dense: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        tileColor: isSelected ? AppTheme.primary.withOpacity(0.08) : null,
+        tileColor: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.08) : null,
         leading: Icon(
           isSelected ? Icons.check_circle : Icons.circle_outlined,
-          color: isSelected ? AppTheme.primary : cs.outlineVariant,
+          color: isSelected ? Theme.of(context).colorScheme.primary : cs.outlineVariant,
           size: 20,
         ),
         title: Text(
@@ -253,7 +253,7 @@ class _PresetTile extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? AppTheme.primary : cs.onSurface,
+            color: isSelected ? Theme.of(context).colorScheme.primary : cs.onSurface,
           ),
         ),
         subtitle: Text(

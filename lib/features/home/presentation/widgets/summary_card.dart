@@ -22,6 +22,13 @@ class SummaryCards extends StatefulWidget {
 class _SummaryCardsState extends State<SummaryCards> {
   bool _balanceVisible = false;
 
+  Color _darken(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
+        .toColor();
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -34,8 +41,8 @@ class _SummaryCardsState extends State<SummaryCards> {
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primary, AppTheme.primaryLight],
+            gradient: LinearGradient(
+              colors: [_darken(cs.primary, 0.22), cs.primary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -52,13 +59,24 @@ class _SummaryCardsState extends State<SummaryCards> {
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      _balanceVisible ? formatVND(widget.balance) : '••••••',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
+                    ShaderMask(
+                      shaderCallback:
+                          (bounds) => LinearGradient(
+                            colors: [
+                              Colors.white,
+                              Colors.white.withOpacity(0.75),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ).createShader(bounds),
+                      child: Text(
+                        _balanceVisible ? formatVND(widget.balance) : '••••••',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                        ),
                       ),
                     ),
                   ],

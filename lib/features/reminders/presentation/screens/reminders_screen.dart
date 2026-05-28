@@ -154,11 +154,11 @@ class _HabitSuggestionTile extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         border: Border.all(
-          color: AppTheme.primary.withOpacity(0.25),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.25),
           width: 0.8,
         ),
         borderRadius: BorderRadius.circular(12),
-        color: AppTheme.primary.withOpacity(0.04),
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.04),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -169,13 +169,13 @@ class _HabitSuggestionTile extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Icon(
                 LucideIcons.repeat,
                 size: 16,
-                color: AppTheme.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(width: 10),
@@ -205,7 +205,7 @@ class _HabitSuggestionTile extends ConsumerWidget {
             TextButton(
               onPressed: () => _openForm(context, habit),
               style: TextButton.styleFrom(
-                foregroundColor: AppTheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.primary,
                 visualDensity: VisualDensity.compact,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -315,7 +315,7 @@ class _DebugPanelState extends State<_DebugPanel> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('🔔 "${r.title}" sẽ hiện sau $_delaySeconds giây'),
-            backgroundColor: AppTheme.primary,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -672,14 +672,14 @@ class _ReminderTile extends ConsumerWidget {
         decoration: BoxDecoration(
           color:
               reminder.isActive
-                  ? AppTheme.primary.withOpacity(0.12)
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
                   : cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           LucideIcons.bell,
           size: 18,
-          color: reminder.isActive ? AppTheme.primary : cs.onSurfaceVariant,
+          color: reminder.isActive ? Theme.of(context).colorScheme.primary : cs.onSurfaceVariant,
         ),
       ),
       title: Text(
@@ -713,7 +713,7 @@ class _ReminderTile extends ConsumerWidget {
         children: [
           Switch(
             value: reminder.isActive,
-            activeColor: AppTheme.primary,
+            activeColor: Theme.of(context).colorScheme.primary,
             onChanged: (_) => actions.toggleActive(reminder),
           ),
           PopupMenuButton<String>(

@@ -34,8 +34,8 @@ class _SpendoAppState extends ConsumerState<SpendoApp> {
     return MaterialApp.router(
       title: 'Spendo',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: ref.watch(lightThemeProvider),
+      darkTheme: ref.watch(darkThemeProvider),
       themeMode: themeMode,
       routerConfig: appRouter,
       locale: const Locale('vi', 'VN'),

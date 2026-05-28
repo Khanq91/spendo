@@ -1,32 +1,73 @@
 import 'package:flutter/material.dart';
 
-class AppTheme {
-  // Brand palette
-  static const primary = Color(0xFFF06292);
-  static const primaryLight = Color(0xFFF48FB1);
-  static const primaryContainer = Color(0xFFFCE4EC);
-  static const onPrimary = Colors.white;
+// ---------------------------------------------------------------------------
+// Color scheme palette
+// ---------------------------------------------------------------------------
 
-  // Semantic colors — use these everywhere instead of magic hex
+enum AppColorScheme {
+  roseDefault,
+  indigoMidnight,
+  emeraldWealth,
+  slatePremium,
+  amberWarm;
+
+  /// Human-readable label shown in Settings UI.
+  String get label => switch (this) {
+    AppColorScheme.roseDefault => 'Rose (Mặc định)',
+    AppColorScheme.indigoMidnight => 'Indigo Midnight',
+    AppColorScheme.emeraldWealth => 'Emerald Wealth',
+    AppColorScheme.slatePremium => 'Slate Premium',
+    AppColorScheme.amberWarm => 'Amber Warm',
+  };
+
+  /// The Material 3 seed that drives the entire ColorScheme.
+  Color get seedColor => switch (this) {
+    AppColorScheme.roseDefault => const Color(0xFFAD6E7F),
+    AppColorScheme.indigoMidnight => const Color(0xFF5C6BC0),
+    AppColorScheme.emeraldWealth => const Color(0xFF00897B),
+    AppColorScheme.slatePremium => const Color(0xFF78909C),
+    AppColorScheme.amberWarm => const Color(0xFFFFB300),
+  };
+
+  /// Representative swatch shown in the color picker.
+  Color get swatch => switch (this) {
+    AppColorScheme.roseDefault => const Color(0xFFAD6E7F),
+    AppColorScheme.indigoMidnight => const Color(0xFF5C6BC0),
+    AppColorScheme.emeraldWealth => const Color(0xFF00897B),
+    AppColorScheme.slatePremium => const Color(0xFF78909C),
+    AppColorScheme.amberWarm => const Color(0xFFFFB300),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// AppTheme
+// ---------------------------------------------------------------------------
+
+class AppTheme {
+  // ------------------------------------------------------------------
+  // Semantic colors — fixed across ALL themes.
+  // These represent meaning (income / expense), not brand.
+  // ------------------------------------------------------------------
   static const incomeColor = Color(0xFF43A047);
   static const expenseColor = Color(0xFFF06292);
-  static const expenseAltColor = Color(
-    0xFFE53935,
-  ); // for destructive actions (delete)
+  static const expenseAltColor = Color(0xFFE53935); // destructive actions
 
-  static ThemeData light() {
+  // ------------------------------------------------------------------
+  // Light theme
+  // ------------------------------------------------------------------
+  static ThemeData light(AppColorScheme scheme) {
+    final seed = scheme.seedColor;
+    final cs = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: Brightness.light,
+    ).copyWith(
+      surface: Colors.white,
+      surfaceContainerHighest: const Color(0xFFF0F0F0),
+    );
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primary,
-        brightness: Brightness.light,
-      ).copyWith(
-        primary: primary,
-        primaryContainer: primaryContainer,
-        onPrimary: onPrimary,
-        surface: Colors.white,
-        surfaceContainerHighest: const Color(0xFFF0F0F0),
-      ),
+      colorScheme: cs,
       scaffoldBackgroundColor: const Color(0xFFF5F5F5),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFFF5F5F5),
@@ -42,19 +83,19 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
-        indicatorColor: primaryContainer,
+        indicatorColor: cs.primaryContainer,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: primary, size: 22);
+            return IconThemeData(color: cs.primary, size: 22);
           }
           return const IconThemeData(color: Color(0xFF9E9E9E), size: 22);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
+            return TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: primary,
+              color: cs.primary,
             );
           }
           return const TextStyle(fontSize: 11, color: Color(0xFF9E9E9E));
@@ -71,11 +112,11 @@ class AppTheme {
           side: BorderSide(color: Colors.grey.shade100, width: 0.5),
         ),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: primary,
-        foregroundColor: onPrimary,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
         elevation: 2,
-        shape: CircleBorder(),
+        shape: const CircleBorder(),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: Colors.transparent,
@@ -110,23 +151,26 @@ class AppTheme {
     );
   }
 
-  static ThemeData dark() {
+  // ------------------------------------------------------------------
+  // Dark theme
+  // ------------------------------------------------------------------
+  static ThemeData dark(AppColorScheme scheme) {
+    final seed = scheme.seedColor;
+    final cs = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: Brightness.dark,
+    ).copyWith(
+      surface: const Color(0xFF1E1E1E),
+      surfaceContainerHighest: const Color(0xFF2A2A2A),
+      onSurface: const Color(0xFFEEEEEE),
+      onSurfaceVariant: const Color(0xFFAAAAAA),
+      outline: const Color(0xFF444444),
+      outlineVariant: const Color(0xFF333333),
+    );
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primary,
-        brightness: Brightness.dark,
-      ).copyWith(
-        primary: primaryLight,
-        primaryContainer: const Color(0xFF4A1A2C),
-        onPrimary: Colors.white,
-        surface: const Color(0xFF1E1E1E),
-        surfaceContainerHighest: const Color(0xFF2A2A2A),
-        onSurface: const Color(0xFFEEEEEE),
-        onSurfaceVariant: const Color(0xFFAAAAAA),
-        outline: const Color(0xFF444444),
-        outlineVariant: const Color(0xFF333333),
-      ),
+      colorScheme: cs,
       scaffoldBackgroundColor: const Color(0xFF111111),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF111111),
@@ -142,19 +186,19 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: const Color(0xFF1E1E1E),
-        indicatorColor: const Color(0xFF4A1A2C),
+        indicatorColor: cs.primaryContainer,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: primaryLight, size: 22);
+            return IconThemeData(color: cs.primary, size: 22);
           }
           return const IconThemeData(color: Color(0xFF757575), size: 22);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
+            return TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: primaryLight,
+              color: cs.primary,
             );
           }
           return const TextStyle(fontSize: 11, color: Color(0xFF757575));
@@ -170,11 +214,11 @@ class AppTheme {
           side: const BorderSide(color: Color(0xFF2A2A2A), width: 0.5),
         ),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: primary,
-        foregroundColor: onPrimary,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
         elevation: 2,
-        shape: CircleBorder(),
+        shape: const CircleBorder(),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: Colors.transparent,

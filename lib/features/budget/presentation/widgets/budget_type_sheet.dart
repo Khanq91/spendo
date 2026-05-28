@@ -64,7 +64,7 @@ class BudgetTypeSheet extends StatelessWidget {
           // Option 2: Theo danh mục
           _OptionCard(
             icon: LucideIcons.tag,
-            iconColor: AppTheme.primary,
+            iconColor: Theme.of(context).colorScheme.primary,
             title: 'Hạn mức theo danh mục',
             subtitle: 'Đặt giới hạn riêng cho từng danh mục chi tiêu',
             onTap: () {

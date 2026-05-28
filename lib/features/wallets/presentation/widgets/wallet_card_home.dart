@@ -73,15 +73,15 @@ class WalletCardHome extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               border: Border.all(
-                color: AppTheme.primary.withOpacity(0.2),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                 width: 0.8,
               ),
               borderRadius: BorderRadius.circular(12),
-              color: AppTheme.primary.withOpacity(0.04),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.04),
             ),
             child: Row(
               children: [
-                Icon(LucideIcons.wallet, size: 18, color: AppTheme.primary),
+                Icon(LucideIcons.wallet, size: 18, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -118,7 +118,7 @@ class WalletCardHome extends ConsumerWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color:
-                            isNeg ? AppTheme.expenseAltColor : AppTheme.primary,
+                            isNeg ? AppTheme.expenseAltColor : Theme.of(context).colorScheme.primary,
                       ),
                     );
                   },
