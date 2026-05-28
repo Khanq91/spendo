@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../budget/presentation/widgets/budget_card.dart';
+import '../../../wallets/presentation/widgets/wallet_card_home.dart';
 import '../../../transactions/domain/transaction.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../../../transactions/presentation/widgets/transaction_list_item.dart';
@@ -33,12 +34,21 @@ class HomeScreen extends ConsumerWidget {
         centerTitle: true,
         title: MonthSelector(
           month: month,
-          onPrev: () => ref.read(selectedMonthProvider.notifier).state =
-              DateTime(month.year, month.month - 1),
-          onNext: () => ref.read(selectedMonthProvider.notifier).state =
-              DateTime(month.year, month.month + 1),
-          onMonthPicked: (picked) =>
-              ref.read(selectedMonthProvider.notifier).state = picked,
+          onPrev:
+              () =>
+                  ref.read(selectedMonthProvider.notifier).state = DateTime(
+                    month.year,
+                    month.month - 1,
+                  ),
+          onNext:
+              () =>
+                  ref.read(selectedMonthProvider.notifier).state = DateTime(
+                    month.year,
+                    month.month + 1,
+                  ),
+          onMonthPicked:
+              (picked) =>
+                  ref.read(selectedMonthProvider.notifier).state = picked,
         ),
         actions: [
           IconButton(
@@ -50,65 +60,82 @@ class HomeScreen extends ConsumerWidget {
       body: txAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Lỗi: $e')),
-        data: (txs) => CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 16),
-                child: SummaryCards(
-                  income: summary.income,
-                  expense: summary.expense,
-                  balance: summary.balance,
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: const BudgetCard(),
-              ),
-            ),
-            if (txs.isEmpty)
-              SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.receiptText,
-                          size: 48, color: cs.outlineVariant),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Chưa có giao dịch nào',
-                        style: TextStyle(color: cs.onSurfaceVariant),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tap + để thêm',
-                        style: TextStyle(
-                            fontSize: 12, color: cs.onSurfaceVariant),
-                      ),
-                    ],
+        data:
+            (txs) => CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 12),
+                    child: SummaryCards(
+                      income: summary.income,
+                      expense: summary.expense,
+                      balance: summary.balance,
+                    ),
                   ),
                 ),
-              )
-            else
-              SliverList(
-                delegate: SliverChildListDelegate(
-                  _buildGroupedList(context, txs, categoryMap),
+
+                // BudgetCard
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: const BudgetCard(),
+                  ),
                 ),
-              ),
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
-          ],
-        ),
+
+                // WalletCardHome — dưới BudgetCard
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: const WalletCardHome(),
+                  ),
+                ),
+
+                if (txs.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            LucideIcons.receiptText,
+                            size: 48,
+                            color: cs.outlineVariant,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Chưa có giao dịch nào',
+                            style: TextStyle(color: cs.onSurfaceVariant),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap + để thêm',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SliverList(
+                    delegate: SliverChildListDelegate(
+                      _buildGroupedList(context, txs, categoryMap),
+                    ),
+                  ),
+                const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              ],
+            ),
       ),
     );
   }
 
   List<Widget> _buildGroupedList(
-      BuildContext context,
-      List<Transaction> txs,
-      Map<String, Category> categoryMap,
-      ) {
+    BuildContext context,
+    List<Transaction> txs,
+    Map<String, Category> categoryMap,
+  ) {
     final cs = Theme.of(context).colorScheme;
 
     final Map<String, List<Transaction>> grouped = {};
@@ -125,7 +152,7 @@ class HomeScreen extends ConsumerWidget {
 
       final dayTotal = dayTxs.fold<int>(
         0,
-            (sum, t) => t.isExpense ? sum - t.amount : sum + t.amount,
+        (sum, t) => t.isExpense ? sum - t.amount : sum + t.amount,
       );
       final isPositive = dayTotal >= 0;
 
@@ -148,9 +175,10 @@ class HomeScreen extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isPositive
-                      ? AppTheme.incomeColor
-                      : AppTheme.expenseAltColor,
+                  color:
+                      isPositive
+                          ? AppTheme.incomeColor
+                          : AppTheme.expenseAltColor,
                 ),
               ),
             ],
@@ -176,7 +204,7 @@ class HomeScreen extends ConsumerWidget {
   String _absFormatted(int n) {
     return n.abs().toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (m) => '${m[1]}.',
+      (m) => '${m[1]}.',
     );
   }
 }

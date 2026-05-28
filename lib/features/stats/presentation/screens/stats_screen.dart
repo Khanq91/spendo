@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -43,30 +44,31 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
         centerTitle: true,
         title: MonthSelector(
           month: month,
-          onPrev: () =>
-          ref.read(selectedMonthProvider.notifier).state =
-              DateTime(month.year, month.month - 1),
-          onNext: () =>
-          ref.read(selectedMonthProvider.notifier).state =
-              DateTime(month.year, month.month + 1),
-          onMonthPicked: (picked) =>
-          ref.read(selectedMonthProvider.notifier).state = picked,
+          onPrev:
+              () =>
+                  ref.read(selectedMonthProvider.notifier).state = DateTime(
+                    month.year,
+                    month.month - 1,
+                  ),
+          onNext:
+              () =>
+                  ref.read(selectedMonthProvider.notifier).state = DateTime(
+                    month.year,
+                    month.month + 1,
+                  ),
+          onMonthPicked:
+              (picked) =>
+                  ref.read(selectedMonthProvider.notifier).state = picked,
         ),
         bottom: TabBar(
           controller: _tab,
-          tabs: const [
-            Tab(text: 'Danh mục'),
-            Tab(text: 'Theo ngày'),
-          ],
+          tabs: const [Tab(text: 'Danh mục'), Tab(text: 'Theo ngày')],
           indicatorSize: TabBarIndicatorSize.label,
         ),
       ),
       body: TabBarView(
         controller: _tab,
-        children: const [
-          _CategoryTab(),
-          _DailyTab(),
-        ],
+        children: const [_CategoryTab(), _DailyTab()],
       ),
     );
   }
@@ -90,34 +92,40 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
     final categoriesAsync = ref.watch(categoriesProvider);
     final allCats = categoriesAsync.valueOrNull ?? [];
     final cs = Theme.of(context).colorScheme;
+    final visible = ref.watch(amountVisibleProvider);
 
     final catMap = {for (final c in allCats) c.id: c};
     final total = byCategory.values.fold(0, (s, v) => s + v);
 
     if (byCategory.isEmpty) return const _EmptyStats();
 
-    final entries = byCategory.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final entries =
+        byCategory.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
-    final sections = entries.asMap().entries.map((e) {
-      final i = e.key;
-      final entry = e.value;
-      final cat = catMap[entry.key];
-      final pct = total > 0 ? entry.value / total : 0.0;
-      final isTouched = i == _touchedIndex;
+    final sections =
+        entries.asMap().entries.map((e) {
+          final i = e.key;
+          final entry = e.value;
+          final cat = catMap[entry.key];
+          final pct = total > 0 ? entry.value / total : 0.0;
+          final isTouched = i == _touchedIndex;
 
-      return PieChartSectionData(
-        value: entry.value.toDouble(),
-        color: cat?.color ?? cs.outlineVariant,
-        radius: isTouched ? 72 : 60,
-        title: pct > 0.05 ? '${(pct * 100).toStringAsFixed(0)}%' : '',
-        titleStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-      );
-    }).toList();
+          return PieChartSectionData(
+            value: entry.value.toDouble(),
+            color: cat?.color ?? cs.outlineVariant,
+            radius: isTouched ? 72 : 60,
+            // Ẩn label % trên chart khi không visible
+            title:
+                (!visible || pct <= 0.05)
+                    ? ''
+                    : '${(pct * 100).toStringAsFixed(0)}%',
+            titleStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          );
+        }).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -148,7 +156,7 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tổng chi: ${formatVND(total)}',
+            'Tổng chi: ${visible ? formatVND(total) : '••••••'}',
             style: TextStyle(
               fontSize: 13,
               color: cs.onSurfaceVariant,
@@ -158,12 +166,12 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
           const SizedBox(height: 20),
           ...entries.map((entry) {
             final cat = catMap[entry.key];
-            final pct =
-            total > 0 ? (entry.value / total * 100) : 0.0;
+            final pct = total > 0 ? (entry.value / total * 100) : 0.0;
             return _LegendRow(
               category: cat,
               amount: entry.value,
               percent: pct,
+              visible: visible,
             );
           }),
         ],
@@ -176,11 +184,13 @@ class _LegendRow extends StatelessWidget {
   final Category? category;
   final int amount;
   final double percent;
+  final bool visible;
 
   const _LegendRow({
     required this.category,
     required this.amount,
     required this.percent,
+    required this.visible,
   });
 
   @override
@@ -194,8 +204,7 @@ class _LegendRow extends StatelessWidget {
           Container(
             width: 12,
             height: 12,
-            decoration:
-            BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -204,15 +213,16 @@ class _LegendRow extends StatelessWidget {
               style: const TextStyle(fontSize: 13),
             ),
           ),
+          // % luôn hiện (không nhạy cảm)
           Text(
             '${percent.toStringAsFixed(1)}%',
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
           const SizedBox(width: 12),
+          // Amount respect visibility
           Text(
-            formatVND(amount),
-            style: const TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w600),
+            visible ? formatVND(amount) : '••••••',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -230,15 +240,16 @@ class _DailyTab extends ConsumerWidget {
     final dailyTotals = ref.watch(dailyTotalsProvider);
     final month = ref.watch(selectedMonthProvider);
     final cs = Theme.of(context).colorScheme;
+    final visible = ref.watch(amountVisibleProvider);
 
     if (dailyTotals.isEmpty) return const _EmptyStats();
 
-    final daysInMonth =
-    DateUtils.getDaysInMonth(month.year, month.month);
-    final maxVal = dailyTotals.values
-        .map((e) => e.expense > e.income ? e.expense : e.income)
-        .fold(0, (a, b) => a > b ? a : b)
-        .toDouble();
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    final maxVal =
+        dailyTotals.values
+            .map((e) => e.expense > e.income ? e.expense : e.income)
+            .fold(0, (a, b) => a > b ? a : b)
+            .toDouble();
 
     final gridColor = cs.outlineVariant;
     final labelColor = cs.onSurfaceVariant;
@@ -266,10 +277,8 @@ class _DailyTab extends ConsumerWidget {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: maxVal / 4,
-                  getDrawingHorizontalLine: (v) => FlLine(
-                    color: gridColor,
-                    strokeWidth: 0.5,
-                  ),
+                  getDrawingHorizontalLine:
+                      (v) => FlLine(color: gridColor, strokeWidth: 0.5),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -292,8 +301,7 @@ class _DailyTab extends ConsumerWidget {
                         }
                         return Text(
                           '$day',
-                          style: TextStyle(
-                              fontSize: 10, color: labelColor),
+                          style: TextStyle(fontSize: 10, color: labelColor),
                         );
                       },
                     ),
@@ -317,9 +325,10 @@ class _DailyTab extends ConsumerWidget {
                 barTouchData: BarTouchData(
                   touchTooltipData: BarTouchTooltipData(
                     getTooltipColor: (_) => cs.inverseSurface,
-                    getTooltipItem: (group, _, rod, __) =>
-                        BarTooltipItem(
-                          'Ngày ${group.x}\n${formatVND(rod.toY.toInt())}',
+                    getTooltipItem:
+                        (group, _, rod, __) => BarTooltipItem(
+                          // Tooltip respect visibility
+                          'Ngày ${group.x}\n${visible ? formatVND(rod.toY.toInt()) : '••••••'}',
                           TextStyle(
                             color: cs.onInverseSurface,
                             fontSize: 11,
@@ -345,15 +354,16 @@ class _DailyTab extends ConsumerWidget {
               .toList()
               .sorted((a, b) => b.key.compareTo(a.key))
               .map((entry) {
-            final day = entry.key;
-            final data = entry.value;
-            final date = DateTime(month.year, month.month, day);
-            return _DailyRow(
-              date: date,
-              income: data.income,
-              expense: data.expense,
-            );
-          }),
+                final day = entry.key;
+                final data = entry.value;
+                final date = DateTime(month.year, month.month, day);
+                return _DailyRow(
+                  date: date,
+                  income: data.income,
+                  expense: data.expense,
+                  visible: visible,
+                );
+              }),
         ],
       ),
     );
@@ -364,11 +374,13 @@ class _DailyRow extends StatelessWidget {
   final DateTime date;
   final int income;
   final int expense;
+  final bool visible;
 
   const _DailyRow({
     required this.date,
     required this.income,
     required this.expense,
+    required this.visible,
   });
 
   @override
@@ -394,22 +406,26 @@ class _DailyRow extends StatelessWidget {
               children: [
                 if (income > 0)
                   Text(
-                    '+${formatVND(income)}',
+                    '+${visible ? formatVND(income) : '••••••'}',
                     style: const TextStyle(
-                        fontSize: 12, color: AppTheme.incomeColor),
+                      fontSize: 12,
+                      color: AppTheme.incomeColor,
+                    ),
                   ),
                 if (expense > 0)
                   Text(
-                    '-${formatVND(expense)}',
+                    '-${visible ? formatVND(expense) : '••••••'}',
                     style: const TextStyle(
-                        fontSize: 12, color: AppTheme.expenseAltColor),
+                      fontSize: 12,
+                      color: AppTheme.expenseAltColor,
+                    ),
                   ),
               ],
             ),
           ),
           const SizedBox(width: 16),
           Text(
-            '${isPos ? '+' : ''}${formatVND(net)}',
+            '${isPos ? '+' : ''}${visible ? formatVND(net) : '••••••'}',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -436,8 +452,7 @@ class _EmptyStats extends StatelessWidget {
         children: [
           Icon(LucideIcons.chartPie, size: 48, color: cs.outlineVariant),
           const SizedBox(height: 12),
-          Text('Chưa có dữ liệu',
-              style: TextStyle(color: cs.onSurfaceVariant)),
+          Text('Chưa có dữ liệu', style: TextStyle(color: cs.onSurfaceVariant)),
           const SizedBox(height: 4),
           Text(
             'Thêm giao dịch để xem thống kê',

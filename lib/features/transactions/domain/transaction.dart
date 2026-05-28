@@ -5,6 +5,7 @@ class Transaction {
   final String categoryId;
   final String? note;
   final DateTime createdAt;
+  final String? walletId;
 
   const Transaction({
     required this.id,
@@ -13,6 +14,7 @@ class Transaction {
     required this.categoryId,
     this.note,
     required this.createdAt,
+    this.walletId,
   });
 
   bool get isExpense => type == 'expense';
@@ -28,6 +30,7 @@ class Transaction {
       createdAt: DateTime.fromMillisecondsSinceEpoch(
         int.parse(map['created_at'] as String),
       ),
+      walletId: map['wallet_id'] as String?,
     );
   }
 }

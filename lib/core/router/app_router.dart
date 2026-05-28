@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
 import '../../features/reminders/presentation/screens/reminders_screen.dart';
+import '../../features/wallets/presentation/screens/wallets_screen.dart';
+import '../../features/wallets/presentation/screens/wallet_detail_screen.dart';
 import '../../shared/widgets/app_bottom_nav.dart';
 import '../notifications/notification_service.dart';
 
@@ -11,10 +13,7 @@ final appRouter = GoRouter(
   navigatorKey: _routerNavigatorKey,
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (_, __) => const AppShell(),
-    ),
+    GoRoute(path: '/', builder: (_, __) => const AppShell()),
     GoRoute(
       path: '/add',
       builder: (context, state) {
@@ -29,14 +28,17 @@ final appRouter = GoRouter(
         );
       },
     ),
+    GoRoute(path: '/reminders', builder: (_, __) => const RemindersScreen()),
+    GoRoute(path: '/wallets', builder: (_, __) => const WalletsScreen()),
     GoRoute(
-      path: '/reminders',
-      builder: (_, __) => const RemindersScreen(),
+      path: '/wallets/:id',
+      builder:
+          (_, state) =>
+              WalletDetailScreen(walletId: state.pathParameters['id']!),
     ),
   ],
 );
 
-/// Gán navigatorKey cho NotificationService sau khi router sẵn sàng.
 void initNotificationNavigatorKey() {
   NotificationService.navigatorKey = _routerNavigatorKey;
 }
@@ -69,11 +71,12 @@ class _AddTransactionPageState extends State<_AddTransactionPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder: (_) => AddTransactionSheet(
-          preselectedCategoryId: widget.categoryId,
-          prefillNote: widget.prefillNote,
-          prefillAmount: widget.prefillAmount,
-        ),
+        builder:
+            (_) => AddTransactionSheet(
+              preselectedCategoryId: widget.categoryId,
+              prefillNote: widget.prefillNote,
+              prefillAmount: widget.prefillAmount,
+            ),
       );
       if (mounted) context.go('/');
     });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -15,8 +16,7 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
   @override
-  ConsumerState<TransactionsScreen> createState() =>
-      _TransactionsScreenState();
+  ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
@@ -46,31 +46,40 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: _showSearch
-            ? TextField(
-          controller: _searchCtrl,
-          autofocus: true,
-          style: TextStyle(color: cs.onSurface),
-          decoration: InputDecoration(
-            hintText: 'Tìm kiếm...',
-            border: InputBorder.none,
-            hintStyle: TextStyle(
-                fontSize: 15, color: cs.onSurfaceVariant),
-          ),
-          onChanged: (v) =>
-          ref.read(searchQueryProvider.notifier).state = v,
-        )
-            : MonthSelector(
-          month: month,
-          onPrev: () =>
-          ref.read(selectedMonthProvider.notifier).state =
-              DateTime(month.year, month.month - 1),
-          onNext: () =>
-          ref.read(selectedMonthProvider.notifier).state =
-              DateTime(month.year, month.month + 1),
-          onMonthPicked: (picked) =>
-          ref.read(selectedMonthProvider.notifier).state = picked,
-        ),
+        title:
+            _showSearch
+                ? TextField(
+                  controller: _searchCtrl,
+                  autofocus: true,
+                  style: TextStyle(color: cs.onSurface),
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm...',
+                    border: InputBorder.none,
+                    hintStyle: TextStyle(
+                      fontSize: 15,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  onChanged:
+                      (v) => ref.read(searchQueryProvider.notifier).state = v,
+                )
+                : MonthSelector(
+                  month: month,
+                  onPrev:
+                      () =>
+                          ref
+                              .read(selectedMonthProvider.notifier)
+                              .state = DateTime(month.year, month.month - 1),
+                  onNext:
+                      () =>
+                          ref
+                              .read(selectedMonthProvider.notifier)
+                              .state = DateTime(month.year, month.month + 1),
+                  onMonthPicked:
+                      (picked) =>
+                          ref.read(selectedMonthProvider.notifier).state =
+                              picked,
+                ),
         actions: [
           IconButton(
             icon: Icon(_showSearch ? Icons.close : Icons.search_outlined),
@@ -89,21 +98,23 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           _CategoryFilterBar(
             categories: allCategories,
             selectedId: selectedCat,
-            onSelect: (id) =>
-            ref.read(selectedCategoryFilterProvider.notifier).state = id,
+            onSelect:
+                (id) =>
+                    ref.read(selectedCategoryFilterProvider.notifier).state =
+                        id,
           ),
           _MiniSummaryRow(txs: txs),
           const Divider(height: 1),
           Expanded(
-            child: txs.isEmpty
-                ? _EmptyState(
-                hasFilter: selectedCat != null || _showSearch)
-                : ListView(
-              children: [
-                ..._buildGroupedList(context, txs, categoryMap),
-                const SizedBox(height: 80),
-              ],
-            ),
+            child:
+                txs.isEmpty
+                    ? _EmptyState(hasFilter: selectedCat != null || _showSearch)
+                    : ListView(
+                      children: [
+                        ..._buildGroupedList(context, txs, categoryMap),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
           ),
         ],
       ),
@@ -111,12 +122,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   List<Widget> _buildGroupedList(
-      BuildContext context,
-      List<Transaction> txs,
-      Map<String, Category> categoryMap,
-      ) {
+    BuildContext context,
+    List<Transaction> txs,
+    Map<String, Category> categoryMap,
+  ) {
     final cs = Theme.of(context).colorScheme;
-
     final Map<String, List<Transaction>> grouped = {};
     for (final tx in txs) {
       final key =
@@ -129,7 +139,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       final dayTxs = entry.value;
       final date = dayTxs.first.createdAt;
       final dayNet = dayTxs.fold<int>(
-          0, (s, t) => t.isExpense ? s - t.amount : s + t.amount);
+        0,
+        (s, t) => t.isExpense ? s - t.amount : s + t.amount,
+      );
       final isPos = dayNet >= 0;
 
       widgets.add(
@@ -147,14 +159,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
               ),
               const Spacer(),
+              // Day net không ẩn (chỉ là grouping label)
               Text(
                 '${isPos ? '+' : '-'}${formatVND(dayNet.abs())}',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isPos
-                      ? AppTheme.incomeColor
-                      : AppTheme.expenseAltColor,
+                  color:
+                      isPos ? AppTheme.incomeColor : AppTheme.expenseAltColor,
                 ),
               ),
             ],
@@ -163,18 +175,22 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       );
 
       for (final tx in dayTxs) {
-        widgets.add(TransactionListItem(
-          transaction: tx,
-          category: categoryMap[tx.categoryId],
-        ));
-        widgets.add(Divider(
+        widgets.add(
+          TransactionListItem(
+            transaction: tx,
+            category: categoryMap[tx.categoryId],
+          ),
+        );
+        widgets.add(
+          Divider(
             height: 1,
             indent: 68,
             endIndent: 16,
-            color: cs.outlineVariant));
+            color: cs.outlineVariant,
+          ),
+        );
       }
     }
-
     return widgets;
   }
 }
@@ -198,8 +214,7 @@ class _CategoryFilterBar extends StatelessWidget {
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         children: [
           _FilterChip(
             label: 'Tất cả',
@@ -207,16 +222,17 @@ class _CategoryFilterBar extends StatelessWidget {
             onTap: () => onSelect(null),
           ),
           const SizedBox(width: 6),
-          ...categories.map((cat) => Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: _FilterChip(
-              label: cat.name,
-              selected: selectedId == cat.id,
-              color: cat.color,
-              onTap: () =>
-                  onSelect(selectedId == cat.id ? null : cat.id),
+          ...categories.map(
+            (cat) => Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: _FilterChip(
+                label: cat.name,
+                selected: selectedId == cat.id,
+                color: cat.color,
+                onTap: () => onSelect(selectedId == cat.id ? null : cat.id),
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -244,8 +260,7 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding:
-        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
           color: selected ? c.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -258,8 +273,7 @@ class _FilterChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            fontWeight:
-            selected ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             color: selected ? c : cs.onSurfaceVariant,
           ),
         ),
@@ -268,19 +282,20 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ── Mini summary row ──────────────────────────────────────────────────────────
+// ── Mini summary row — respect visibility ─────────────────────────────────────
 
-class _MiniSummaryRow extends StatelessWidget {
+class _MiniSummaryRow extends ConsumerWidget {
   final List<Transaction> txs;
   const _MiniSummaryRow({required this.txs});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final income =
-    txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
-    final expense =
-    txs.where((t) => t.isExpense).fold(0, (s, t) => s + t.amount);
+    final visible = ref.watch(amountVisibleProvider);
+    final income = txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
+    final expense = txs
+        .where((t) => t.isExpense)
+        .fold(0, (s, t) => s + t.amount);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
@@ -292,7 +307,7 @@ class _MiniSummaryRow extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            '+${formatVND(income)}',
+            '+${visible ? formatVND(income) : '••••••'}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -301,7 +316,7 @@ class _MiniSummaryRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Text(
-            '-${formatVND(expense)}',
+            '-${visible ? formatVND(expense) : '••••••'}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -341,9 +356,10 @@ class _EmptyState extends StatelessWidget {
           ),
           if (!hasFilter) ...[
             const SizedBox(height: 4),
-            Text('Tap + để thêm',
-                style: TextStyle(
-                    fontSize: 12, color: cs.onSurfaceVariant)),
+            Text(
+              'Tap + để thêm',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            ),
           ],
         ],
       ),

@@ -13,16 +13,27 @@ Future<void> openDatabase() async {
   final dir = await getApplicationDocumentsDirectory();
   final dbPath = p.join(dir.path, 'spendo.db');
 
-  db = PowerSyncDatabase(
-    schema: schema,
-    path: dbPath,
-  );
+  db = PowerSyncDatabase(schema: schema, path: dbPath);
 
   await db.initialize();
+
+  // Migration: thêm wallet_id vào transactions nếu chưa có
+  await _migrateWalletId();
 
   await _deduplicateCategories();
   await _setupSync();
   await _seedDefaultCategoriesIfNeeded();
+}
+
+/// Thêm cột wallet_id vào transactions nếu chưa tồn tại.
+/// PowerSync quản lý schema qua JSON, nhưng bảng SQLite thực tế
+/// cần được migrate thủ công khi thêm column mới.
+Future<void> _migrateWalletId() async {
+  try {
+    await db.execute('ALTER TABLE transactions ADD COLUMN wallet_id TEXT');
+  } catch (_) {
+    // Column đã tồn tại → ignore
+  }
 }
 
 Future<void> _deduplicateCategories() async {
@@ -39,7 +50,6 @@ Future<void> _deduplicateCategories() async {
 Future<void> _setupSync() async {
   final session = Supabase.instance.client.auth.currentSession;
 
-  // Chỉ connect nếu đã có session hợp lệ
   if (session != null && session.user.id.isNotEmpty) {
     await db.connect(connector: SupabasePowerSyncConnector(db));
   }
@@ -50,7 +60,6 @@ Future<void> _setupSync() async {
 
     if (event == AuthChangeEvent.signedIn && session != null) {
       await db.connect(connector: SupabasePowerSyncConnector(db));
-      // Nếu user mới (chưa có categories trên cloud) thì migrate local data lên
       await _migrateLocalDataIfNeeded(session.user.id);
     } else if (event == AuthChangeEvent.signedOut) {
       await db.disconnect();
@@ -89,35 +98,35 @@ Future<void> _seedOfflineCategories() async {
 
   final batch = <Future>[];
   for (final c in expenseCategories) {
-    batch.add(db.execute(
-      'INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order) '
-          'VALUES(uuid(), ?, ?, ?, 1, 0, ?)',
-      [c.$1, c.$2, c.$3, c.$4],
-    ));
+    batch.add(
+      db.execute(
+        'INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order) '
+        'VALUES(uuid(), ?, ?, ?, 1, 0, ?)',
+        [c.$1, c.$2, c.$3, c.$4],
+      ),
+    );
   }
   for (final c in incomeCategories) {
-    batch.add(db.execute(
-      'INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order) '
-          'VALUES(uuid(), ?, ?, ?, 1, 1, ?)',
-      [c.$1, c.$2, c.$3, c.$4],
-    ));
+    batch.add(
+      db.execute(
+        'INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order) '
+        'VALUES(uuid(), ?, ?, ?, 1, 1, ?)',
+        [c.$1, c.$2, c.$3, c.$4],
+      ),
+    );
   }
   await Future.wait(batch);
 }
 
 Future<void> _migrateLocalDataIfNeeded(String userId) async {
-  // Đợi sync chạy 2 giây, check xem cloud đã có categories chưa
   await Future.delayed(const Duration(seconds: 2));
 
   final cloudCats = await db.getAll(
     'SELECT id FROM categories WHERE id IS NOT NULL LIMIT 1',
   );
 
-  // Nếu đã có data từ cloud thì không làm gì
   if (cloudCats.isNotEmpty) return;
 
-  // Không có data trên cloud → update local categories thêm user_id
-  // để PowerSync upload lên Supabase
   final localCats = await db.getAll('SELECT id FROM categories');
   for (final cat in localCats) {
     await db.execute(

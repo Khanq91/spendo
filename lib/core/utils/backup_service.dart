@@ -7,15 +7,17 @@ import '../../features/budget/data/category_budget_repository.dart';
 import '../../features/categories/data/category_repository.dart';
 import '../../features/reminders/data/reminder_repository.dart';
 import '../../features/transactions/data/transaction_repository.dart';
+import '../../features/wallets/data/wallet_repository.dart';
 import '../db/powersync_db.dart';
 
-// ── Backup result ─────────────────────────────────────────────────────────────
+// ── Result types ──────────────────────────────────────────────────────────────
 
 class BackupResult {
   final int categories;
   final int transactions;
   final int reminders;
   final int categoryBudgets;
+  final int wallets;
   final List<String> errors;
 
   const BackupResult({
@@ -23,6 +25,7 @@ class BackupResult {
     required this.transactions,
     this.reminders = 0,
     this.categoryBudgets = 0,
+    this.wallets = 0,
     this.errors = const [],
   });
 }
@@ -36,6 +39,8 @@ class RestoreResult {
   final int remindersSkipped;
   final int budgetsAdded;
   final int budgetsSkipped;
+  final int walletsAdded;
+  final int walletsSkipped;
   final List<String> errors;
 
   const RestoreResult({
@@ -47,145 +52,79 @@ class RestoreResult {
     this.remindersSkipped = 0,
     this.budgetsAdded = 0,
     this.budgetsSkipped = 0,
+    this.walletsAdded = 0,
+    this.walletsSkipped = 0,
     this.errors = const [],
   });
 }
 
-// ── Backup format version ─────────────────────────────────────────────────────
-//
-// {
-//   "version": 1,
-//   "app": "spendo",
-//   "exported_at": 1715000000000,   // epoch ms UTC
-//   "categories": [
-//     {
-//       "id": "uuid",
-//       "name": "Ăn uống",
-//       "color_hex": "#FF6B6B",
-//       "icon_name": "restaurant",
-//       "is_income": false,
-//       "sort_order": 0
-//     }
-//   ],
-//   "transactions": [
-//     {
-//       "id": "uuid",
-//       "amount": 50000,
-//       "type": "expense",
-//       "category_id": "uuid",
-//       "note": "bún bò",           // nullable
-//       "created_at": 1714903800000  // epoch ms
-//     }
-//   ]
-// }
+// ── Version ───────────────────────────────────────────────────────────────────
 
-const _kBackupVersion = 2;
+const _kBackupVersion = 3;
 const _kBackupAppTag = 'spendo';
 
 class BackupService {
   // ── Export ──────────────────────────────────────────────────────────────────
 
   static Future<BackupResult> exportBackup() async {
-    final catRepo = CategoryRepository();
-    final txRepo = TransactionRepository();
-    final reminderRepo = ReminderRepository();
-    final budgetRepo = CategoryBudgetRepository();
-
-    final categories = await catRepo.getAll();
-    final transactions = await txRepo.getAll();
-    final reminders = await reminderRepo.getAll();
-    final budgets = await budgetRepo.getAll();
-
-    final payload = {
-      'version': _kBackupVersion,
-      'app': _kBackupAppTag,
-      'exported_at': DateTime.now().millisecondsSinceEpoch,
-      'categories': categories
-          .map((c) => {
-        'id': c.id,
-        'name': c.name,
-        'color_hex': c.colorHex,
-        'icon_name': c.iconName,
-        'is_income': c.isIncome,
-        'sort_order': c.sortOrder,
-      })
-          .toList(),
-      'transactions': transactions
-          .map((t) => {
-        'id': t.id,
-        'amount': t.amount,
-        'type': t.type,
-        'category_id': t.categoryId,
-        'note': t.note,
-        'created_at': t.createdAt.millisecondsSinceEpoch,
-      })
-          .toList(),
-      'recurring_reminders': reminders
-          .map((r) => {
-        'id': r.id,
-        'title': r.title,
-        'category_id': r.categoryId,
-        'amount_hint': r.amountHint,
-        'frequency': r.frequency.name,
-        'day_of_week': r.dayOfWeek,
-        'day_of_month': r.dayOfMonth,
-        'hour': r.hour,
-        'minute': r.minute,
-        'is_active': r.isActive,
-        'next_trigger': r.nextTrigger.toIso8601String(),
-        'warn_before_hours': r.warnBeforeHours,
-      })
-          .toList(),
-      'category_budgets': budgets
-          .map((b) => {
-        'id': b.id,
-        'category_id': b.categoryId,
-        'amount': b.amount,
-      })
-          .toList(),
-    };
-
-    final json = const JsonEncoder.withIndent('  ').convert(payload);
+    final jsonString = await exportBackupAsString();
 
     final dir = await getTemporaryDirectory();
     final now = DateTime.now();
     final fileName =
         'spendo_backup_${now.year}${_pad(now.month)}${_pad(now.day)}_${_pad(now.hour)}${_pad(now.minute)}.json';
     final file = File('${dir.path}/$fileName');
-    await file.writeAsString(json, encoding: utf8);
+    await file.writeAsString(jsonString, encoding: utf8);
 
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/json')],
       subject: 'Spendo — Backup dữ liệu',
     );
 
+    final catRepo = CategoryRepository();
+    final txRepo = TransactionRepository();
+    final reminderRepo = ReminderRepository();
+    final budgetRepo = CategoryBudgetRepository();
+    final walletRepo = WalletRepository();
+
     return BackupResult(
-      categories: categories.length,
-      transactions: transactions.length,
-      reminders: reminders.length,
-      categoryBudgets: budgets.length,
+      categories: (await catRepo.getAll()).length,
+      transactions: (await txRepo.getAll()).length,
+      reminders: (await reminderRepo.getAll()).length,
+      categoryBudgets: (await budgetRepo.getAll()).length,
+      wallets: (await walletRepo.getAll()).length,
     );
   }
 
-  // ── Export as string (for Google Drive) ──────────────────────────────────────
-
-  /// Export backup data as a JSON string without sharing.
-  /// Used by GDriveBackupService to upload to Google Drive.
   static Future<String> exportBackupAsString() async {
     final catRepo = CategoryRepository();
     final txRepo = TransactionRepository();
     final reminderRepo = ReminderRepository();
     final budgetRepo = CategoryBudgetRepository();
+    final walletRepo = WalletRepository();
 
     final categories = await catRepo.getAll();
     final transactions = await txRepo.getAll();
     final reminders = await reminderRepo.getAll();
     final budgets = await budgetRepo.getAll();
+    final wallets = await walletRepo.getAll();
 
     final payload = {
       'version': _kBackupVersion,
       'app': _kBackupAppTag,
       'exported_at': DateTime.now().millisecondsSinceEpoch,
+      'wallets': wallets
+          .map((w) => {
+                'id': w.id,
+                'name': w.name,
+                'type': w.type.name,
+                'initial_balance': w.initialBalance,
+                'note': w.note,
+                'color_hex': w.colorHex,
+                'sort_order': w.sortOrder,
+                'is_archived': w.isArchived,
+              })
+          .toList(),
       'categories': categories
           .map((c) => {
                 'id': c.id,
@@ -204,6 +143,7 @@ class BackupService {
                 'category_id': t.categoryId,
                 'note': t.note,
                 'created_at': t.createdAt.millisecondsSinceEpoch,
+                'wallet_id': t.walletId,
               })
           .toList(),
       'recurring_reminders': reminders
@@ -234,24 +174,20 @@ class BackupService {
     return const JsonEncoder.withIndent('  ').convert(payload);
   }
 
-  // ── Preview (dry-run) ───────────────────────────────────────────────────────
+  // ── Preview & Restore ────────────────────────────────────────────────────────
 
   static Future<RestoreResult> previewRestore(String filePath) async {
     return _processRestore(filePath, dryRun: true);
   }
 
-  // ── Restore ─────────────────────────────────────────────────────────────────
-
   static Future<RestoreResult> restore(String filePath) async {
     return _processRestore(filePath, dryRun: false);
   }
 
-  // ── Core logic ──────────────────────────────────────────────────────────────
-
   static Future<RestoreResult> _processRestore(
-      String filePath, {
-        required bool dryRun,
-      }) async {
+    String filePath, {
+    required bool dryRun,
+  }) async {
     final file = File(filePath);
     if (!await file.exists()) {
       return const RestoreResult(
@@ -263,7 +199,6 @@ class BackupService {
       );
     }
 
-    // Parse JSON
     final Map<String, dynamic> data;
     try {
       final content = await file.readAsString(encoding: utf8);
@@ -278,7 +213,6 @@ class BackupService {
       );
     }
 
-    // Validate
     final validationError = _validate(data);
     if (validationError != null) {
       return RestoreResult(
@@ -290,9 +224,13 @@ class BackupService {
       );
     }
 
-    final rawCats = (data['categories'] as List).cast<Map<String, dynamic>>();
+    final rawWallets = data['wallets'] is List
+        ? (data['wallets'] as List).cast<Map<String, dynamic>>()
+        : <Map<String, dynamic>>[];
+    final rawCats =
+        (data['categories'] as List).cast<Map<String, dynamic>>();
     final rawTxs =
-    (data['transactions'] as List).cast<Map<String, dynamic>>();
+        (data['transactions'] as List).cast<Map<String, dynamic>>();
     final rawReminders = data['recurring_reminders'] is List
         ? (data['recurring_reminders'] as List).cast<Map<String, dynamic>>()
         : <Map<String, dynamic>>[];
@@ -300,48 +238,61 @@ class BackupService {
         ? (data['category_budgets'] as List).cast<Map<String, dynamic>>()
         : <Map<String, dynamic>>[];
 
-    // Load existing IDs để detect trùng
     final existingCatIds = await _getExistingCategoryIds();
     final existingTxIds = await _getExistingTransactionIds();
     final existingReminderIds = await _getExistingReminderIds();
     final existingBudgetCatIds = await _getExistingBudgetCategoryIds();
+    final existingWalletIds = await _getExistingWalletIds();
 
-    int catsAdded = 0;
-    int catsSkipped = 0;
-    int txsAdded = 0;
-    int txsSkipped = 0;
-    int remindersAdded = 0;
-    int remindersSkipped = 0;
-    int budgetsAdded = 0;
-    int budgetsSkipped = 0;
+    int catsAdded = 0, catsSkipped = 0;
+    int txsAdded = 0, txsSkipped = 0;
+    int remindersAdded = 0, remindersSkipped = 0;
+    int budgetsAdded = 0, budgetsSkipped = 0;
+    int walletsAdded = 0, walletsSkipped = 0;
     final errors = <String>[];
 
-    // ── Process categories ──────────────────────────────────────────────────
+    // ── Wallets (restore trước để tx có thể ref) ────────────────────────────
+    final backupWalletIds = <String>{};
+    for (final w in rawWallets) {
+      final id = w['id'] as String?;
+      if (id == null || id.isEmpty) {
+        errors.add('Wallet thiếu id: ${w['name']}');
+        continue;
+      }
+      backupWalletIds.add(id);
+      if (existingWalletIds.contains(id)) {
+        walletsSkipped++;
+      } else {
+        walletsAdded++;
+        if (!dryRun) {
+          await _insertWallet(w);
+          existingWalletIds.add(id);
+        }
+      }
+    }
 
+    // ── Categories ──────────────────────────────────────────────────────────
     for (final cat in rawCats) {
       final id = cat['id'] as String?;
       if (id == null || id.isEmpty) {
         errors.add('Category thiếu id: ${cat['name']}');
         continue;
       }
-
       if (existingCatIds.contains(id)) {
         catsSkipped++;
       } else {
         catsAdded++;
         if (!dryRun) {
           await _insertCategory(cat);
-          existingCatIds.add(id); // track trong session để tránh dup trong file
+          existingCatIds.add(id);
         }
       }
     }
 
-    // ── Process transactions ────────────────────────────────────────────────
-
-    // Collect all category IDs from backup (để check orphan transactions)
+    // ── Transactions ────────────────────────────────────────────────────────
     final backupCatIds = rawCats.map((c) => c['id'] as String).toSet();
-    // Sau restore, category IDs hợp lệ = existing + vừa thêm
     final validCatIds = {...existingCatIds, ...backupCatIds};
+    final validWalletIds = {...existingWalletIds, ...backupWalletIds};
 
     for (int i = 0; i < rawTxs.length; i++) {
       final tx = rawTxs[i];
@@ -359,6 +310,17 @@ class BackupService {
         continue;
       }
 
+      // wallet_id nullable — nếu có thì phải hợp lệ
+      final walletId = tx['wallet_id'] as String?;
+      if (walletId != null &&
+          walletId.isNotEmpty &&
+          !validWalletIds.contains(walletId)) {
+        errors.add(
+            'Transaction "${tx['note'] ?? id.substring(0, 8)}" có wallet không hợp lệ — gỡ liên kết');
+        // Vẫn restore nhưng không gắn wallet
+        tx['wallet_id'] = null;
+      }
+
       if (existingTxIds.contains(id)) {
         txsSkipped++;
       } else {
@@ -370,23 +332,19 @@ class BackupService {
       }
     }
 
-    // ── Process recurring reminders ─────────────────────────────────────────
-
+    // ── Reminders ───────────────────────────────────────────────────────────
     for (final rem in rawReminders) {
       final id = rem['id'] as String?;
       if (id == null || id.isEmpty) {
         errors.add('Reminder thiếu id: ${rem['title']}');
         continue;
       }
-
       final catId = rem['category_id'] as String?;
       if (catId == null || !validCatIds.contains(catId)) {
-        errors.add(
-            'Reminder "${rem['title']}" có category không hợp lệ — bỏ qua');
+        errors.add('Reminder "${rem['title']}" có category không hợp lệ — bỏ qua');
         remindersSkipped++;
         continue;
       }
-
       if (existingReminderIds.contains(id)) {
         remindersSkipped++;
       } else {
@@ -398,8 +356,7 @@ class BackupService {
       }
     }
 
-    // ── Process category budgets ────────────────────────────────────────────
-
+    // ── Category budgets ────────────────────────────────────────────────────
     for (final bud in rawBudgets) {
       final catId = bud['category_id'] as String?;
       if (catId == null || !validCatIds.contains(catId)) {
@@ -407,7 +364,6 @@ class BackupService {
         budgetsSkipped++;
         continue;
       }
-
       if (existingBudgetCatIds.contains(catId)) {
         budgetsSkipped++;
       } else {
@@ -428,6 +384,8 @@ class BackupService {
       remindersSkipped: remindersSkipped,
       budgetsAdded: budgetsAdded,
       budgetsSkipped: budgetsSkipped,
+      walletsAdded: walletsAdded,
+      walletsSkipped: walletsSkipped,
       errors: errors,
     );
   }
@@ -435,22 +393,14 @@ class BackupService {
   // ── Validation ──────────────────────────────────────────────────────────────
 
   static String? _validate(Map<String, dynamic> data) {
-    if (data['app'] != _kBackupAppTag) {
-      return 'File không phải backup Spendo';
-    }
-    if (data['version'] == null) {
-      return 'File thiếu trường version';
-    }
+    if (data['app'] != _kBackupAppTag) return 'File không phải backup Spendo';
+    if (data['version'] == null) return 'File thiếu trường version';
     final version = data['version'] as int;
     if (version > _kBackupVersion) {
       return 'File được tạo từ phiên bản Spendo mới hơn (v$version), vui lòng cập nhật app';
     }
-    if (data['categories'] is! List) {
-      return 'File hỏng — thiếu danh sách categories';
-    }
-    if (data['transactions'] is! List) {
-      return 'File hỏng — thiếu danh sách transactions';
-    }
+    if (data['categories'] is! List) return 'File hỏng — thiếu danh sách categories';
+    if (data['transactions'] is! List) return 'File hỏng — thiếu danh sách transactions';
     return null;
   }
 
@@ -476,6 +426,28 @@ class BackupService {
     return rows.map((r) => r['category_id'] as String).toSet();
   }
 
+  static Future<Set<String>> _getExistingWalletIds() async {
+    final rows = await db.getAll('SELECT id FROM wallets');
+    return rows.map((r) => r['id'] as String).toSet();
+  }
+
+  static Future<void> _insertWallet(Map<String, dynamic> w) async {
+    await db.execute(
+      '''INSERT INTO wallets(id, name, type, initial_balance, note, color_hex, sort_order, is_archived)
+         VALUES(?, ?, ?, ?, ?, ?, ?, ?)''',
+      [
+        w['id'] as String,
+        w['name'] as String,
+        w['type'] as String,
+        (w['initial_balance'] as int).toString(),
+        w['note'] as String?,
+        w['color_hex'] as String,
+        w['sort_order'] as int,
+        (w['is_archived'] as bool) ? 1 : 0,
+      ],
+    );
+  }
+
   static Future<void> _insertCategory(Map<String, dynamic> cat) async {
     await db.execute(
       '''INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order)
@@ -493,8 +465,8 @@ class BackupService {
 
   static Future<void> _insertTransaction(Map<String, dynamic> tx) async {
     await db.execute(
-      '''INSERT INTO transactions(id, amount, type, category_id, note, created_at)
-         VALUES(?, ?, ?, ?, ?, ?)''',
+      '''INSERT INTO transactions(id, amount, type, category_id, note, created_at, wallet_id)
+         VALUES(?, ?, ?, ?, ?, ?, ?)''',
       [
         tx['id'] as String,
         (tx['amount'] as int).toString(),
@@ -502,6 +474,7 @@ class BackupService {
         tx['category_id'] as String,
         tx['note'] as String?,
         (tx['created_at'] as int).toString(),
+        tx['wallet_id'] as String?,
       ],
     );
   }
@@ -543,8 +516,6 @@ class BackupService {
   }
 
   static String _pad(int n) => n.toString().padLeft(2, '0');
-
-  // ── File picker helper ──────────────────────────────────────────────────────
 
   static Future<String?> pickBackupFile() async {
     final result = await FilePicker.platform.pickFiles(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../domain/transaction.dart';
 import '../../../categories/domain/category.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -7,7 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/category_icon.dart';
 import 'transaction_detail_sheet.dart';
 
-class TransactionListItem extends StatelessWidget {
+class TransactionListItem extends ConsumerWidget {
   final Transaction transaction;
   final Category? category;
 
@@ -18,23 +20,26 @@ class TransactionListItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isExpense = transaction.isExpense;
     final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
+    final visible = ref.watch(amountVisibleProvider);
 
     return InkWell(
-      onTap: () => showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (_) => TransactionDetailSheet(
-          transaction: transaction,
-          category: category,
-        ),
-      ),
+      onTap:
+          () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder:
+                (_) => TransactionDetailSheet(
+                  transaction: transaction,
+                  category: category,
+                ),
+          ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
@@ -74,7 +79,7 @@ class TransactionListItem extends StatelessWidget {
               ),
             ),
             Text(
-              '${isExpense ? '-' : '+'}${formatVND(transaction.amount)}',
+              '${isExpense ? '-' : '+'}${visible ? formatVND(transaction.amount) : '••••••'}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

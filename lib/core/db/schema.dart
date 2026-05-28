@@ -7,6 +7,7 @@ const schema = Schema([
     Column.text('category_id'),
     Column.text('note'),
     Column.text('created_at'),
+    Column.text('wallet_id'), // nullable — thêm migration ALTER TABLE
   ]),
   Table('categories', [
     Column.text('name'),
@@ -16,10 +17,7 @@ const schema = Schema([
     Column.integer('is_income'),
     Column.integer('sort_order'),
   ]),
-  Table('budgets', [
-    Column.text('amount'),
-    Column.text('month'),
-  ]),
+  Table('budgets', [Column.text('amount'), Column.text('month')]),
   Table.localOnly('category_budgets', [
     Column.text('category_id'),
     Column.text('amount'),
@@ -37,14 +35,24 @@ const schema = Schema([
     Column.text('next_trigger'),
     Column.integer('warn_before_hours'),
   ]),
-  // Habit suggestions detected from transaction history — local only
   Table.localOnly('detected_habits', [
-    Column.text('keyword'),           // normalized note text
+    Column.text('keyword'),
     Column.text('category_id'),
     Column.integer('median_gap_days'),
-    Column.text('last_occurrence'),   // ISO8601
+    Column.text('last_occurrence'),
     Column.integer('occurrence_count'),
-    Column.integer('is_dismissed'),   // 1 = user dismissed
-    Column.text('analyzed_at'),       // ISO8601
+    Column.integer('is_dismissed'),
+    Column.text('analyzed_at'),
+  ]),
+  Table.localOnly('wallets', [
+    Column.text('name'),
+    Column.text(
+      'type',
+    ), // 'cash','bank','ewallet','credit','investment','other'
+    Column.text('initial_balance'), // số dư ban đầu
+    Column.text('note'),
+    Column.text('color_hex'),
+    Column.integer('sort_order'),
+    Column.integer('is_archived'), // 1 = ẩn, không xoá
   ]),
 ]);

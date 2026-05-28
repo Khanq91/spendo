@@ -572,15 +572,19 @@ class SettingsScreen extends ConsumerWidget {
 
       // 8. Kết quả
       final added = <String>[
-        if (result.transactionsAdded > 0) '${result.transactionsAdded} giao dịch',
+        if (result.transactionsAdded > 0)
+          '${result.transactionsAdded} giao dịch',
         if (result.categoriesAdded > 0) '${result.categoriesAdded} danh mục',
         if (result.remindersAdded > 0) '${result.remindersAdded} nhắc nhở',
         if (result.budgetsAdded > 0) '${result.budgetsAdded} hạn mức',
+        if (result.walletsAdded > 0) '${result.walletsAdded} nguồn tiền',
       ];
-      final skipped = result.transactionsSkipped +
+      final skipped =
+          result.transactionsSkipped +
           result.categoriesSkipped +
           result.remindersSkipped +
-          result.budgetsSkipped;
+          result.budgetsSkipped +
+          result.walletsSkipped;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -697,8 +701,10 @@ class _RestorePreviewDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final hasAnything =
-        preview.categoriesAdded > 0 || preview.transactionsAdded > 0 ||
-        preview.remindersAdded > 0 || preview.budgetsAdded > 0;
+        preview.categoriesAdded > 0 ||
+        preview.transactionsAdded > 0 ||
+        preview.remindersAdded > 0 ||
+        preview.budgetsAdded > 0;
 
     return AlertDialog(
       title: Row(
@@ -741,7 +747,20 @@ class _RestorePreviewDialog extends StatelessWidget {
             _PreviewRow(
               icon: LucideIcons.wallet,
               color: AppTheme.incomeColor,
-              text: '${preview.budgetsAdded} hạn mức danh mục sẽ được khôi phục',
+              text:
+                  '${preview.budgetsAdded} hạn mức danh mục sẽ được khôi phục',
+            ),
+          if (preview.walletsAdded > 0)
+            _PreviewRow(
+              icon: LucideIcons.wallet,
+              color: const Color(0xFF4ECDC4),
+              text: '${preview.walletsAdded} nguồn tiền sẽ được khôi phục',
+            ),
+          if (preview.walletsSkipped > 0)
+            _PreviewRow(
+              icon: LucideIcons.circleArrowRight,
+              color: cs.onSurfaceVariant,
+              text: '${preview.walletsSkipped} nguồn tiền đã tồn tại → bỏ qua',
             ),
           if (preview.transactionsSkipped > 0)
             _PreviewRow(

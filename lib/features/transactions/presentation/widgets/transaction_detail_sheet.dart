@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../core/presentation/providers/amount_visibility_provider.dart';
 import '../../domain/transaction.dart';
 import '../../data/transaction_repository.dart';
 import '../../../categories/domain/category.dart';
+import '../../../wallets/presentation/providers/wallet_provider.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -24,6 +26,14 @@ class TransactionDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isExpense = transaction.isExpense;
     final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
+    final visible = ref.watch(amountVisibleProvider);
+
+    // Lấy tên wallet nếu có
+    final wallets = ref.watch(walletsProvider).valueOrNull ?? [];
+    final wallet =
+        transaction.walletId != null
+            ? wallets.where((w) => w.id == transaction.walletId).firstOrNull
+            : null;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -42,30 +52,40 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
 
           // icon + category
-          CategoryIconWidget(
-            category: category,
-            size: 56,
-            iconSize: 26,
-          ),
+          CategoryIconWidget(category: category, size: 56, iconSize: 26),
           const SizedBox(height: 8),
           Text(
             category?.name ?? 'Không rõ',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
 
-          // amount
-          Text(
-            '${isExpense ? '-' : '+'}${formatVND(transaction.amount)}',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-              color: color,
-              letterSpacing: -0.5,
-            ),
+          // amount — respect visibility
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${isExpense ? '-' : '+'}${visible ? formatVND(transaction.amount) : '••••••'}',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Toggle inline
+              GestureDetector(
+                onTap: () => ref.read(amountVisibleProvider.notifier).toggle(),
+                child: Icon(
+                  visible
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  size: 18,
+                  color: Colors.grey.shade400,
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 16),
@@ -76,7 +96,8 @@ class TransactionDetailSheet extends ConsumerWidget {
           _DetailRow(
             icon: LucideIcons.calendarDays,
             label: 'Ngày',
-            value: '${formatDayHeader(transaction.createdAt)}, ${formatTime(transaction.createdAt)}',
+            value:
+                '${formatDayHeader(transaction.createdAt)}, ${formatTime(transaction.createdAt)}',
           ),
           if (transaction.note != null && transaction.note!.isNotEmpty)
             _DetailRow(
@@ -85,13 +106,22 @@ class TransactionDetailSheet extends ConsumerWidget {
               value: transaction.note!,
             ),
           _DetailRow(
-            icon: isExpense
-                ? LucideIcons.arrowUpRight
-                : LucideIcons.arrowDownLeft,
+            icon:
+                isExpense
+                    ? LucideIcons.arrowUpRight
+                    : LucideIcons.arrowDownLeft,
             label: 'Loại',
             value: isExpense ? 'Chi tiêu' : 'Thu nhập',
             valueColor: color,
           ),
+          // Wallet row — chỉ hiện khi có wallet
+          if (wallet != null)
+            _DetailRow(
+              icon: LucideIcons.wallet,
+              label: 'Nguồn tiền',
+              value: wallet.name,
+              valueColor: wallet.color,
+            ),
 
           const SizedBox(height: 20),
 
@@ -106,7 +136,9 @@ class TransactionDetailSheet extends ConsumerWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.expenseColor,
                     side: const BorderSide(
-                        color: AppTheme.expenseColor, width: 0.8),
+                      color: AppTheme.expenseColor,
+                      width: 0.8,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -139,23 +171,24 @@ class TransactionDetailSheet extends ConsumerWidget {
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Xoá giao dịch?'),
-        content: const Text('Hành động này không thể hoàn tác.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Huỷ'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Xoá giao dịch?'),
+            content: const Text('Hành động này không thể hoàn tác.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Huỷ'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.expenseColor,
+                ),
+                child: const Text('Xoá'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.expenseColor,
-            ),
-            child: const Text('Xoá'),
-          ),
-        ],
-      ),
     );
 
     if (confirm == true && context.mounted) {
