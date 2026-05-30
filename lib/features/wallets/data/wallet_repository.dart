@@ -6,8 +6,8 @@ class WalletRepository {
   Stream<List<Wallet>> watchAll() {
     return db
         .watch(
-          'SELECT * FROM wallets WHERE is_archived = 0 ORDER BY sort_order ASC',
-        )
+      'SELECT * FROM wallets WHERE is_archived = 0 ORDER BY sort_order ASC',
+    )
         .map((rows) => rows.map(Wallet.fromMap).toList());
   }
 
@@ -15,8 +15,8 @@ class WalletRepository {
   Stream<List<Wallet>> watchArchived() {
     return db
         .watch(
-          'SELECT * FROM wallets WHERE is_archived = 1 ORDER BY sort_order ASC',
-        )
+      'SELECT * FROM wallets WHERE is_archived = 1 ORDER BY sort_order ASC',
+    )
         .map((rows) => rows.map(Wallet.fromMap).toList());
   }
 
@@ -104,11 +104,8 @@ class WalletRepository {
     return row['cnt'] as int;
   }
 
-  /// Balance = initial_balance + tổng thu - tổng chi của wallet này.
-  Future<int> calculateBalance(String walletId) async {
-    final wallet = await getById(walletId);
-    if (wallet == null) return 0;
-
+  /// Trả về tổng income và expense của wallet — dùng cho breakdown provider.
+  Future<({int income, int expense})> getIncomeExpense(String walletId) async {
     final row = await db.get(
       '''SELECT
            COALESCE(SUM(CASE WHEN type = 'income' THEN CAST(amount AS INTEGER) ELSE 0 END), 0) as income,
@@ -117,9 +114,18 @@ class WalletRepository {
          WHERE wallet_id = ?''',
       [walletId],
     );
+    return (
+    income: row['income'] as int,
+    expense: row['expense'] as int,
+    );
+  }
 
-    final income = row['income'] as int;
-    final expense = row['expense'] as int;
-    return wallet.initialBalance + income - expense;
+  /// Balance = initial_balance + tổng thu - tổng chi của wallet này.
+  Future<int> calculateBalance(String walletId) async {
+    final wallet = await getById(walletId);
+    if (wallet == null) return 0;
+
+    final breakdown = await getIncomeExpense(walletId);
+    return wallet.initialBalance + breakdown.income - breakdown.expense;
   }
 }

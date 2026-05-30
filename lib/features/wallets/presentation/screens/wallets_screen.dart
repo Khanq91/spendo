@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../home/presentation/widgets/summary_card.dart' show WalletProgressBar;
 import '../../data/wallet_repository.dart';
 import '../../domain/wallet.dart';
 import '../providers/wallet_provider.dart';
@@ -18,6 +19,7 @@ class WalletsScreen extends ConsumerWidget {
     final walletsAsync = ref.watch(walletsProvider);
     final archivedAsync = ref.watch(archivedWalletsProvider);
     final netWorthAsync = ref.watch(totalNetWorthProvider);
+    final breakdownAsync = ref.watch(totalWalletBreakdownProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -39,6 +41,7 @@ class WalletsScreen extends ConsumerWidget {
           children: [
             _NetWorthCard(
               netWorthAsync: netWorthAsync,
+              breakdownAsync: breakdownAsync,
             ),
             if (wallets.isEmpty)
               _EmptyState(onAdd: () => _openForm(context))
@@ -87,54 +90,139 @@ class WalletsScreen extends ConsumerWidget {
 
 class _NetWorthCard extends StatelessWidget {
   final AsyncValue<int> netWorthAsync;
+  final AsyncValue<({int x1, int x2})> breakdownAsync;
 
   const _NetWorthCard({
     required this.netWorthAsync,
+    required this.breakdownAsync,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary],
+          colors: [cs.primary, cs.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Tổng số dư',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-                const SizedBox(height: 4),
-                netWorthAsync.when(
-                  loading: () => const Text('...',
-                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (total) => Text(
-                    formatVND(total),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tổng số dư',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    netWorthAsync.when(
+                      loading: () => const Text(
+                        '...',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700),
+                      ),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (total) {
+                        final isNeg = total < 0;
+                        return Text(
+                          formatVND(total),
+                          style: TextStyle(
+                            color: isNeg ? Colors.redAccent : Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Progress bar — luôn hiển thị, không toggle
+          breakdownAsync.when(
+            loading: () => const SizedBox(height: 8),
+            error: (_, __) => const SizedBox(height: 8),
+            data: (bd) {
+              if (bd.x1 == 0 && bd.x2 == 0) return const SizedBox(height: 8);
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _DarkProgressBar(x1: bd.x1, x2: bd.x2),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Progress bar dùng trên nền tối (gradient card)
+class _DarkProgressBar extends StatelessWidget {
+  final int x1;
+  final int x2;
+
+  const _DarkProgressBar({required this.x1, required this.x2});
+
+  @override
+  Widget build(BuildContext context) {
+    final isOverflow = x2 > x1;
+    final ratio = x1 > 0 ? (x2 / x1).clamp(0.0, 1.0) : (x2 > 0 ? 1.0 : 0.0);
+    final barColor = isOverflow ? Colors.redAccent : Colors.white70;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 5,
+            child: Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: isOverflow
+                      ? Colors.redAccent.withOpacity(0.3)
+                      : Colors.white.withOpacity(0.2),
+                ),
+                FractionallySizedBox(
+                  widthFactor: ratio,
+                  child: Container(color: barColor),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Text(
+              'Đã dùng ${formatVND(x2)}',
+              style: const TextStyle(fontSize: 10, color: Colors.white60),
+            ),
+            const Spacer(),
+            Text(
+              '/ ${formatVND(x1)}',
+              style: const TextStyle(fontSize: 10, color: Colors.white60),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -168,7 +256,9 @@ class _WalletTile extends ConsumerWidget {
           style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
       trailing: balanceAsync.when(
         loading: () => const SizedBox(
-            width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2)),
         error: (_, __) => const SizedBox.shrink(),
         data: (balance) {
           final isNegative = balance < 0;
@@ -186,7 +276,8 @@ class _WalletTile extends ConsumerWidget {
               ),
               if (isNegative)
                 Text('⚠️ Âm',
-                    style: TextStyle(fontSize: 10, color: AppTheme.expenseAltColor)),
+                    style: TextStyle(
+                        fontSize: 10, color: AppTheme.expenseAltColor)),
             ],
           );
         },
@@ -232,7 +323,8 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: Icon(Icons.keyboard_arrow_down, size: 16, color: cs.onSurfaceVariant),
+                  child: Icon(Icons.keyboard_arrow_down,
+                      size: 16, color: cs.onSurfaceVariant),
                 ),
               ],
             ),
@@ -241,9 +333,11 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
         AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: Column(
-            children: widget.wallets.map((w) => _ArchivedTile(wallet: w)).toList(),
+            children:
+            widget.wallets.map((w) => _ArchivedTile(wallet: w)).toList(),
           ),
-          crossFadeState: _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState:
+          _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 200),
         ),
       ],
@@ -268,10 +362,13 @@ class _ArchivedTile extends ConsumerWidget {
           color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(categoryIcon(wallet.type.iconName), size: 20, color: color.withOpacity(0.5)),
+        child: Icon(categoryIcon(wallet.type.iconName),
+            size: 20, color: color.withOpacity(0.5)),
       ),
-      title: Text(wallet.name, style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
-      subtitle: Text('Đã lưu trữ', style: TextStyle(fontSize: 12, color: cs.outlineVariant)),
+      title: Text(wallet.name,
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+      subtitle: Text('Đã lưu trữ',
+          style: TextStyle(fontSize: 12, color: cs.outlineVariant)),
       trailing: TextButton(
         onPressed: () async => WalletRepository().unarchive(wallet.id),
         style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
