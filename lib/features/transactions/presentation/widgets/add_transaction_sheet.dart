@@ -14,6 +14,7 @@ import '../../../../core/utils/category_matcher.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../screens/note_picker_screen.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final Transaction? existing;
@@ -279,6 +280,28 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     });
   }
 
+  Future<void> _openNotePicker() async {
+    final allCats = ref.read(categoriesProvider).valueOrNull ?? [];
+    final cats = _categories(allCats);
+    final result = await Navigator.of(context).push<NotePickerResult>(
+      MaterialPageRoute(
+        builder: (_) => NotePickerScreen(
+          initialNote: _noteCtrl.text,
+          initialCategoryId: _selectedCategoryId,
+          categories: cats,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _noteCtrl.text = result.note;
+      if (result.categoryId != null && result.categoryId != _selectedCategoryId) {
+        _selectedCategoryId = result.categoryId;
+        _userPickedCategory = true;
+      }
+    });
+  }
+
   void _openWalletPicker(List<Wallet> wallets) {
     showModalBottomSheet(
       context: context,
@@ -495,18 +518,34 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           // Note
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              controller: _noteCtrl,
-              onChanged: _autoSelectCategory,
-              style: TextStyle(fontSize: 13, color: cs.onSurface),
-              decoration: InputDecoration(
-                hintText: 'Ghi chú (tuỳ chọn)...',
-                hintStyle: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 4),
-              ),
-              maxLines: 1,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _noteCtrl,
+                    onChanged: _autoSelectCategory,
+                    style: TextStyle(fontSize: 13, color: cs.onSurface),
+                    decoration: InputDecoration(
+                      hintText: 'Ghi chú (tuỳ chọn)...',
+                      hintStyle: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _openNotePicker,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Icon(
+                      Icons.search,
+                      size: 18,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
