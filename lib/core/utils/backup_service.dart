@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../features/budget/data/category_budget_repository.dart';
 import '../../features/categories/data/category_repository.dart';
+import '../../features/loan/data/loan_repository.dart';
 import '../../features/reminders/data/reminder_repository.dart';
 import '../../features/transactions/data/transaction_repository.dart';
 import '../../features/wallets/data/wallet_repository.dart';
@@ -102,7 +103,9 @@ class BackupService {
     final reminderRepo = ReminderRepository();
     final budgetRepo = CategoryBudgetRepository();
     final walletRepo = WalletRepository();
+    final loanRepo = LoanRepository();
 
+    final loans = await loanRepo.getAll();
     final categories = await catRepo.getAll();
     final transactions = await txRepo.getAll();
     final reminders = await reminderRepo.getAll();
@@ -169,6 +172,19 @@ class BackupService {
                 'amount': b.amount,
               })
           .toList(),
+      'loans': loans
+          .map((l) => {
+            'id': l.id,
+            'title': l.title,
+            'type': l.type.name,
+            'principal': l.principal,
+            'contact_name': l.contactName,
+            'start_date': l.startDate.toIso8601String(),
+            'due_date': l.dueDate?.toIso8601String(),
+            'note': l.note,
+            'color_hex': l.colorHex,
+            'is_closed': l.isClosed,
+          }).toList(),
     };
 
     return const JsonEncoder.withIndent('  ').convert(payload);
@@ -229,6 +245,9 @@ class BackupService {
         : <Map<String, dynamic>>[];
     final rawCats =
         (data['categories'] as List).cast<Map<String, dynamic>>();
+    final rawLoans = data['loans'] is List
+        ? (data['loans'] as List).cast<Map<String, dynamic>>()
+        : <Map<String, dynamic>>[];
     final rawTxs =
         (data['transactions'] as List).cast<Map<String, dynamic>>();
     final rawReminders = data['recurring_reminders'] is List
@@ -243,13 +262,23 @@ class BackupService {
     final existingReminderIds = await _getExistingReminderIds();
     final existingBudgetCatIds = await _getExistingBudgetCategoryIds();
     final existingWalletIds = await _getExistingWalletIds();
+    final existingLoanIds = await _getExistingLoanIds();
 
     int catsAdded = 0, catsSkipped = 0;
     int txsAdded = 0, txsSkipped = 0;
     int remindersAdded = 0, remindersSkipped = 0;
     int budgetsAdded = 0, budgetsSkipped = 0;
     int walletsAdded = 0, walletsSkipped = 0;
+    int loansAdded = 0, loansSkipped = 0;
     final errors = <String>[];
+
+    for (final l in rawLoans) {
+      final id = l['id'] as String?;
+      if (id == null) continue;
+      if (existingLoanIds.contains(id)) { loansSkipped++; continue; }
+      loansAdded++;
+      if (!dryRun) await _insertLoan(l);
+    }
 
     // ── Wallets (restore trước để tx có thể ref) ────────────────────────────
     final backupWalletIds = <String>{};
@@ -523,5 +552,25 @@ class BackupService {
       allowedExtensions: ['json'],
     );
     return result?.files.single.path;
+  }
+
+  static Future<Set<String>> _getExistingLoanIds() async {
+    final rows = await db.getAll('SELECT id FROM loans');
+    return rows.map((r) => r['id'] as String).toSet();
+  }
+
+  static Future<void> _insertLoan(Map<String, dynamic> l) async {
+    await db.execute(
+      '''INSERT INTO loans(id, title, type, principal, contact_name,
+           start_date, due_date, note, color_hex, is_closed)
+         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+      [
+        l['id'], l['title'], l['type'],
+        (l['principal'] as int).toString(),
+        l['contact_name'] ?? '',
+        l['start_date'], l['due_date'], l['note'],
+        l['color_hex'], (l['is_closed'] as bool) ? 1 : 0,
+      ],
+    );
   }
 }

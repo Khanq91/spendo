@@ -104,7 +104,7 @@ class WalletRepository {
     return row['cnt'] as int;
   }
 
-  /// Trả về tổng income và expense của wallet — dùng cho breakdown provider.
+  /// Trả về tổng income và expense của wallet — dùng cho breakdown providers.
   Future<({int income, int expense})> getIncomeExpense(String walletId) async {
     final row = await db.get(
       '''SELECT

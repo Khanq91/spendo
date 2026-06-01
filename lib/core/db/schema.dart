@@ -46,13 +46,28 @@ const schema = Schema([
   ]),
   Table.localOnly('wallets', [
     Column.text('name'),
-    Column.text(
-      'type',
-    ), // 'cash','bank','ewallet','credit','investment','other'
-    Column.text('initial_balance'), // số dư ban đầu
+    Column.text('type'),
+    Column.text('initial_balance'),
     Column.text('note'),
     Column.text('color_hex'),
     Column.integer('sort_order'),
-    Column.integer('is_archived'), // 1 = ẩn, không xoá
+    Column.integer('is_archived'),
+  ]),
+  Table.localOnly('loans', [
+    Column.text('title'),
+    Column.text('type'),           // 'borrowed' | 'lent'
+    Column.text('principal'),      // số tiền gốc
+    Column.text('contact_name'),
+    Column.text('start_date'),
+    Column.text('due_date'),       // nullable
+    Column.text('note'),
+    Column.text('color_hex'),
+    Column.integer('is_closed'),
+  ]),
+  Table.localOnly('loan_payments', [
+    Column.text('loan_id'),
+    Column.text('amount'),
+    Column.text('paid_at'),
+    Column.text('note'),
   ]),
 ]);

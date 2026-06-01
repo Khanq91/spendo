@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/loan/presentation/screens/loan_list_screen.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
 import '../../features/reminders/presentation/screens/reminders_screen.dart';
 import '../../features/wallets/presentation/screens/wallets_screen.dart';
@@ -34,8 +35,9 @@ final appRouter = GoRouter(
       path: '/wallets/:id',
       builder:
           (_, state) =>
-              WalletDetailScreen(walletId: state.pathParameters['id']!),
+          WalletDetailScreen(walletId: state.pathParameters['id']!),
     ),
+    GoRoute(path: '/loans', builder: (_, __) => const LoanListScreen()),
   ],
 );
 
@@ -73,10 +75,10 @@ class _AddTransactionPageState extends State<_AddTransactionPage> {
         ),
         builder:
             (_) => AddTransactionSheet(
-              preselectedCategoryId: widget.categoryId,
-              prefillNote: widget.prefillNote,
-              prefillAmount: widget.prefillAmount,
-            ),
+          preselectedCategoryId: widget.categoryId,
+          prefillNote: widget.prefillNote,
+          prefillAmount: widget.prefillAmount,
+        ),
       );
       if (mounted) context.go('/');
     });
