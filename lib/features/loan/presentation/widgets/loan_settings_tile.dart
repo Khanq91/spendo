@@ -12,7 +12,7 @@ class LoanSettingsTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summary = ref.watch(loanSummaryProvider);
+    final summary = ref.watch(loanSummaryDataProvider);
     final cs = Theme.of(context).colorScheme;
     final worst = summary.worstStatus;
 

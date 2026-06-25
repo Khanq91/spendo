@@ -173,7 +173,7 @@ class _AccountTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
-          LucideIcons.buildingBank,
+          LucideIcons.landmark,
           size: 18,
           color: account.isActive
               ? const Color(0xFF43A047)
@@ -311,7 +311,7 @@ class _AddMappingSheetState extends ConsumerState<_AddMappingSheet> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              prefixIcon: const Icon(LucideIcons.buildingBank, size: 18),
+              prefixIcon: const Icon(LucideIcons.landmark, size: 18),
             ),
             items: _banks.map((b) => DropdownMenuItem(
               value: b,

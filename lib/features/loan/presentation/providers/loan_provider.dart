@@ -15,69 +15,56 @@ final activeLoansProvider = Provider.autoDispose<List<Loan>>((ref) {
       .toList() ?? [];
 });
 
-/// Summary cho Home card:
-/// - totalBorrowed: tổng đang nợ (principal, chưa tính đã trả)
-/// - hasOverdue: có khoản quá hạn không
-/// - hasUpcoming: có khoản sắp đến hạn (≤ 7 ngày) không
-/// - count: số khoản đang active
+/// Summary cho Home — dùng stream để tính remaining (principal - paid).
 class LoanSummary {
   final int count;
-  final int totalBorrowed; // type == borrowed
-  final int totalLent;     // type == lent
+  final int remainingBorrowed; // tổng còn nợ (principal - paid) type==borrowed
+  final int remainingLent;     // tổng còn được trả (principal - paid) type==lent
   final bool hasOverdue;
   final bool hasUpcoming;
+  // Số lượng khoản overdue/upcoming để hiện badge số
+  final int overdueCount;
+  final int upcomingCount;
 
   const LoanSummary({
     required this.count,
-    required this.totalBorrowed,
-    required this.totalLent,
+    required this.remainingBorrowed,
+    required this.remainingLent,
     required this.hasOverdue,
     required this.hasUpcoming,
+    required this.overdueCount,
+    required this.upcomingCount,
   });
 
   bool get isEmpty => count == 0;
 
-  /// Trạng thái nặng nhất để hiện badge
   LoanStatus get worstStatus {
     if (hasOverdue) return LoanStatus.overdue;
     if (hasUpcoming) return LoanStatus.upcoming;
     return LoanStatus.active;
   }
+
+  /// Tổng badge count để hiển thị (overdue ưu tiên hơn)
+  int get alertCount => overdueCount > 0 ? overdueCount : upcomingCount;
 }
 
-final loanSummaryProvider = Provider.autoDispose<LoanSummary>((ref) {
-  final loans = ref.watch(activeLoansProvider);
-  if (loans.isEmpty) {
-    return const LoanSummary(
-      count: 0,
-      totalBorrowed: 0,
-      totalLent: 0,
-      hasOverdue: false,
-      hasUpcoming: false,
-    );
-  }
+/// StreamProvider — reactive với cả loans lẫn payments.
+final loanSummaryProvider = StreamProvider.autoDispose<LoanSummary>((ref) {
+  final repo = ref.watch(loanRepoProvider);
+  // Watch loans stream để trigger khi loans thay đổi
+  return repo.watchSummaryWithRemaining();
+});
 
-  int borrowed = 0;
-  int lent = 0;
-  bool overdue = false;
-  bool upcoming = false;
-
-  for (final l in loans) {
-    if (l.type == LoanType.borrowed) {
-      borrowed += l.principal;
-    } else {
-      lent += l.principal;
-    }
-    final s = l.status;
-    if (s == LoanStatus.overdue) overdue = true;
-    if (s == LoanStatus.upcoming) upcoming = true;
-  }
-
-  return LoanSummary(
-    count: loans.length,
-    totalBorrowed: borrowed,
-    totalLent: lent,
-    hasOverdue: overdue,
-    hasUpcoming: upcoming,
+/// Convenience provider — trả LoanSummary.empty khi loading/error
+/// để Home không cần handle AsyncValue.
+final loanSummaryDataProvider = Provider.autoDispose<LoanSummary>((ref) {
+  return ref.watch(loanSummaryProvider).valueOrNull ?? const LoanSummary(
+    count: 0,
+    remainingBorrowed: 0,
+    remainingLent: 0,
+    hasOverdue: false,
+    hasUpcoming: false,
+    overdueCount: 0,
+    upcomingCount: 0,
   );
 });

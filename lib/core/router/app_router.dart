@@ -33,11 +33,17 @@ final appRouter = GoRouter(
     GoRoute(path: '/wallets', builder: (_, __) => const WalletsScreen()),
     GoRoute(
       path: '/wallets/:id',
-      builder:
-          (_, state) =>
+      builder: (_, state) =>
           WalletDetailScreen(walletId: state.pathParameters['id']!),
     ),
-    GoRoute(path: '/loans', builder: (_, __) => const LoanListScreen()),
+    GoRoute(
+      path: '/loans',
+      builder: (_, state) {
+        // type = 'borrowed' | 'lent' | null (all)
+        final filterType = state.uri.queryParameters['type'];
+        return LoanListScreen(filterType: filterType);
+      },
+    ),
   ],
 );
 
@@ -73,8 +79,7 @@ class _AddTransactionPageState extends State<_AddTransactionPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder:
-            (_) => AddTransactionSheet(
+        builder: (_) => AddTransactionSheet(
           preselectedCategoryId: widget.categoryId,
           prefillNote: widget.prefillNote,
           prefillAmount: widget.prefillAmount,

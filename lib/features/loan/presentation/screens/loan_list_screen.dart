@@ -9,18 +9,28 @@ import '../widgets/loan_form_sheet.dart';
 import 'loan_detail_screen.dart';
 
 class LoanListScreen extends ConsumerWidget {
-  const LoanListScreen({super.key});
+  /// null = all, 'borrowed' = chỉ đang vay, 'lent' = chỉ cho vay
+  final String? filterType;
+
+  const LoanListScreen({super.key, this.filterType});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final loansAsync = ref.watch(loansProvider);
     final cs = Theme.of(context).colorScheme;
 
+    // Title theo filter
+    final title = switch (filterType) {
+      'borrowed' => 'Đang vay',
+      'lent' => 'Cho vay',
+      _ => 'Khoản vay',
+    };
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Khoản vay',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
@@ -32,9 +42,15 @@ class LoanListScreen extends ConsumerWidget {
       body: loansAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Lỗi: $e')),
-        data: (loans) {
+        data: (allLoans) {
+          // Apply filter
+          final loans = _applyFilter(allLoans);
+
           if (loans.isEmpty) {
-            return _EmptyState(onAdd: () => _openForm(context));
+            return _EmptyState(
+              filterType: filterType,
+              onAdd: () => _openForm(context),
+            );
           }
 
           final active = loans.where((l) => !l.isClosed).toList();
@@ -44,9 +60,7 @@ class LoanListScreen extends ConsumerWidget {
             padding: const EdgeInsets.only(bottom: 80),
             children: [
               if (active.isNotEmpty) ...[
-                _SectionHeader(
-                  label: 'Đang hoạt động (${active.length})',
-                ),
+                _SectionHeader(label: 'Đang hoạt động (${active.length})'),
                 ...active.map((l) => _LoanTile(loan: l)),
               ],
               if (closed.isNotEmpty) ...[
@@ -69,11 +83,28 @@ class LoanListScreen extends ConsumerWidget {
     );
   }
 
+  List<Loan> _applyFilter(List<Loan> loans) {
+    if (filterType == 'borrowed') {
+      return loans.where((l) => l.type == LoanType.borrowed).toList();
+    }
+    if (filterType == 'lent') {
+      return loans.where((l) => l.type == LoanType.lent).toList();
+    }
+    return loans;
+  }
+
   void _openForm(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const LoanFormSheet(),
+      builder: (_) => LoanFormSheet(
+        // Pre-select type nếu đang trong filter view
+        initialType: filterType == 'borrowed'
+            ? LoanType.borrowed
+            : filterType == 'lent'
+                ? LoanType.lent
+                : null,
+      ),
     );
   }
 }
@@ -123,9 +154,7 @@ class _LoanTile extends ConsumerWidget {
       statusLabel = 'Quá hạn';
     } else if (status == LoanStatus.upcoming) {
       statusColor = Colors.orange;
-      final daysLeft = loan.dueDate!
-          .difference(DateTime.now())
-          .inDays;
+      final daysLeft = loan.dueDate!.difference(DateTime.now()).inDays;
       statusLabel = 'Còn $daysLeft ngày';
     }
 
@@ -157,9 +186,7 @@ class _LoanTile extends ConsumerWidget {
         ),
       ),
       subtitle: Text(
-        loan.contactName.isNotEmpty
-            ? loan.contactName
-            : loan.type.label,
+        loan.contactName.isNotEmpty ? loan.contactName : loan.type.label,
         style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
       ),
       trailing: Column(
@@ -174,8 +201,8 @@ class _LoanTile extends ConsumerWidget {
               color: loan.isClosed
                   ? cs.outlineVariant
                   : (loan.type == LoanType.borrowed
-                  ? Colors.red.shade400
-                  : Colors.green.shade500),
+                      ? Colors.red.shade400
+                      : Colors.green.shade500),
             ),
           ),
           if (statusLabel != null)
@@ -201,25 +228,37 @@ class _LoanTile extends ConsumerWidget {
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
+  final String? filterType;
   final VoidCallback onAdd;
-  const _EmptyState({required this.onAdd});
+
+  const _EmptyState({required this.filterType, required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    final message = switch (filterType) {
+      'borrowed' => 'Chưa có khoản vay nào',
+      'lent' => 'Chưa có khoản cho vay nào',
+      _ => 'Chưa có khoản vay nào',
+    };
+
+    final subMessage = switch (filterType) {
+      'borrowed' => 'Ghi lại khoản bạn đang vay',
+      'lent' => 'Ghi lại khoản bạn đã cho vay',
+      _ => 'Ghi lại khoản vay để theo dõi',
+    };
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(LucideIcons.handCoins, size: 48, color: cs.outlineVariant),
           const SizedBox(height: 12),
-          Text(
-            'Chưa có khoản vay nào',
-            style: TextStyle(color: cs.onSurfaceVariant),
-          ),
+          Text(message, style: TextStyle(color: cs.onSurfaceVariant)),
           const SizedBox(height: 4),
           Text(
-            'Ghi lại khoản vay để theo dõi',
+            subMessage,
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 24),

@@ -1,5 +1,6 @@
 import '../../../core/db/powersync_db.dart';
 import '../domain/loan.dart';
+import '../presentation/providers/loan_provider.dart';
 
 class LoanRepository {
   // ── Loans ────────────────────────────────────────────────────────────────
@@ -111,5 +112,86 @@ class LoanRepository {
       'DELETE FROM loan_payments WHERE id = ?',
       [paymentId],
     );
+  }
+
+  // ── Summary with remaining ────────────────────────────────────────────────
+
+  /// Stream LoanSummary tính remaining = principal - sum(payments).
+  /// Reactive với cả loans lẫn loan_payments vì watch cả 2 bảng.
+  Stream<LoanSummary> watchSummaryWithRemaining() {
+    // Watch loans để trigger stream mỗi khi loans hoặc payments thay đổi.
+    // PowerSync watch sẽ emit lại khi bất kỳ row nào trong query thay đổi.
+    return db
+        .watch('''
+          SELECT
+            l.id,
+            l.type,
+            l.principal,
+            l.is_closed,
+            l.due_date,
+            COALESCE(SUM(CAST(p.amount AS INTEGER)), 0) as total_paid
+          FROM loans l
+          LEFT JOIN loan_payments p ON p.loan_id = l.id
+          WHERE l.is_closed = 0
+          GROUP BY l.id, l.type, l.principal, l.is_closed, l.due_date
+        ''')
+        .map((rows) {
+      if (rows.isEmpty) {
+        return const LoanSummary(
+          count: 0,
+          remainingBorrowed: 0,
+          remainingLent: 0,
+          hasOverdue: false,
+          hasUpcoming: false,
+          overdueCount: 0,
+          upcomingCount: 0,
+        );
+      }
+
+      int remBorrowed = 0;
+      int remLent = 0;
+      int overdueCount = 0;
+      int upcomingCount = 0;
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      for (final row in rows) {
+        final principal = int.tryParse(row['principal'] as String? ?? '0') ?? 0;
+        final totalPaid = row['total_paid'] as int;
+        final remaining = (principal - totalPaid).clamp(0, principal);
+
+        final type = row['type'] as String;
+        if (type == LoanType.borrowed.name) {
+          remBorrowed += remaining;
+        } else {
+          remLent += remaining;
+        }
+
+        // Tính status từ due_date
+        final dueDateStr = row['due_date'] as String?;
+        if (dueDateStr != null && dueDateStr.isNotEmpty) {
+          final due = DateTime.tryParse(dueDateStr);
+          if (due != null) {
+            final dueDay = DateTime(due.year, due.month, due.day);
+            final diff = dueDay.difference(today).inDays;
+            if (diff < 0) {
+              overdueCount++;
+            } else if (diff <= 7) {
+              upcomingCount++;
+            }
+          }
+        }
+      }
+
+      return LoanSummary(
+        count: rows.length,
+        remainingBorrowed: remBorrowed,
+        remainingLent: remLent,
+        hasOverdue: overdueCount > 0,
+        hasUpcoming: upcomingCount > 0,
+        overdueCount: overdueCount,
+        upcomingCount: upcomingCount,
+      );
+    });
   }
 }

@@ -8,8 +8,10 @@ import '../../domain/loan.dart';
 
 class LoanFormSheet extends StatefulWidget {
   final Loan? existing;
+  /// Pre-select loại khi mở từ filtered view (borrowed/lent)
+  final LoanType? initialType;
 
-  const LoanFormSheet({super.key, this.existing});
+  const LoanFormSheet({super.key, this.existing, this.initialType});
 
   @override
   State<LoanFormSheet> createState() => _LoanFormSheetState();
@@ -43,8 +45,11 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
       _dueDate = l.dueDate;
       _amountCtrl.prefill(l.principal.toString());
     } else {
-      _type = LoanType.borrowed;
-      _colorHex = AppColors.palette[0]; // đỏ — vay nợ
+      // Dùng initialType nếu có, fallback về borrowed
+      _type = widget.initialType ?? LoanType.borrowed;
+      _colorHex = _type == LoanType.borrowed
+          ? AppColors.palette[0]
+          : AppColors.palette[12];
     }
   }
 
@@ -224,7 +229,8 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
             TextField(
               controller: _contactCtrl,
               decoration: InputDecoration(
-                labelText: 'Người ${_type == LoanType.borrowed ? 'cho vay' : 'vay'}',
+                labelText:
+                    'Người ${_type == LoanType.borrowed ? 'cho vay' : 'vay'}',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -316,7 +322,9 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                Text('₫', style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+                Text('₫',
+                    style:
+                        TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
               ],
             ),
             const Divider(height: 12, thickness: 0.5),
@@ -334,9 +342,9 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed:
-                    _loading || !_amountCtrl.hasValue || _titleCtrl.text.trim().isEmpty
-                        ? null
-                        : _submit,
+                        _loading || !_amountCtrl.hasValue || _titleCtrl.text.trim().isEmpty
+                            ? null
+                            : _submit,
                     style: FilledButton.styleFrom(
                       backgroundColor: accentColor,
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -346,20 +354,20 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
                     ),
                     child: _loading
                         ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : Text(
-                      _isEdit ? 'Lưu thay đổi' : 'Thêm khoản vay',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                            _isEdit ? 'Lưu thay đổi' : 'Thêm khoản vay',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
               ),

@@ -13,7 +13,7 @@ class LoanMiniCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summary = ref.watch(loanSummaryProvider);
+    final summary = ref.watch(loanSummaryDataProvider);
     if (summary.isEmpty) return const SizedBox.shrink();
 
     final cs = Theme.of(context).colorScheme;
@@ -46,11 +46,12 @@ class LoanMiniCard extends ConsumerWidget {
           color: cs.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: worst == LoanStatus.overdue
-                ? Colors.red.withOpacity(0.4)
-                : worst == LoanStatus.upcoming
-                ? Colors.orange.withOpacity(0.4)
-                : cs.outlineVariant,
+            color:
+                worst == LoanStatus.overdue
+                    ? Colors.red.withOpacity(0.4)
+                    : worst == LoanStatus.upcoming
+                    ? Colors.orange.withOpacity(0.4)
+                    : cs.outlineVariant,
             width: worst == LoanStatus.active ? 0.5 : 1.0,
           ),
         ),
@@ -71,17 +72,14 @@ class LoanMiniCard extends ConsumerWidget {
                 children: [
                   Text(
                     'Khoản vay',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: cs.onSurfaceVariant,
-                    ),
+                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                   ),
                   const SizedBox(height: 2),
                   // Hiện số tiền đang vay nếu có, hoặc cho vay
                   Text(
-                    summary.totalBorrowed > 0
-                        ? formatVND(summary.totalBorrowed)
-                        : formatVND(summary.totalLent),
+                    summary.remainingBorrowed > 0
+                        ? formatVND(summary.remainingBorrowed)
+                        : formatVND(summary.remainingLent),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -112,10 +110,7 @@ class LoanMiniCard extends ConsumerWidget {
             else
               Text(
                 badgeLabel,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: cs.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
               ),
           ],
         ),
