@@ -100,6 +100,13 @@ class TransactionDetailSheet extends ConsumerWidget {
             value: isExpense ? 'Chi tiêu' : 'Thu nhập',
             valueColor: color,
           ),
+          _DetailRow(
+            icon: transaction.isAutomatic ? Icons.bolt : LucideIcons.pencil,
+            label: 'Nguồn',
+            value: transaction.isAutomatic ? 'SePay' : 'Thủ công',
+            valueColor:
+                transaction.isAutomatic ? const Color(0xFF1E88E5) : null,
+          ),
           // Wallet row — chỉ hiện khi có wallet
           if (wallet != null)
             _DetailRow(

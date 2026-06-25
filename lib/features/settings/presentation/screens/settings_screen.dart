@@ -18,6 +18,7 @@ import '../../../../core/theme/theme_provider.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../widgets/widget_pin_section.dart';
 import '../widgets/gdrive_backup_section.dart';
+import '../widgets/sepay_connection_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -154,6 +155,10 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+
+          const SizedBox(height: 8),
+          _SectionHeader(title: 'Kết nối ngân hàng tự động'),
+          const SepayConnectionSection(),
 
           const SizedBox(height: 8),
 

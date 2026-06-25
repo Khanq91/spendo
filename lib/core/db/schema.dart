@@ -8,6 +8,7 @@ const schema = Schema([
     Column.text('note'),
     Column.text('created_at'),
     Column.text('wallet_id'), // nullable — thêm migration ALTER TABLE
+    Column.text('source'),  // 'manual' | 'sepay' — nullable, default 'manual'
   ]),
   Table('categories', [
     Column.text('name'),

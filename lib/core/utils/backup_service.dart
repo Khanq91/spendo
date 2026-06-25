@@ -147,6 +147,7 @@ class BackupService {
                 'note': t.note,
                 'created_at': t.createdAt.millisecondsSinceEpoch,
                 'wallet_id': t.walletId,
+                'source': t.source,
               })
           .toList(),
       'recurring_reminders': reminders
@@ -494,8 +495,8 @@ class BackupService {
 
   static Future<void> _insertTransaction(Map<String, dynamic> tx) async {
     await db.execute(
-      '''INSERT INTO transactions(id, amount, type, category_id, note, created_at, wallet_id)
-         VALUES(?, ?, ?, ?, ?, ?, ?)''',
+      '''INSERT INTO transactions(id, amount, type, category_id, note, created_at, wallet_id, source)
+         VALUES(?, ?, ?, ?, ?, ?, ?, ?)''',
       [
         tx['id'] as String,
         (tx['amount'] as int).toString(),
@@ -504,6 +505,7 @@ class BackupService {
         tx['note'] as String?,
         (tx['created_at'] as int).toString(),
         tx['wallet_id'] as String?,
+        tx['source'] as String? ?? 'manual',
       ],
     );
   }

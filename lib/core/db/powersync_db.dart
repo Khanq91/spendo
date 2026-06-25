@@ -19,6 +19,7 @@ Future<void> openDatabase() async {
 
   // Migration: thêm wallet_id vào transactions nếu chưa có
   await _migrateWalletId();
+  await _migrateSource();
 
   await _deduplicateCategories();
   await _setupSync();
@@ -31,6 +32,16 @@ Future<void> openDatabase() async {
 Future<void> _migrateWalletId() async {
   try {
     await db.execute('ALTER TABLE transactions ADD COLUMN wallet_id TEXT');
+  } catch (_) {
+    // Column đã tồn tại → ignore
+  }
+}
+
+Future<void> _migrateSource() async {
+  try {
+    await db.execute(
+      "ALTER TABLE transactions ADD COLUMN source TEXT DEFAULT 'manual'",
+    );
   } catch (_) {
     // Column đã tồn tại → ignore
   }

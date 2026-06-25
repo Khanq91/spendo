@@ -6,6 +6,7 @@ class Transaction {
   final String? note;
   final DateTime createdAt;
   final String? walletId;
+  final String source; // 'manual' | 'sepay'
 
   const Transaction({
     required this.id,
@@ -15,10 +16,12 @@ class Transaction {
     this.note,
     required this.createdAt,
     this.walletId,
+    this.source = 'manual',
   });
 
   bool get isExpense => type == 'expense';
   bool get isIncome => type == 'income';
+  bool get isAutomatic => source == 'sepay';
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
     return Transaction(
@@ -31,6 +34,7 @@ class Transaction {
         int.parse(map['created_at'] as String),
       ),
       walletId: map['wallet_id'] as String?,
+      source: map['source'] as String? ?? 'manual',
     );
   }
 }

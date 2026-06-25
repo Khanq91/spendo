@@ -42,7 +42,34 @@ class TransactionListItem extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            CategoryIconWidget(category: category),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CategoryIconWidget(category: category),
+                if (transaction.isAutomatic)
+                  Positioned(
+                    bottom: -1,
+                    right: -1,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E88E5),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.surface,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.bolt,
+                        size: 8,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

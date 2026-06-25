@@ -120,6 +120,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
         createdAt: widget.existing!.createdAt,
         walletId: _trackWallet ? _selectedWalletId : null,
+        source: widget.existing!.source,
       );
       await repo.update(updated);
     } else {

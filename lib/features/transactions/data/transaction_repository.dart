@@ -41,6 +41,7 @@ class TransactionRepository {
     String? note,
     DateTime? createdAt,
     String? walletId,
+    String source = 'manual',
   }) async {
     final at =
         (createdAt?.millisecondsSinceEpoch ??
@@ -48,9 +49,9 @@ class TransactionRepository {
             .toString();
 
     await db.execute(
-      'INSERT INTO transactions(id, amount, type, category_id, note, created_at, wallet_id) '
-      'VALUES(uuid(), ?, ?, ?, ?, ?, ?)',
-      [amount.toString(), type, categoryId, note, at, walletId],
+      'INSERT INTO transactions(id, amount, type, category_id, note, created_at, wallet_id, source) '
+      'VALUES(uuid(), ?, ?, ?, ?, ?, ?, ?)',
+      [amount.toString(), type, categoryId, note, at, walletId, source],
     );
   }
 
@@ -59,8 +60,8 @@ class TransactionRepository {
       final at =
           (row['createdAt'] as DateTime).millisecondsSinceEpoch.toString();
       await db.execute(
-        'INSERT INTO transactions(id, amount, type, category_id, note, created_at, wallet_id) '
-        'VALUES(uuid(), ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO transactions(id, amount, type, category_id, note, created_at, wallet_id, source) '
+        'VALUES(uuid(), ?, ?, ?, ?, ?, ?, ?)',
         [
           (row['amount'] as int).toString(),
           row['type'] as String,
@@ -68,6 +69,7 @@ class TransactionRepository {
           row['note'] as String?,
           at,
           row['walletId'] as String?,
+          row['source'] as String? ?? 'manual',
         ],
       );
     }
@@ -82,8 +84,16 @@ class TransactionRepository {
 
   Future<void> update(Transaction t) async {
     await db.execute(
-      'UPDATE transactions SET amount=?, type=?, category_id=?, note=?, wallet_id=? WHERE id=?',
-      [t.amount.toString(), t.type, t.categoryId, t.note, t.walletId, t.id],
+      'UPDATE transactions SET amount=?, type=?, category_id=?, note=?, wallet_id=?, source=? WHERE id=?',
+      [
+        t.amount.toString(),
+        t.type,
+        t.categoryId,
+        t.note,
+        t.walletId,
+        t.source,
+        t.id,
+      ],
     );
   }
 
