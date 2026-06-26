@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -29,10 +31,14 @@ class ScreenshotStep {
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  const screenshotDir =
-      String.fromEnvironment('SCREENSHOT_DIR', defaultValue: 'screenshots');
-  const seedData =
-      bool.fromEnvironment('SCREENSHOT_SEED_DATA', defaultValue: true);
+  const screenshotDir = String.fromEnvironment(
+    'SCREENSHOT_DIR',
+    defaultValue: 'screenshots',
+  );
+  const seedData = bool.fromEnvironment(
+    'SCREENSHOT_SEED_DATA',
+    defaultValue: true,
+  );
 
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({
@@ -61,7 +67,7 @@ void main() {
         // Some desktop/web targets do not need this Android-only conversion.
       }
 
-      final dir = Directory(screenshotDir);
+      final dir = await _screenshotOutputDir(screenshotDir);
       if (!dir.existsSync()) dir.createSync(recursive: true);
 
       final meta = <Map<String, String>>[];
@@ -72,7 +78,7 @@ void main() {
         await _settle(tester);
 
         final bytes = await binding.takeScreenshot(step.id);
-        await File('${dir.path}/${step.id}.png').writeAsBytes(bytes);
+        await File(p.join(dir.path, '${step.id}.png')).writeAsBytes(bytes);
 
         meta.add({
           'id': step.id,
@@ -82,18 +88,32 @@ void main() {
         });
       }
 
-      await File('${dir.path}/meta.json').writeAsString(
-        const JsonEncoder.withIndent('  ').convert(meta),
-      );
+      await File(
+        p.join(dir.path, 'meta.json'),
+      ).writeAsString(const JsonEncoder.withIndent('  ').convert(meta));
+      binding.reportData ??= <String, dynamic>{};
+      binding.reportData!['screenshotMeta'] = meta;
     });
   });
+}
+
+Future<Directory> _screenshotOutputDir(String screenshotDir) async {
+  if (Platform.isAndroid && !p.isAbsolute(screenshotDir)) {
+    final externalDir = await getExternalStorageDirectory();
+    if (externalDir != null) {
+      return Directory(p.join(externalDir.path, screenshotDir));
+    }
+  }
+
+  return Directory(screenshotDir);
 }
 
 final List<ScreenshotStep> _steps = [
   ScreenshotStep(
     id: '01_home',
     title: 'Tong quan',
-    description: 'Man hinh chinh cua Spendo voi tong thu, tong chi, vi va loi tat tinh nang.',
+    description:
+        'Man hinh chinh cua Spendo voi tong thu, tong chi, vi va loi tat tinh nang.',
     action: (tester) async {
       await _closeModalIfAny(tester);
       await _tapKey(tester, const ValueKey('spendo_tab_0'));
@@ -102,7 +122,8 @@ final List<ScreenshotStep> _steps = [
   ScreenshotStep(
     id: '02_transactions',
     title: 'Giao dich',
-    description: 'Danh sach giao dich theo thang, co loc danh muc va tong thu chi nhanh.',
+    description:
+        'Danh sach giao dich theo thang, co loc danh muc va tong thu chi nhanh.',
     action: (tester) async {
       await _closeModalIfAny(tester);
       await _tapKey(tester, const ValueKey('spendo_tab_1'));
@@ -111,7 +132,8 @@ final List<ScreenshotStep> _steps = [
   ScreenshotStep(
     id: '03_stats',
     title: 'Thong ke',
-    description: 'Bieu do va thong ke chi tieu theo danh muc trong khoang thoi gian dang chon.',
+    description:
+        'Bieu do va thong ke chi tieu theo danh muc trong khoang thoi gian dang chon.',
     action: (tester) async {
       await _closeModalIfAny(tester);
       await _tapKey(tester, const ValueKey('spendo_tab_2'));
@@ -120,7 +142,8 @@ final List<ScreenshotStep> _steps = [
   ScreenshotStep(
     id: '04_add_transaction',
     title: 'Them giao dich',
-    description: 'Bottom sheet them giao dich voi so tien, danh muc, ghi chu va nguon tien.',
+    description:
+        'Bottom sheet them giao dich voi so tien, danh muc, ghi chu va nguon tien.',
     action: (tester) async {
       await _tapKey(tester, const ValueKey('spendo_tab_0'));
       await _tapKey(tester, const ValueKey('spendo_fab_add_transaction'));
@@ -129,7 +152,8 @@ final List<ScreenshotStep> _steps = [
   ScreenshotStep(
     id: '05_settings',
     title: 'Cai dat',
-    description: 'Cai dat backup, giao dien, thong bao, danh muc va cac tich hop cua ung dung.',
+    description:
+        'Cai dat backup, giao dien, thong bao, danh muc va cac tich hop cua ung dung.',
     action: (tester) async {
       await _closeModalIfAny(tester);
       await _tapKey(tester, const ValueKey('spendo_tab_3'));
@@ -145,8 +169,10 @@ Future<void> _tapKey(WidgetTester tester, Key key) async {
 }
 
 Future<void> _closeModalIfAny(WidgetTester tester) async {
-  if (find.byType(BottomSheet).evaluate().isNotEmpty) {
-    await tester.pageBack();
+  final bottomSheet = find.byType(BottomSheet);
+  if (bottomSheet.evaluate().isNotEmpty) {
+    final context = tester.element(bottomSheet.first);
+    await Navigator.of(context).maybePop();
     await _settle(tester);
   }
 }
@@ -191,10 +217,11 @@ Future<void> _seedScreenshotData() async {
     ],
   );
 
-  final expenseCat = await _categoryIdByIcon('restaurant', isIncome: false) ??
+  final expenseCat =
+      await _categoryIdByIcon('restaurant', isIncome: false) ??
       await _firstCategoryId(isIncome: false);
-  final travelCat = await _categoryIdByIcon('directions_car', isIncome: false) ??
-      expenseCat;
+  final travelCat =
+      await _categoryIdByIcon('directions_car', isIncome: false) ?? expenseCat;
   final incomeCat =
       await _categoryIdByIcon('work', isIncome: true) ??
       await _firstCategoryId(isIncome: true);

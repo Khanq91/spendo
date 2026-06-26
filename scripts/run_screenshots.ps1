@@ -26,11 +26,12 @@ if (Test-Path -LiteralPath $Dir) {
 New-Item -ItemType Directory -Path $Dir | Out-Null
 
 $flutterArgs = @(
-  "test",
-  "integration_test/screenshot_test.dart",
+  "drive",
+  "--no-pub",
+  "--driver=test_driver/integration_test.dart",
+  "--target=integration_test/screenshot_test.dart",
   "--dart-define=SCREENSHOT_DIR=$Dir",
-  "--dart-define=SCREENSHOT_SEED_DATA=true",
-  "--reporter=compact"
+  "--dart-define=SCREENSHOT_SEED_DATA=true"
 )
 
 if ($Device -ne "") {
@@ -38,8 +39,12 @@ if ($Device -ne "") {
 }
 
 Write-Step "Chay Flutter integration test"
+$previousScreenshotDir = $env:SCREENSHOT_DIR
+$env:SCREENSHOT_DIR = $Dir
 & flutter @flutterArgs
-if ($LASTEXITCODE -ne 0) {
+$flutterExitCode = $LASTEXITCODE
+if ($null -eq $previousScreenshotDir) { Remove-Item Env:SCREENSHOT_DIR -ErrorAction SilentlyContinue } else { $env:SCREENSHOT_DIR = $previousScreenshotDir }
+if ($flutterExitCode -ne 0) {
   throw "Integration test that bai."
 }
 

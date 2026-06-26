@@ -59,10 +59,13 @@ fi
 
 # ── Chạy integration test ────────────────────────────────────────────
 log "Chạy Flutter integration test..."
-flutter test integration_test/screenshot_test.dart \
+SCREENSHOT_DIR="$SCREENSHOT_DIR" flutter drive \
+  --no-pub \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/screenshot_test.dart \
   $DEVICE_FLAG \
   --dart-define=SCREENSHOT_DIR="$SCREENSHOT_DIR" \
-  --reporter=compact \
+  --dart-define=SCREENSHOT_SEED_DATA=true \
   2>&1 | tee /tmp/flutter_test.log
 
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
@@ -74,7 +77,7 @@ fi
 # Nếu cần pull từ device:
 # adb pull /sdcard/Android/data/<package>/files/screenshots/ "$SCREENSHOT_DIR/" 2>/dev/null || true
 
-# ── Generate HTML report ─────────────────────────────────────────────
+# -- Generate HTML report ─────────────────────────────────────────────
 log "Tạo HTML report..."
 dart scripts/generate_report.dart --dir="$SCREENSHOT_DIR" --out="$OUT_FILE"
 
