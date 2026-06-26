@@ -1,17 +1,15 @@
-import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:powersync/powersync.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../config.dart';
 import 'powersync_connector.dart';
 import 'schema.dart';
 
 late final PowerSyncDatabase db;
 
-Future<void> openDatabase() async {
+Future<void> openDatabase({String databaseName = 'spendo.db'}) async {
   final dir = await getApplicationDocumentsDirectory();
-  final dbPath = p.join(dir.path, 'spendo.db');
+  final dbPath = p.join(dir.path, databaseName);
 
   db = PowerSyncDatabase(schema: schema, path: dbPath);
 

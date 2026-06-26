@@ -85,6 +85,7 @@ class _AppShellState extends State<AppShell> {
       ),
       floatingActionButton: _showFab
           ? FloatingActionButton(
+        key: const Key('spendo_fab_add_transaction'),
         heroTag: 'global_fab',
         onPressed: () => showModalBottomSheet(
           context: context,
@@ -136,6 +137,7 @@ class _SpendoNavBar extends StatelessWidget {
             children: List.generate(_items.length, (i) {
               return Expanded(
                 child: _NavButton(
+                  key: ValueKey('spendo_tab_$i'),
                   item: _items[i],
                   selected: selectedIndex == i,
                   onTap: () => onTap(i),
@@ -157,6 +159,7 @@ class _NavButton extends StatefulWidget {
   final VoidCallback onTap;
 
   const _NavButton({
+    super.key,
     required this.item,
     required this.selected,
     required this.onTap,

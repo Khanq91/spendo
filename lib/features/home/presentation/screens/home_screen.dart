@@ -3,16 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../budget/presentation/widgets/budget_card.dart';
-import '../../../loan/presentation/providers/loan_provider.dart';
-import '../../../loan/presentation/widgets/loan_mini_card.dart';
-import '../../../loan/presentation/widgets/quick_actions_bar.dart';
 import '../../../wallets/presentation/widgets/wallet_card_home.dart';
 import '../../../transactions/domain/transaction.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../../../transactions/presentation/widgets/transaction_list_item.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/domain/category.dart';
+import '../widgets/feature_grid.dart';
+import '../widgets/home_feature_actions.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/month_selector.dart';
 
@@ -25,7 +23,6 @@ class HomeScreen extends ConsumerWidget {
     final txAsync = ref.watch(transactionsProvider);
     final summary = ref.watch(summaryProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
-    final loanSummary = ref.watch(loanSummaryDataProvider);
     final cs = Theme.of(context).colorScheme;
 
     final categoryMap = <String, Category>{};
@@ -78,26 +75,6 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // BudgetCard + LoanMiniCard trong cùng 1 Row
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child:
-                        loanSummary.isEmpty
-                            // Không có loan → BudgetCard full width (giữ nguyên)
-                            ? const BudgetCard()
-                            // Có loan → 2 card cạnh nhau
-                            : Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Expanded(flex: 3, child: BudgetCard()),
-                                SizedBox(width: 10),
-                                Expanded(flex: 2, child: LoanMiniCard()),
-                              ],
-                            ),
-                  ),
-                ),
-
                 // WalletCardHome
                 SliverToBoxAdapter(
                   child: Padding(
@@ -106,11 +83,13 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // Quick actions
-                const SliverToBoxAdapter(
+                // Feature grid
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(bottom: 14),
-                    child: QuickActionsBar(),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                    child: FeatureGrid(
+                      actions: buildHomeFeatureActions(context),
+                    ),
                   ),
                 ),
 
