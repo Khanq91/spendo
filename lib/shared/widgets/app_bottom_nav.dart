@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
-import '../../features/transactions/presentation/screens/transactions_screen.dart';
-import '../../features/stats/presentation/screens/stats_screen.dart';
-import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class AppShell extends StatefulWidget {
+import '../../core/theme/visual_mode_provider.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/transactions/presentation/screens/transactions_screen.dart';
+import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
+import 'aurora_theme_background.dart';
+
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
-  int _index = 0;
+class _AppShellState extends ConsumerState<AppShell> {
+  int _index = 1;
 
   @override
   void initState() {
@@ -34,36 +38,42 @@ class _AppShellState extends State<AppShell> {
       await showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(LucideIcons.shieldAlert, color: Theme.of(ctx).colorScheme.primary),
-              const SizedBox(width: 8),
-              const Text('Chính sách lưu trữ', style: TextStyle(fontSize: 18)),
-            ],
-          ),
-          content: const Text(
-            'Để giữ ứng dụng nhanh và mượt mà:\n\n'
-            '• Giao dịch > 1 năm sẽ được ẩn khỏi màn hình chính.\n'
-            '• Giao dịch > 2 năm sẽ bị xóa vĩnh viễn.\n\n'
-            '⚠️ Hãy vào Cài đặt > Kết nối Google Drive để tự động sao lưu dữ liệu nhé!',
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Đã hiểu'),
+        builder:
+            (ctx) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(
+                    LucideIcons.shieldAlert,
+                    color: Theme.of(ctx).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Chính sách lưu trữ',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'Để giữ ứng dụng nhanh và mượt mà:\n\n'
+                '• Giao dịch > 1 năm sẽ được ẩn khỏi màn hình chính.\n'
+                '• Giao dịch > 2 năm sẽ bị xóa vĩnh viễn.\n\n'
+                'Hãy vào Cài đặt > Kết nối Google Drive để tự động sao lưu dữ liệu nhé!',
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Đã hiểu'),
+                ),
+              ],
             ),
-          ],
-        ),
       );
       await prefs.setBool('shown_retention_policy_notice', true);
     }
   }
 
   static const _screens = [
-    HomeScreen(),
     TransactionsScreen(),
-    StatsScreen(),
+    HomeScreen(),
     SettingsScreen(),
   ];
 
@@ -71,52 +81,91 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final visualMode = ref.watch(visualModeProvider);
+    final isFancy = visualMode == AppVisualMode.fancy;
+
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: _screens,
+      extendBody: isFancy,
+      body: Stack(
+        children: [
+          if (isFancy) const Positioned.fill(child: AuroraThemeBackground()),
+          Theme(
+            data:
+                isFancy
+                    ? Theme.of(context).copyWith(
+                      scaffoldBackgroundColor: Colors.transparent,
+                      canvasColor: Colors.transparent,
+                    )
+                    : Theme.of(context),
+            child: IndexedStack(index: _index, children: _screens),
+          ),
+        ],
       ),
-      bottomNavigationBar: _SpendoNavBar(
-        selectedIndex: _index,
-        onTap: (i) {
-          HapticFeedback.lightImpact();
-          setState(() => _index = i);
-        },
-      ),
-      floatingActionButton: _showFab
-          ? FloatingActionButton(
-        key: const Key('spendo_fab_add_transaction'),
-        heroTag: 'global_fab',
-        onPressed: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (_) => const AddTransactionSheet(),
-        ),
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 28),
-      )
-          : null,
+      bottomNavigationBar:
+          isFancy
+              ? _FancySpendoNavBar(selectedIndex: _index, onTap: _selectTab)
+              : _SpendoNavBar(selectedIndex: _index, onTap: _selectTab),
+      floatingActionButton:
+          _showFab
+              ? isFancy
+                  ? GlassButton(
+                    key: const Key('spendo_fab_add_transaction'),
+                    icon: const Icon(Icons.add),
+                    iconSize: 28,
+                    useOwnLayer: true,
+                    quality: GlassQuality.premium,
+                    width: 56,
+                    height: 56,
+                    onTap: _showAddTransactionSheet,
+                  )
+                  : FloatingActionButton(
+                    key: const Key('spendo_fab_add_transaction'),
+                    heroTag: 'global_fab',
+                    onPressed: _showAddTransactionSheet,
+                    shape: const CircleBorder(),
+                    child: const Icon(Icons.add, size: 28),
+                  )
+              : null,
     );
+  }
+
+  void _showAddTransactionSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const AddTransactionSheet(),
+    );
+  }
+
+  void _selectTab(int i) {
+    HapticFeedback.lightImpact();
+    setState(() => _index = i);
   }
 }
 
-// ── Nav bar ───────────────────────────────────────────────────────────────────
-
 class _SpendoNavBar extends StatelessWidget {
+  const _SpendoNavBar({required this.selectedIndex, required this.onTap});
+
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
   static const _items = [
-    _NavItem(icon: Icons.home_outlined,    activeIcon: Icons.home,             label: 'Tổng quan'),
-    _NavItem(icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long, label: 'Giao dịch'),
-    _NavItem(icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart,      label: 'Thống kê'),
-    _NavItem(icon: Icons.settings_outlined, activeIcon: Icons.settings,        label: 'Cài đặt'),
+    _NavItem(
+      icon: Icons.receipt_long_outlined,
+      activeIcon: Icons.receipt_long,
+      label: 'Giao dịch',
+    ),
+    _NavItem(
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home,
+      label: 'Trang chủ',
+    ),
+    _NavItem(
+      icon: Icons.settings_outlined,
+      activeIcon: Icons.settings,
+      label: 'Cài đặt',
+    ),
   ];
-
-  const _SpendoNavBar({
-    required this.selectedIndex,
-    required this.onTap,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -125,9 +174,7 @@ class _SpendoNavBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: cs.surface,
-        border: Border(
-          top: BorderSide(color: cs.outlineVariant, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: cs.outlineVariant, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
@@ -151,19 +198,59 @@ class _SpendoNavBar extends StatelessWidget {
   }
 }
 
-// ── Single nav button ─────────────────────────────────────────────────────────
+class _FancySpendoNavBar extends StatelessWidget {
+  const _FancySpendoNavBar({required this.selectedIndex, required this.onTap});
+
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return GlassTabBar.bottom(
+      selectedIndex: selectedIndex,
+      onTabSelected: onTap,
+      quality: GlassQuality.premium,
+      horizontalPadding: 18,
+      verticalPadding: 16,
+      barHeight: 64,
+      selectedIconColor: cs.primary,
+      selectedLabelColor: cs.primary,
+      unselectedIconColor: cs.onSurfaceVariant,
+      unselectedLabelColor: cs.onSurfaceVariant,
+      tabs: const [
+        GlassTab(
+          icon: Icon(Icons.receipt_long_outlined),
+          activeIcon: Icon(Icons.receipt_long),
+          label: 'Giao dịch',
+        ),
+        GlassTab(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: 'Trang chủ',
+        ),
+        GlassTab(
+          icon: Icon(Icons.settings_outlined),
+          activeIcon: Icon(Icons.settings),
+          label: 'Cài đặt',
+        ),
+      ],
+    );
+  }
+}
 
 class _NavButton extends StatefulWidget {
-  final _NavItem item;
-  final bool selected;
-  final VoidCallback onTap;
-
   const _NavButton({
     super.key,
     required this.item,
     required this.selected,
     required this.onTap,
   });
+
+  final _NavItem item;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   State<_NavButton> createState() => _NavButtonState();
@@ -185,9 +272,10 @@ class _NavButtonState extends State<_NavButton>
       duration: const Duration(milliseconds: 280),
     );
 
-    _iconScale = Tween<double>(begin: 1.0, end: 1.22).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack),
-    );
+    _iconScale = Tween<double>(
+      begin: 1.0,
+      end: 1.22,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
 
     _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -203,9 +291,10 @@ class _NavButtonState extends State<_NavButton>
       ),
     );
 
-    _pillHeight = Tween<double>(begin: 44.0, end: 62.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _pillHeight = Tween<double>(
+      begin: 44.0,
+      end: 62.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
 
     if (widget.selected) _ctrl.value = 1.0;
   }
@@ -250,15 +339,12 @@ class _NavButtonState extends State<_NavButton>
               width: 90,
               height: _pillHeight.value,
               decoration: BoxDecoration(
-                color: widget.selected
-                    ? pillColor
-                    : Colors.transparent,
+                color: widget.selected ? pillColor : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Icon with scale
                   Transform.scale(
                     scale: _iconScale.value,
                     child: Icon(
@@ -269,8 +355,6 @@ class _NavButtonState extends State<_NavButton>
                       color: color,
                     ),
                   ),
-
-                  // Text — only visible when selected
                   if (_textOpacity.value > 0.01) ...[
                     const SizedBox(height: 3),
                     Opacity(
@@ -301,16 +385,14 @@ class _NavButtonState extends State<_NavButton>
   }
 }
 
-// ── Data class ────────────────────────────────────────────────────────────────
-
 class _NavItem {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-
   const _NavItem({
     required this.icon,
     required this.activeIcon,
     required this.label,
   });
+
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
 }

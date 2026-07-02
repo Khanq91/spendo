@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/notifications/notification_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/visual_mode_provider.dart';
 import '../../../../core/utils/backup_service.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/export_service.dart';
 import '../../../../core/utils/import_service.dart';
+import '../../../../shared/widgets/visual_mode_picker.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/data/category_repository.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
@@ -173,6 +175,7 @@ class SettingsScreen extends ConsumerWidget {
           Consumer(
             builder: (context, ref, _) {
               final mode = ref.watch(themeModeProvider);
+              final visualMode = ref.watch(visualModeProvider);
               return Material(
                 color: surface,
                 child: Column(
@@ -204,14 +207,57 @@ class SettingsScreen extends ConsumerWidget {
                               .read(themeProvider.notifier)
                               .setMode(ThemeMode.dark),
                     ),
-                    Divider(height: 1, indent: 16, color: Theme.of(context).colorScheme.outlineVariant),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                    ListTile(
+                      leading: Icon(
+                        LucideIcons.sparkles,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      title: const Text(
+                        'Đồ họa',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        visualMode == AppVisualMode.fancy
+                            ? 'Xịn xò'
+                            : 'Bình thường',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      trailing: Icon(
+                        LucideIcons.chevronRight,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          builder: (_) => const _VisualModeSheet(),
+                        );
+                      },
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                     ListTile(
                       leading: Icon(
                         LucideIcons.palette,
                         size: 18,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      title: const Text('Màu chủ đạo', style: TextStyle(fontSize: 14)),
+                      title: const Text(
+                        'Màu chủ đạo',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -219,12 +265,18 @@ class SettingsScreen extends ConsumerWidget {
                             width: 20,
                             height: 20,
                             decoration: BoxDecoration(
-                              color: ref.watch(themeProvider).colorScheme.swatch,
+                              color:
+                                  ref.watch(themeProvider).colorScheme.swatch,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Icon(LucideIcons.chevronRight, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          Icon(
+                            LucideIcons.chevronRight,
+                            size: 18,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ],
                       ),
                       onTap: () {
@@ -258,7 +310,10 @@ class SettingsScreen extends ConsumerWidget {
                       leading: Icon(
                         LucideIcons.bell,
                         size: 18,
-                        color: enabled ? Theme.of(context).colorScheme.primary : cs.onSurfaceVariant,
+                        color:
+                            enabled
+                                ? Theme.of(context).colorScheme.primary
+                                : cs.onSurfaceVariant,
                       ),
                       title: const Text(
                         'Nhắc nhập chi tiêu',
@@ -856,7 +911,11 @@ class _ImportPreviewDialog extends StatelessWidget {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(LucideIcons.fileUp, size: 20, color: Theme.of(context).colorScheme.primary),
+          Icon(
+            LucideIcons.fileUp,
+            size: 20,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: 8),
           const Text(
             'Xác nhận nhập dữ liệu',
@@ -925,7 +984,9 @@ class _ImportPreviewDialog extends StatelessWidget {
         FilledButton(
           onPressed:
               preview.added > 0 ? () => Navigator.pop(context, true) : null,
-          style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
           child: const Text('Nhập ngay'),
         ),
       ],
@@ -1005,7 +1066,11 @@ class _ExportTile extends StatelessWidget {
           color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(LucideIcons.download, size: 18, color: Theme.of(context).colorScheme.primary),
+        child: Icon(
+          LucideIcons.download,
+          size: 18,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
       subtitle: Text(
@@ -1106,12 +1171,19 @@ class _ThemeTile extends StatelessWidget {
       leading: Icon(
         icon,
         size: 18,
-        color: selected ? Theme.of(context).colorScheme.primary : cs.onSurfaceVariant,
+        color:
+            selected
+                ? Theme.of(context).colorScheme.primary
+                : cs.onSurfaceVariant,
       ),
       title: Text(label, style: const TextStyle(fontSize: 14)),
       trailing:
           selected
-              ? Icon(LucideIcons.check, size: 16, color: Theme.of(context).colorScheme.primary)
+              ? Icon(
+                LucideIcons.check,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+              )
               : null,
       onTap: onTap,
     );
@@ -1165,7 +1237,9 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -1241,7 +1315,8 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                         ),
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
-                          foregroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
@@ -1294,7 +1369,10 @@ class _TabChip extends StatelessWidget {
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? Theme.of(context).colorScheme.primary : cs.outlineVariant,
+            color:
+                selected
+                    ? Theme.of(context).colorScheme.primary
+                    : cs.outlineVariant,
             width: 0.8,
           ),
         ),
@@ -1302,9 +1380,50 @@ class _TabChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: selected ? Theme.of(context).colorScheme.primary : cs.onSurfaceVariant,
+            color:
+                selected
+                    ? Theme.of(context).colorScheme.primary
+                    : cs.onSurfaceVariant,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VisualModeSheet extends ConsumerWidget {
+  const _VisualModeSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedMode = ref.watch(visualModeProvider);
+    final cs = Theme.of(context).colorScheme;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Chọn đồ họa',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
+            ),
+            const SizedBox(height: 14),
+            VisualModePicker(
+              selectedMode: selectedMode,
+              onChanged: (mode) async {
+                await ref.read(visualModeProvider.notifier).setMode(mode);
+                if (context.mounted) Navigator.pop(context);
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -1318,7 +1437,7 @@ class _ThemeColorSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentScheme = ref.watch(themeProvider).colorScheme;
     final cs = Theme.of(context).colorScheme;
-    
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1350,9 +1469,10 @@ class _ThemeColorSheet extends ConsumerWidget {
                   ),
                 ),
                 title: Text(scheme.label, style: const TextStyle(fontSize: 14)),
-                trailing: isSelected
-                    ? Icon(LucideIcons.check, size: 16, color: cs.primary)
-                    : null,
+                trailing:
+                    isSelected
+                        ? Icon(LucideIcons.check, size: 16, color: cs.primary)
+                        : null,
                 onTap: () {
                   ref.read(themeProvider.notifier).setColorScheme(scheme);
                   Navigator.pop(context);

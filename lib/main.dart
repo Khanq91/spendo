@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:home_widget/home_widget.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/config.dart';
 import 'core/db/powersync_db.dart';
-import 'app.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/reminder_notification_service.dart';
 import 'core/utils/widget_sync.dart';
 import 'core/services/gdrive_auth_service.dart';
 import 'core/services/gdrive_backup_service.dart';
+import 'features/onboarding/presentation/startup_gate.dart';
 import 'features/reminders/data/reminder_repository.dart';
 import 'shared/widgets/splash_screen.dart';
 
@@ -23,7 +23,7 @@ void callbackDispatcher() {
     try {
       if (taskName == 'autoGDriveBackup') {
         debugPrint('[WorkManager] Starting autoGDriveBackup task');
-        
+
         // Cần init database trong background isolate
         await openDatabase();
 
@@ -35,10 +35,13 @@ void callbackDispatcher() {
         }
 
         await GDriveBackupService.instance.uploadBackup();
-        
+
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('gdrive_last_backup_time', DateTime.now().millisecondsSinceEpoch);
-        
+        await prefs.setInt(
+          'gdrive_last_backup_time',
+          DateTime.now().millisecondsSinceEpoch,
+        );
+
         debugPrint('[WorkManager] autoGDriveBackup completed successfully');
       }
       return Future.value(true);
@@ -51,8 +54,14 @@ void callbackDispatcher() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await LiquidGlassWidgets.initialize();
   Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
-  runApp(const ProviderScope(child: _AppRoot()));
+  runApp(
+    LiquidGlassWidgets.wrap(
+      child: const ProviderScope(child: _AppRoot()),
+      theme: GlassThemeData.simple(quality: GlassQuality.premium),
+    ),
+  );
 }
 
 class _AppRoot extends StatelessWidget {
@@ -65,15 +74,15 @@ class _AppRoot extends StatelessWidget {
       theme: ThemeData(colorSchemeSeed: const Color(0xFFF06292)),
       home: SplashScreen(
         onInit: _initServices,
-        nextScreen: const SpendoApp(),
+        nextScreen: const StartupGate(),
       ),
     );
   }
 }
 
 Future<void> _initServices(
-    void Function(double progress, String message) report,
-    ) async {
+  void Function(double progress, String message) report,
+) async {
   report(0.0, 'Initializing…');
   await Future.delayed(const Duration(milliseconds: 100));
 
@@ -91,18 +100,20 @@ Future<void> _initServices(
   // 3. Notifications
   report(0.65, 'Setting up notifications…');
   await NotificationService.init();
-  
+
   // 4. Schedule recurring reminders
   report(0.80, 'Scheduling reminders…');
   try {
-    final reminders = await ReminderRepository().getAll()
-        .timeout(const Duration(seconds: 5));
-    await ReminderNotificationService.scheduleAll(reminders)
-        .timeout(const Duration(seconds: 5));
+    final reminders = await ReminderRepository().getAll().timeout(
+      const Duration(seconds: 5),
+    );
+    await ReminderNotificationService.scheduleAll(
+      reminders,
+    ).timeout(const Duration(seconds: 5));
   } catch (e) {
     debugPrint('[Init] Reminder scheduling error: $e');
   }
-  
+
   // 5. Home widgets sync
   report(0.90, 'Syncing widgets…');
   await WidgetSync.syncCategories();
@@ -125,14 +136,15 @@ Future<void> _cleanupOldData() async {
   final hasBackup = await GDriveBackupService.instance.hasRecentBackup();
   if (hasBackup) {
     final twoYearsAgo = DateTime.now().subtract(const Duration(days: 730));
-    
+
     // PowerSync SQLite executes
-    await db.execute(
-      'DELETE FROM transactions WHERE created_at < ?',
-      [twoYearsAgo.millisecondsSinceEpoch.toString()],
-    );
+    await db.execute('DELETE FROM transactions WHERE created_at < ?', [
+      twoYearsAgo.millisecondsSinceEpoch.toString(),
+    ]);
     debugPrint('[Cleanup] Xoá giao dịch quá 2 năm (do đã có backup Drive)');
   } else {
-    debugPrint('[Cleanup] Bỏ qua xoá giao dịch do chưa có backup Drive gần đây');
+    debugPrint(
+      '[Cleanup] Bỏ qua xoá giao dịch do chưa có backup Drive gần đây',
+    );
   }
 }
