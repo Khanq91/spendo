@@ -59,87 +59,84 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: AnimatedSwitcher(
-        duration: appMotion.whenMotionAllowed(context, appMotion.screenDuration),
-        switchInCurve: appMotion.curveStandard,
-        switchOutCurve: appMotion.curveStandard,
-        child: txAsync.when(
-          loading: () => const _HomeLoadingSkeleton(),
-          error: (e, _) => Center(
-            key: const ValueKey('home_error'),
-            child: Text('Lỗi: $e'),
-          ),
-          data:
-              (txs) => CustomScrollView(
-                key: ValueKey('home_data_${txs.length}'),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8, bottom: 12),
-                      child: SummaryCards(
-                        income: summary.income,
-                        expense: summary.expense,
-                        balance: summary.balance,
-                      ),
-                    ),
-                  ),
-
-                  // WalletCardHome
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: const WalletCardHome(),
-                    ),
-                  ),
-
-                  // Feature grid
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                      child: FeatureGrid(
-                        actions: buildHomeFeatureActions(context),
-                      ),
-                    ),
-                  ),
-
-                  if (txs.isEmpty)
-                    SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              LucideIcons.receiptText,
-                              size: 48,
-                              color: cs.outlineVariant,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Chưa có giao dịch nào',
-                              style: TextStyle(color: cs.onSurfaceVariant),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Tap + để thêm',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    SliverList(
-                      delegate: SliverChildListDelegate(
-                        _buildGroupedList(context, txs, categoryMap),
-                      ),
-                    ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 80)),
-                ],
+      body: CustomScrollView(
+        key: const ValueKey('home_scroll'),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 12),
+              child: SummaryCards(
+                income: summary.income,
+                expense: summary.expense,
+                balance: summary.balance,
               ),
-        ),
+            ),
+          ),
+
+          // WalletCardHome
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: const WalletCardHome(),
+            ),
+          ),
+
+          // Feature grid
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: FeatureGrid(actions: buildHomeFeatureActions(context)),
+            ),
+          ),
+
+          txAsync.when(
+            loading: () => const _HomeTransactionListSkeleton(),
+            error:
+                (e, _) => SliverToBoxAdapter(
+                  child: Center(
+                    key: const ValueKey('home_error'),
+                    child: Text('Lỗi: $e'),
+                  ),
+                ),
+            data: (txs) {
+              if (txs.isEmpty) {
+                return SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.receiptText,
+                          size: 48,
+                          color: cs.outlineVariant,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Chưa có giao dịch nào',
+                          style: TextStyle(color: cs.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tap + để thêm',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return SliverList(
+                delegate: SliverChildListDelegate(
+                  _buildGroupedList(context, txs, categoryMap),
+                ),
+              );
+            },
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        ],
       ),
     );
   }
@@ -222,46 +219,17 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _HomeLoadingSkeleton extends StatelessWidget {
-  const _HomeLoadingSkeleton();
+class _HomeTransactionListSkeleton extends StatelessWidget {
+  const _HomeTransactionListSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      key: const ValueKey('home_loading'),
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                SkeletonBlock(width: 140, height: 16),
-                SizedBox(height: 12),
-                SkeletonBlock(height: 96, borderRadius: BorderRadius.all(Radius.circular(16))),
-              ],
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            child: Column(
-              children: const [
-                SkeletonBlock(height: 72, borderRadius: BorderRadius.all(Radius.circular(16))),
-                SizedBox(height: 14),
-                SkeletonBlock(height: 102, borderRadius: BorderRadius.all(Radius.circular(16))),
-              ],
-            ),
-          ),
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (_, __) => const SkeletonTransactionItem(),
-            childCount: 4,
-          ),
-        ),
-      ],
+    return SliverList(
+      key: const ValueKey('home_transaction_loading'),
+      delegate: SliverChildBuilderDelegate(
+        (_, __) => const SkeletonTransactionItem(),
+        childCount: 4,
+      ),
     );
   }
 }

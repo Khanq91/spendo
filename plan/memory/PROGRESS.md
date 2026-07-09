@@ -22,3 +22,8 @@
 - Cleaned `withOpacity` analyzer infos in the touched Transactions and Wallet Detail files by switching to `withValues(alpha: ...)`.
 - Scoped analyzer with Flutter 3.44.5 passed for the 4 touched UI files: no issues found.
 - Current status: Phase 1 is partially wired for Home/Transactions/Wallet Detail; next step is manual smoke for Home, Transactions search/filter, row detail sheet, and Wallet Detail filters.
+
+## [Phase 1] - 2026-07-09 16:17
+- Corrected Home loading behavior after manual review: Summary, Wallet, and Feature grid now remain visible while only the transaction-list sliver shows skeleton rows.
+- Scoped analyzer with Flutter 3.44.5 passed for `lib/features/home/presentation/screens/home_screen.dart`: no issues found.
+- Current status: Home loading/data transition is narrowed to the list area; next step is manual visual check on Home initial load and month switch.

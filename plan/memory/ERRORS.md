@@ -15,3 +15,6 @@
 - A sandboxed scoped `flutter analyze` run was interrupted by the user after running too long; user reran with Flutter 3.44.5 and reported 7 `withOpacity` infos, then those touched-file occurrences were replaced with `withValues(alpha: ...)`.
 - Do not rely on default PATH Flutter for this repo; use `D:\khang\data\flutterDev\flutter_windows_3.44.5-stable\flutter\bin` when comparing analyzer results.
 - Escalated scoped analyzer with Flutter 3.44.5 completed successfully after the cleanup: no issues found.
+
+## [Phase 1] - 2026-07-09 16:17
+- User observed the Home loading skeleton covered Summary/Wallet cards; avoid wrapping the entire Home body in loading skeleton for transaction stream states.
