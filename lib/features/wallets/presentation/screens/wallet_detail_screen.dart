@@ -10,6 +10,7 @@ import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../transactions/domain/transaction.dart';
 import '../../../transactions/presentation/widgets/transaction_list_item.dart';
 import '../../../home/presentation/widgets/month_selector.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../data/wallet_repository.dart';
 import '../../domain/wallet.dart';
 import '../providers/wallet_provider.dart';
@@ -45,13 +46,16 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
       );
     }
 
-    final txsAsync = _filter == _TxFilter.byMonth
-        ? ref.watch(walletTxByMonthProvider((
-    walletId: widget.walletId,
-    year: _month.year,
-    month: _month.month,
-    )))
-        : ref.watch(walletTxAllProvider(widget.walletId));
+    final txsAsync =
+        _filter == _TxFilter.byMonth
+            ? ref.watch(
+              walletTxByMonthProvider((
+                walletId: widget.walletId,
+                year: _month.year,
+                month: _month.month,
+              )),
+            )
+            : ref.watch(walletTxAllProvider(widget.walletId));
 
     final categoriesAsync = ref.watch(categoriesProvider);
     final categoryMap = <String, Category>{};
@@ -73,19 +77,20 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 20),
             onSelected: (val) => _handleMenu(context, val, wallet),
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'archive',
-                child: Text(wallet.isArchived ? 'Bỏ lưu trữ' : 'Lưu trữ'),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Text(
-                  'Xoá',
-                  style: TextStyle(color: AppTheme.expenseAltColor),
-                ),
-              ),
-            ],
+            itemBuilder:
+                (_) => [
+                  PopupMenuItem(
+                    value: 'archive',
+                    child: Text(wallet.isArchived ? 'Bỏ lưu trữ' : 'Lưu trữ'),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      'Xoá',
+                      style: TextStyle(color: AppTheme.expenseAltColor),
+                    ),
+                  ),
+                ],
           ),
         ],
       ),
@@ -116,14 +121,16 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
             ),
           const SliverToBoxAdapter(child: Divider(height: 1)),
           txsAsync.when(
-            loading: () => const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ),
-            error: (e, _) =>
-                SliverToBoxAdapter(child: Center(child: Text('Lỗi: $e'))),
+            loading:
+                () => const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+            error:
+                (e, _) =>
+                    SliverToBoxAdapter(child: Center(child: Text('Lỗi: $e'))),
             data: (txs) {
               if (txs.isEmpty) {
                 return SliverToBoxAdapter(child: _EmptyTx(filter: _filter));
@@ -131,7 +138,7 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
               final grouped = _groupByDate(txs);
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
-                      (_, i) => grouped[i],
+                  (_, i) => grouped[i],
                   childCount: grouped.length,
                 ),
               );
@@ -144,9 +151,9 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
   }
 
   Wallet? _findWallet(
-      AsyncValue<List<Wallet>> active,
-      AsyncValue<List<Wallet>> archived,
-      ) {
+    AsyncValue<List<Wallet>> active,
+    AsyncValue<List<Wallet>> archived,
+  ) {
     final all = [...active.valueOrNull ?? [], ...archived.valueOrNull ?? []];
     try {
       return all.firstWhere((w) => w.id == widget.walletId);
@@ -176,7 +183,7 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
       final date = dayTxs.first.createdAt;
       final dayNet = dayTxs.fold<int>(
         0,
-            (s, t) => t.isExpense ? s - t.amount : s + t.amount,
+        (s, t) => t.isExpense ? s - t.amount : s + t.amount,
       );
       final isPos = dayNet >= 0;
 
@@ -199,7 +206,8 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isPos ? AppTheme.incomeColor : AppTheme.expenseAltColor,
+                  color:
+                      isPos ? AppTheme.incomeColor : AppTheme.expenseAltColor,
                 ),
               ),
             ],
@@ -228,10 +236,10 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
   }
 
   Future<void> _handleMenu(
-      BuildContext context,
-      String val,
-      Wallet wallet,
-      ) async {
+    BuildContext context,
+    String val,
+    Wallet wallet,
+  ) async {
     final repo = WalletRepository();
     if (val == 'archive') {
       if (wallet.isArchived) {
@@ -258,23 +266,26 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
 
       final confirm = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Xoá nguồn tiền?'),
-          content: Text('Xoá "${wallet.name}"? Hành động không thể hoàn tác.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Huỷ'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.expenseAltColor,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Xoá nguồn tiền?'),
+              content: Text(
+                'Xoá "${wallet.name}"? Hành động không thể hoàn tác.',
               ),
-              child: const Text('Xoá'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Huỷ'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.expenseAltColor,
+                  ),
+                  child: const Text('Xoá'),
+                ),
+              ],
             ),
-          ],
-        ),
       );
 
       if (confirm == true) {
@@ -307,9 +318,9 @@ class _InfoCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: color.withOpacity(0.3), width: 0.8),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
         borderRadius: BorderRadius.circular(16),
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,7 +331,7 @@ class _InfoCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -431,9 +442,10 @@ class _LightProgressBar extends StatelessWidget {
               children: [
                 Container(
                   width: double.infinity,
-                  color: isOverflow
-                      ? Colors.red.withOpacity(0.15)
-                      : color.withOpacity(0.12),
+                  color:
+                      isOverflow
+                          ? Colors.red.withValues(alpha: 0.15)
+                          : color.withValues(alpha: 0.12),
                 ),
                 FractionallySizedBox(
                   widthFactor: ratio,
@@ -507,10 +519,10 @@ class _FilterBar extends StatelessWidget {
             const SizedBox(height: 8),
             MonthSelector(
               month: month,
-              onPrev: () =>
-                  onMonthChange(DateTime(month.year, month.month - 1)),
-              onNext: () =>
-                  onMonthChange(DateTime(month.year, month.month + 1)),
+              onPrev:
+                  () => onMonthChange(DateTime(month.year, month.month - 1)),
+              onNext:
+                  () => onMonthChange(DateTime(month.year, month.month + 1)),
               onMonthPicked: onMonthChange,
             ),
           ],
@@ -534,14 +546,17 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
+    return PressableScale(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
+        curve: appMotion.curveStandard,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color:
-          selected ? cs.primary.withOpacity(0.12) : Colors.transparent,
+              selected
+                  ? cs.primary.withValues(alpha: 0.12)
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? cs.primary : cs.outlineVariant,
@@ -570,10 +585,10 @@ class _MiniSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final income =
-    txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
-    final expense =
-    txs.where((t) => t.isExpense).fold(0, (s, t) => s + t.amount);
+    final income = txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
+    final expense = txs
+        .where((t) => t.isExpense)
+        .fold(0, (s, t) => s + t.amount);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),

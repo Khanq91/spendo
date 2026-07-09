@@ -10,6 +10,7 @@ import '../../domain/transaction.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/transaction_list_item.dart';
 import '../../../home/presentation/widgets/month_selector.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -45,40 +46,50 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title:
-            _showSearch
-                ? TextField(
-                  controller: _searchCtrl,
-                  autofocus: true,
-                  style: TextStyle(color: cs.onSurface),
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm...',
-                    border: InputBorder.none,
-                    hintStyle: TextStyle(
-                      fontSize: 15,
-                      color: cs.onSurfaceVariant,
+        title: AnimatedSwitcher(
+          duration: appMotion.whenMotionAllowed(
+            context,
+            appMotion.screenDuration,
+          ),
+          switchInCurve: appMotion.curveStandard,
+          switchOutCurve: appMotion.curveStandard,
+          child:
+              _showSearch
+                  ? TextField(
+                    key: const ValueKey('transaction_search_title'),
+                    controller: _searchCtrl,
+                    autofocus: true,
+                    style: TextStyle(color: cs.onSurface),
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm...',
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(
+                        fontSize: 15,
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
+                    onChanged:
+                        (v) => ref.read(searchQueryProvider.notifier).state = v,
+                  )
+                  : MonthSelector(
+                    key: const ValueKey('transaction_month_title'),
+                    month: month,
+                    onPrev:
+                        () =>
+                            ref
+                                .read(selectedMonthProvider.notifier)
+                                .state = DateTime(month.year, month.month - 1),
+                    onNext:
+                        () =>
+                            ref
+                                .read(selectedMonthProvider.notifier)
+                                .state = DateTime(month.year, month.month + 1),
+                    onMonthPicked:
+                        (picked) =>
+                            ref.read(selectedMonthProvider.notifier).state =
+                                picked,
                   ),
-                  onChanged:
-                      (v) => ref.read(searchQueryProvider.notifier).state = v,
-                )
-                : MonthSelector(
-                  month: month,
-                  onPrev:
-                      () =>
-                          ref
-                              .read(selectedMonthProvider.notifier)
-                              .state = DateTime(month.year, month.month - 1),
-                  onNext:
-                      () =>
-                          ref
-                              .read(selectedMonthProvider.notifier)
-                              .state = DateTime(month.year, month.month + 1),
-                  onMonthPicked:
-                      (picked) =>
-                          ref.read(selectedMonthProvider.notifier).state =
-                              picked,
-                ),
+        ),
         actions: [
           IconButton(
             icon: Icon(_showSearch ? Icons.close : Icons.search_outlined),
@@ -105,15 +116,29 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           _MiniSummaryRow(txs: txs),
           const Divider(height: 1),
           Expanded(
-            child:
-                txs.isEmpty
-                    ? _EmptyState(hasFilter: selectedCat != null || _showSearch)
-                    : ListView(
-                      children: [
-                        ..._buildGroupedList(context, txs, categoryMap),
-                        const SizedBox(height: 80),
-                      ],
-                    ),
+            child: AnimatedSwitcher(
+              duration: appMotion.whenMotionAllowed(
+                context,
+                appMotion.screenDuration,
+              ),
+              switchInCurve: appMotion.curveStandard,
+              switchOutCurve: appMotion.curveStandard,
+              child:
+                  txs.isEmpty
+                      ? _EmptyState(
+                        key: const ValueKey('transactions_empty'),
+                        hasFilter: selectedCat != null || _showSearch,
+                      )
+                      : ListView(
+                        key: ValueKey(
+                          'transactions_list_${txs.length}_${selectedCat ?? 'all'}_${_showSearch ? 'search' : 'month'}',
+                        ),
+                        children: [
+                          ..._buildGroupedList(context, txs, categoryMap),
+                          const SizedBox(height: 80),
+                        ],
+                      ),
+            ),
           ),
         ],
       ),
@@ -255,13 +280,14 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final c = color ?? cs.primary;
-    return GestureDetector(
+    return PressableScale(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
+        curve: appMotion.curveStandard,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: selected ? c.withOpacity(0.12) : Colors.transparent,
+          color: selected ? c.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? c : cs.outlineVariant,
@@ -331,7 +357,7 @@ class _MiniSummaryRow extends ConsumerWidget {
 
 class _EmptyState extends StatelessWidget {
   final bool hasFilter;
-  const _EmptyState({required this.hasFilter});
+  const _EmptyState({super.key, required this.hasFilter});
 
   @override
   Widget build(BuildContext context) {

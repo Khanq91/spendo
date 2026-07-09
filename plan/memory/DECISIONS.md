@@ -6,3 +6,9 @@
 
 ## [Phase 0] - 2026-07-09 15:13
 - Treat existing repo analyzer warnings/infos as out of scope for Phase 0 unless they are caused by the new motion primitives.
+
+## [Phase 1] - 2026-07-09 15:47
+- Use existing `PressableScale` and `AnimatedSwitcher` for Phase 1 polish instead of adding animation packages.
+- Keep transaction grouped-list eager rendering unchanged in this pass because lazy/keyed grouped list refactor belongs to Phase 4.
+- Use skeleton loading only for Home in this pass; Transactions data currently comes from the synchronous filtered provider, so no new loading branch was introduced.
+- Convert `withOpacity` only in touched analyzer-reported areas to reduce diagnostics without turning this into a broad cleanup pass.

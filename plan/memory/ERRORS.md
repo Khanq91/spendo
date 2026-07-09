@@ -9,3 +9,9 @@
 ## [Phase 0] - 2026-07-09 15:13
 - Sandboxed `scripts\analyze_codex.bat` can timeout before `flutter --version`, while the same command outside the sandbox completed and regenerated `audit/flutter_analyze.txt`.
 - The outside-sandbox analyzer used Flutter 3.38.9 from PATH, while the user-run log showed Flutter 3.44.5; keep this PATH difference in mind when comparing analyzer counts.
+
+## [Phase 1] - 2026-07-09 15:47
+- `dart format` timed out after 120s both with PATH default and with `D:\khang\data\flutterDev\flutter_windows_3.44.5-stable\flutter\bin\dart.bat`; it may still partially format files before timing out.
+- A sandboxed scoped `flutter analyze` run was interrupted by the user after running too long; user reran with Flutter 3.44.5 and reported 7 `withOpacity` infos, then those touched-file occurrences were replaced with `withValues(alpha: ...)`.
+- Do not rely on default PATH Flutter for this repo; use `D:\khang\data\flutterDev\flutter_windows_3.44.5-stable\flutter\bin` when comparing analyzer results.
+- Escalated scoped analyzer with Flutter 3.44.5 completed successfully after the cleanup: no issues found.

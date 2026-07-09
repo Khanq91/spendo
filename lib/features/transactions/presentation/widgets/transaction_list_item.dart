@@ -6,6 +6,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/category_icon.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import 'transaction_detail_sheet.dart';
 
 class TransactionListItem extends ConsumerWidget {
@@ -23,7 +24,7 @@ class TransactionListItem extends ConsumerWidget {
     final isExpense = transaction.isExpense;
     final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
 
-    return InkWell(
+    return PressableScale(
       onTap:
           () => showModalBottomSheet(
             context: context,

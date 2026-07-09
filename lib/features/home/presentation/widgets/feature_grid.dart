@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../shared/widgets/motion/motion.dart';
+
 class FeatureGridAction {
   final String label;
   final IconData icon;
@@ -17,10 +19,7 @@ class FeatureGridAction {
 class FeatureGrid extends StatelessWidget {
   final List<FeatureGridAction> actions;
 
-  const FeatureGrid({
-    super.key,
-    required this.actions,
-  });
+  const FeatureGrid({super.key, required this.actions});
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +48,7 @@ class _FeatureTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return InkWell(
+    return PressableScale(
       onTap: action.onTap,
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
