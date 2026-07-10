@@ -149,3 +149,9 @@
 - Scoped analyzer reports no new Phase 7 diagnostics; one existing Workmanager deprecation info remains in main.dart. Full analyzer reports 0 errors, 20 warnings, and 119 infos (139 existing issues, exit code 1).
 - Bumped app version from 1.7.5+10 to 1.7.6+11.
 - Current status: Phase 7 code-complete and manual acceptance-pending. Next step: cold-start twice to verify adaptive-tier persistence, then smoke onboarding, normal/fancy switching, nav/FAB, Home/Transactions/Settings scrolling, and system Reduce Motion/Reduce Transparency behavior on real devices including a lower-end Android device if available.
+
+## [Phase 7] - 2026-07-10 19:19
+- User confirmed Phase 7 manual testing is complete; Phase 7 acceptance is closed.
+- The master plan defines Phase 0 through Phase 7 only, so the UI/motion refactor roadmap is now complete and no Phase 8 was inferred.
+- This closeout changes documentation only; app version remains 1.7.6+11.
+- Current status: all phases in `plan/03-ui-motion-refactor-master-plan.md` are complete. Next step: start a separately scoped follow-up plan only if new UI/motion work is requested.
