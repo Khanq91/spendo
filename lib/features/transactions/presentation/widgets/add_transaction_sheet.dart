@@ -14,6 +14,7 @@ import '../../../../core/utils/category_matcher.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../screens/note_picker_screen.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
@@ -48,6 +49,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   // Wallet state
   bool _trackWallet = false;
   String? _selectedWalletId;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -92,48 +94,56 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       all.where((c) => c.isIncome == !_isExpense).toList();
 
   Future<void> _submit() async {
-    if (!_amountCtrl.hasValue || _selectedCategoryId == null) return;
-
-    // Check budget
-    if (_isExpense && !_isEditMode) {
-      final shouldProceed = await _checkCategoryBudget();
-      if (!shouldProceed) return;
+    if (_isSubmitting || !_amountCtrl.hasValue || _selectedCategoryId == null) {
+      return;
     }
 
-    // Check wallet balance
-    if (_trackWallet &&
-        _selectedWalletId != null &&
-        _isExpense &&
-        !_isEditMode) {
-      final shouldProceed = await _checkWalletBalance();
-      if (!shouldProceed) return;
+    setState(() => _isSubmitting = true);
+
+    try {
+      // Check budget
+      if (_isExpense && !_isEditMode) {
+        final shouldProceed = await _checkCategoryBudget();
+        if (!shouldProceed) return;
+      }
+
+      // Check wallet balance
+      if (_trackWallet &&
+          _selectedWalletId != null &&
+          _isExpense &&
+          !_isEditMode) {
+        final shouldProceed = await _checkWalletBalance();
+        if (!shouldProceed) return;
+      }
+
+      final repo = TransactionRepository();
+
+      if (_isEditMode) {
+        final updated = Transaction(
+          id: widget.existing!.id,
+          amount: _amountCtrl.value,
+          type: _isExpense ? 'expense' : 'income',
+          categoryId: _selectedCategoryId!,
+          note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+          createdAt: widget.existing!.createdAt,
+          walletId: _trackWallet ? _selectedWalletId : null,
+          source: widget.existing!.source,
+        );
+        await repo.update(updated);
+      } else {
+        await repo.add(
+          amount: _amountCtrl.value,
+          type: _isExpense ? 'expense' : 'income',
+          categoryId: _selectedCategoryId!,
+          note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+          walletId: _trackWallet ? _selectedWalletId : null,
+        );
+      }
+
+      if (mounted) Navigator.of(context).pop();
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
-
-    final repo = TransactionRepository();
-
-    if (_isEditMode) {
-      final updated = Transaction(
-        id: widget.existing!.id,
-        amount: _amountCtrl.value,
-        type: _isExpense ? 'expense' : 'income',
-        categoryId: _selectedCategoryId!,
-        note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-        createdAt: widget.existing!.createdAt,
-        walletId: _trackWallet ? _selectedWalletId : null,
-        source: widget.existing!.source,
-      );
-      await repo.update(updated);
-    } else {
-      await repo.add(
-        amount: _amountCtrl.value,
-        type: _isExpense ? 'expense' : 'income',
-        categoryId: _selectedCategoryId!,
-        note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-        walletId: _trackWallet ? _selectedWalletId : null,
-      );
-    }
-
-    if (mounted) Navigator.of(context).pop();
   }
 
   Future<bool> _checkCategoryBudget() async {
@@ -286,17 +296,19 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final cats = _categories(allCats);
     final result = await Navigator.of(context).push<NotePickerResult>(
       MaterialPageRoute(
-        builder: (_) => NotePickerScreen(
-          initialNote: _noteCtrl.text,
-          initialCategoryId: _selectedCategoryId,
-          categories: cats,
-        ),
+        builder:
+            (_) => NotePickerScreen(
+              initialNote: _noteCtrl.text,
+              initialCategoryId: _selectedCategoryId,
+              categories: cats,
+            ),
       ),
     );
     if (result == null || !mounted) return;
     setState(() {
       _noteCtrl.text = result.note;
-      if (result.categoryId != null && result.categoryId != _selectedCategoryId) {
+      if (result.categoryId != null &&
+          result.categoryId != _selectedCategoryId) {
         _selectedCategoryId = result.categoryId;
         _userPickedCategory = true;
       }
@@ -399,13 +411,34 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 ListenableBuilder(
                   listenable: _amountCtrl,
                   builder:
-                      (_, __) => Text(
-                        _amountCtrl.formatted,
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w600,
-                          color: color,
-                          letterSpacing: -1,
+                      (_, __) => AnimatedSwitcher(
+                        duration: appMotion.whenMotionAllowed(
+                          context,
+                          appMotion.valueDuration,
+                        ),
+                        transitionBuilder: (child, animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: ScaleTransition(
+                              scale: Tween<double>(begin: 0.96, end: 1).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: appMotion.curveStandard,
+                                ),
+                              ),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Text(
+                          _amountCtrl.formatted,
+                          key: ValueKey(_amountCtrl.formatted),
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                            letterSpacing: -1,
+                          ),
                         ),
                       ),
                 ),
@@ -450,65 +483,71 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         ? _resolveSelectedColor(progress)
                         : color.withOpacity(0.15);
 
-                return ChoiceChip(
+                return PressableScale(
                   key: _chipKeys[cat.id],
-                  label: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            cat.name,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight:
-                                  selected ? FontWeight.w600 : FontWeight.w400,
-                              color: selected ? color : cs.onSurfaceVariant,
+                  deferTapToChild: true,
+                  onTap: () {},
+                  child: ChoiceChip(
+                    label: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              cat.name,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight:
+                                    selected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                color: selected ? color : cs.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                          if (selected && !_userPickedCategory) ...[
-                            const SizedBox(width: 3),
-                            Icon(Icons.auto_fix_high, size: 10, color: color),
+                            if (selected && !_userPickedCategory) ...[
+                              const SizedBox(width: 3),
+                              Icon(Icons.auto_fix_high, size: 10, color: color),
+                            ],
+                            if (!selected && progress != null) ...[
+                              const SizedBox(width: 3),
+                              _BudgetDot(
+                                percent: progress.percent,
+                                isOver: progress.isOver,
+                              ),
+                            ],
                           ],
-                          if (!selected && progress != null) ...[
-                            const SizedBox(width: 3),
-                            _BudgetDot(
-                              percent: progress.percent,
-                              isOver: progress.isOver,
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (selected && progress != null) ...[
-                        const SizedBox(height: 3),
-                        _MiniProgressBar(
-                          percent: progress.percent,
-                          isOver: progress.isOver,
                         ),
+                        if (selected && progress != null) ...[
+                          const SizedBox(height: 3),
+                          _MiniProgressBar(
+                            percent: progress.percent,
+                            isOver: progress.isOver,
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                  selected: selected,
-                  onSelected:
-                      (_) => setState(() {
-                        _selectedCategoryId = cat.id;
-                        _userPickedCategory = true;
-                      }),
-                  selectedColor: chipSelectedColor,
-                  backgroundColor: chipBgColor,
-                  side: BorderSide(
-                    color: _resolveChipBorderColor(
-                      progress: progress,
-                      selected: selected,
-                      baseColor: color,
-                      cs: cs,
                     ),
-                    width: 0.8,
+                    selected: selected,
+                    onSelected:
+                        (_) => setState(() {
+                          _selectedCategoryId = cat.id;
+                          _userPickedCategory = true;
+                        }),
+                    selectedColor: chipSelectedColor,
+                    backgroundColor: chipBgColor,
+                    side: BorderSide(
+                      color: _resolveChipBorderColor(
+                        progress: progress,
+                        selected: selected,
+                        baseColor: color,
+                        cs: cs,
+                      ),
+                      width: 0.8,
+                    ),
+                    showCheckmark: false,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                   ),
-                  showCheckmark: false,
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
                 );
               },
             ),
@@ -528,7 +567,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                     style: TextStyle(fontSize: 13, color: cs.onSurface),
                     decoration: InputDecoration(
                       hintText: 'Ghi chú (tuỳ chọn)...',
-                      hintStyle: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: cs.onSurfaceVariant,
+                      ),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 4),
@@ -602,7 +644,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               builder:
                   (_, __) => FilledButton(
                     onPressed:
-                        _amountCtrl.hasValue && _selectedCategoryId != null
+                        !_isSubmitting &&
+                                _amountCtrl.hasValue &&
+                                _selectedCategoryId != null
                             ? _submit
                             : null,
                     style: FilledButton.styleFrom(
@@ -612,16 +656,34 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
-                      _isEditMode
-                          ? 'Lưu thay đổi'
-                          : (_isExpense
-                              ? 'Chi ${_amountCtrl.formatted} ₫'
-                              : 'Thu ${_amountCtrl.formatted} ₫'),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                    child: AnimatedSwitcher(
+                      duration: appMotion.whenMotionAllowed(
+                        context,
+                        appMotion.screenDuration,
                       ),
+                      child:
+                          _isSubmitting
+                              ? const SizedBox(
+                                key: ValueKey('submitting'),
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : Text(
+                                _isEditMode
+                                    ? 'Lưu thay đổi'
+                                    : (_isExpense
+                                        ? 'Chi ${_amountCtrl.formatted} ₫'
+                                        : 'Thu ${_amountCtrl.formatted} ₫'),
+                                key: const ValueKey('ready'),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                     ),
                   ),
             ),
@@ -826,15 +888,13 @@ class _MiniProgressBar extends StatelessWidget {
       children: [
         SizedBox(
           width: 48,
-          height: 3,
-          child: ClipRRect(
+          child: AnimatedProgressBar(
+            value: percent,
+            height: 3,
+            trackColor: barColor.withValues(alpha: 0.15),
+            valueColor: barColor,
             borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: percent.clamp(0.0, 1.0),
-              backgroundColor: barColor.withOpacity(0.15),
-              valueColor: AlwaysStoppedAnimation(barColor),
-              minHeight: 3,
-            ),
+            semanticLabel: 'Tiến độ ngân sách',
           ),
         ),
         const SizedBox(width: 4),
@@ -993,10 +1053,10 @@ class _TypeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
+    return PressableScale(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: active ? color.withOpacity(0.12) : Colors.transparent,

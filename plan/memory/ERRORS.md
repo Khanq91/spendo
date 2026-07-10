@@ -46,3 +46,11 @@
 ## [Phase 2] - 2026-07-10 11:52
 - Scoped analyzer after Wallets/Transactions wiring still reports 28 existing warnings/infos and no errors.
 - Motion widget regression test passes; no new test failure observed.
+
+## [Phase 2] - 2026-07-10 12:05
+- Pinned Flutter 3.44.5 scoped analyzer for `wallet_detail_screen.dart` timed out in the sandbox without analyzer output; this matches the repo's previously recorded Flutter sandbox timeout behavior.
+- `git diff --check` passed after the Wallet Detail changes. No compile/test result for this newly touched screen was available in-sandbox; rerun the pinned analyzer outside the sandbox if needed.
+
+## [Phase 3] - 2026-07-10 12:32
+- Sandboxed Flutter commands remain unreliable, but pinned Flutter 3.44.5 outside the sandbox completed formatting and scoped analysis. Analyzer reported 19 existing warnings/infos and no errors in `add_transaction_sheet.dart`.
+- The regression test emitted the existing dependency/package resolution output and completed with `All tests passed!` (1 test).

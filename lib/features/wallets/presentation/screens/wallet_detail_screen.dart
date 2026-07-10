@@ -378,8 +378,9 @@ class _InfoCard extends StatelessWidget {
             error: (_, __) => const SizedBox.shrink(),
             data: (balance) {
               final isNeg = balance < 0;
-              return Text(
-                formatVND(balance),
+              return AnimatedMoneyText(
+                value: balance,
+                formatter: (value) => formatVND(value.round()),
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -434,31 +435,16 @@ class _LightProgressBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
+        AnimatedProgressBar(
+          value: ratio,
+          height: 6,
+          trackColor:
+              isOverflow
+                  ? Colors.red.withValues(alpha: 0.15)
+                  : color.withValues(alpha: 0.12),
+          valueColor: barColor,
           borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 6,
-            child: Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  color:
-                      isOverflow
-                          ? Colors.red.withValues(alpha: 0.15)
-                          : color.withValues(alpha: 0.12),
-                ),
-                FractionallySizedBox(
-                  widthFactor: ratio,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: barColor,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          semanticLabel: 'Mức sử dụng nguồn tiền',
         ),
         const SizedBox(height: 6),
         Row(

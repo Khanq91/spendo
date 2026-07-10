@@ -72,3 +72,16 @@
 - Formatted the two additional screens. Scoped analyzer remains error-free with 28 existing warnings/infos.
 - Re-ran `test/shared/widgets/motion/pressable_scale_test.dart`: 1 test passed.
 - Current status: Phase 2 remains in progress; manual validation is still required for value transitions, privacy masking, progress bars, and reduce-motion behavior.
+
+## [Phase 2] - 2026-07-10 12:05
+- Wired `AnimatedMoneyText` into the Wallet Detail current-balance card.
+- Replaced Wallet Detail's local `_LightProgressBar` fill implementation with shared `AnimatedProgressBar`, preserving ratio, overflow colors, labels, and provider-derived values.
+- Current status: Phase 2 code wiring is complete; focused analyzer was attempted but sandbox Flutter execution timed out before output. Manual light/dark/fancy/reduce-motion and screenshot checks remain required.
+
+## [Phase 3] - 2026-07-10 12:32
+- Added scale/fade `AnimatedSwitcher` feedback for amount changes in Add Transaction Sheet.
+- Added shared press feedback to category chips while preserving `_chipKeys`, horizontal auto-scroll, and the existing ChoiceChip callback.
+- Reused `AnimatedProgressBar` for the compact budget warning progress and centralized type-toggle timing through `MotionSpec`.
+- Added guarded submit/loading state so budget and wallet confirmation dialogs, add/edit persistence, and navigation remain unchanged while duplicate submits are prevented.
+- Formatted the sheet with pinned Dart 3.44.5; analyzer found no errors and only existing warnings/infos. Motion regression test passed.
+- Current status: Phase 3 code-complete; next step is manual keyboard/inset, add income/expense, edit, budget warning, wallet picker, and screenshot smoke.

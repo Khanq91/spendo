@@ -43,3 +43,12 @@
 
 ## [Phase 2] - 2026-07-10 11:52
 - Extend the same primitive to Wallets and Transactions summaries because they are compact, value-focused surfaces; leave list rows and large data-heavy lists untouched until the keyed/lazy list phase.
+
+## [Phase 2] - 2026-07-10 12:05
+- Reuse `AnimatedProgressBar` in Wallet Detail instead of maintaining a second local progress renderer, so value duration and reduce-motion behavior remain centralized while preserving the existing overflow track/value colors.
+- Animate Wallet Detail's current balance with `AnimatedMoneyText`; keep the initial-balance reference text static because only the provider-derived current value changes.
+
+## [Phase 3] - 2026-07-10 12:32
+- Use `AnimatedSwitcher` for the formatted amount string rather than changing `AmountInputController`; this keeps numpad/input behavior and amount validation untouched while adding visible feedback.
+- Wrap ChoiceChip with `PressableScale(deferTapToChild: true)` so the chip remains the owner of selection semantics and the new press effect cannot duplicate the selection callback.
+- Set `_isSubmitting` before budget/wallet checks and reset it in `finally`; this covers confirmation-dialog waits as well as repository writes without changing the existing transaction payload.
