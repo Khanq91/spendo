@@ -4,6 +4,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app.dart';
+import '../../../core/theme/app_glass_policy.dart';
 import '../../../core/theme/visual_mode_provider.dart';
 import '../../../shared/widgets/aurora_theme_background.dart';
 import '../../../shared/widgets/visual_mode_picker.dart';
@@ -154,26 +155,28 @@ class _WelcomeStep extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(28, 56, 28, 96),
       child: Column(
         children: [
-          GlassContainer(
-            useOwnLayer: true,
-            quality: GlassQuality.premium,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-            shape: const LiquidRoundedSuperellipse(borderRadius: 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const _BrandHeader(),
-                const SizedBox(height: 18),
-                Text(
-                  description,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: cs.onSurfaceVariant,
-                    fontSize: 16,
-                    height: 1.35,
+          RepaintBoundary(
+            child: GlassContainer(
+              useOwnLayer: true,
+              quality: AppGlassPolicy.focalQuality,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+              shape: const LiquidRoundedSuperellipse(borderRadius: 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _BrandHeader(),
+                  const SizedBox(height: 18),
+                  Text(
+                    description,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 16,
+                      height: 1.35,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 36),
@@ -232,7 +235,7 @@ class _GoogleDriveOptIn extends ConsumerWidget {
           width: 220,
           height: 52,
           useOwnLayer: true,
-          quality: GlassQuality.premium,
+          quality: AppGlassPolicy.interactiveQuality,
           enabled: !state.isLoading,
           onTap: state.isLoading ? () {} : onSignIn,
           shape: const LiquidRoundedSuperellipse(borderRadius: 18),
@@ -301,7 +304,7 @@ class _OnboardingActions extends StatelessWidget {
               width: 132,
               height: 48,
               useOwnLayer: true,
-              quality: GlassQuality.premium,
+              quality: AppGlassPolicy.interactiveQuality,
               onTap: onNext,
               shape: const LiquidRoundedSuperellipse(borderRadius: 18),
               child: const Text(

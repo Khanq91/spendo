@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:spendo/core/theme/app_glass_policy.dart';
 import 'package:spendo/core/theme/visual_mode_provider.dart';
 import 'package:spendo/shared/widgets/visual_mode_picker.dart';
 
@@ -32,5 +34,30 @@ void main() {
 
     expect(selectedMode, AppVisualMode.fancy);
     expect(callbackCount, 1);
+  });
+
+  testWidgets('glass tiles use the interactive quality policy', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: VisualModePicker(
+            selectedMode: AppVisualMode.normal,
+            useGlass: true,
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final containers = tester.widgetList<GlassContainer>(
+      find.byType(GlassContainer),
+    );
+    expect(containers, hasLength(2));
+    expect(
+      containers.every(
+        (container) => container.quality == AppGlassPolicy.interactiveQuality,
+      ),
+      isTrue,
+    );
   });
 }

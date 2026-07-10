@@ -78,3 +78,11 @@
 
 ## [Phase 6] - 2026-07-10 18:32
 - No implementation error in this documentation-only update. pubspec.yaml is currently 1.7.5+10 and was intentionally not bumped; future code-delivery sessions must perform and record the version bump before handoff.
+
+## [Phase 7] - 2026-07-10 19:12
+- The sandboxed apply_patch helper failed again with windows sandbox: helper_unknown_error; the same Codex apply-patch executable was run outside the broken sandbox for scoped edits, matching the recorded Phase 6 workaround.
+- The previously recorded Flutter 3.44.5 path at D:\khang\data\flutterDev\flutter_windows_3.44.5-stable no longer exists. Formatting, analysis, and tests used the repo-configured Flutter 3.44.0 SDK at D:\program\data\flutterDev\flutter.
+- The first regression batch used two stale test paths and exited failed before loading those files. The paths were corrected to test/features/transactions/presentation/widgets/grouped_transaction_sliver_test.dart and test/features/stats/presentation/screens/stats_screen_test.dart; the rerun passed all 7 tests.
+- GlassAdaptiveScopeConfig is annotated experimental by liquid_glass_widgets 0.21.3; its deliberate use is isolated with an inline analyzer ignore and must be rechecked when the package is upgraded.
+- Full flutter analyze --no-pub still exits 1 from 139 existing diagnostics but reports 0 errors (20 warnings, 119 infos). Scoped Phase 7 analysis has no new diagnostics; the only reported item is the existing deprecated Workmanager isInDebugMode use in main.dart.
+- Automated tests do not prove adaptive GPU tier selection, persisted cold-start behavior, real-device scroll jank, or Reduce Transparency rendering; these remain mandatory manual Phase 7 acceptance checks.

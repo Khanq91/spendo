@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/theme/app_glass_policy.dart';
 import '../../core/theme/visual_mode_provider.dart';
 import 'motion/motion.dart';
 
@@ -125,7 +126,7 @@ class _VisualModeTile extends StatelessWidget {
           width: double.infinity,
           padding: EdgeInsets.zero,
           useOwnLayer: true,
-          quality: GlassQuality.premium,
+          quality: AppGlassPolicy.interactiveQuality,
           shape: const LiquidRoundedSuperellipse(borderRadius: 22),
           child: content,
         ),

@@ -5,6 +5,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/theme/app_glass_policy.dart';
 import '../../core/theme/visual_mode_provider.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
@@ -111,15 +112,17 @@ class _AppShellState extends ConsumerState<AppShell> {
               ? isFancy
                   ? PressableScale(
                     deferTapToChild: true,
-                    child: GlassButton(
-                      key: const Key('spendo_fab_add_transaction'),
-                      icon: const Icon(Icons.add),
-                      iconSize: 28,
-                      useOwnLayer: true,
-                      quality: GlassQuality.premium,
-                      width: 56,
-                      height: 56,
-                      onTap: _showAddTransactionSheet,
+                    child: RepaintBoundary(
+                      child: GlassButton(
+                        key: const Key('spendo_fab_add_transaction'),
+                        icon: const Icon(Icons.add),
+                        iconSize: 28,
+                        useOwnLayer: true,
+                        quality: AppGlassPolicy.interactiveQuality,
+                        width: 56,
+                        height: 56,
+                        onTap: _showAddTransactionSheet,
+                      ),
                     ),
                   )
                   : PressableScale(
@@ -215,34 +218,36 @@ class _FancySpendoNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return GlassTabBar.bottom(
-      selectedIndex: selectedIndex,
-      onTabSelected: onTap,
-      quality: GlassQuality.premium,
-      horizontalPadding: 18,
-      verticalPadding: 16,
-      barHeight: 64,
-      selectedIconColor: cs.primary,
-      selectedLabelColor: cs.primary,
-      unselectedIconColor: cs.onSurfaceVariant,
-      unselectedLabelColor: cs.onSurfaceVariant,
-      tabs: const [
-        GlassTab(
-          icon: Icon(Icons.receipt_long_outlined),
-          activeIcon: Icon(Icons.receipt_long),
-          label: 'Giao dịch',
-        ),
-        GlassTab(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Trang chủ',
-        ),
-        GlassTab(
-          icon: Icon(Icons.settings_outlined),
-          activeIcon: Icon(Icons.settings),
-          label: 'Cài đặt',
-        ),
-      ],
+    return RepaintBoundary(
+      child: GlassTabBar.bottom(
+        selectedIndex: selectedIndex,
+        onTabSelected: onTap,
+        quality: AppGlassPolicy.focalQuality,
+        horizontalPadding: 18,
+        verticalPadding: 16,
+        barHeight: 64,
+        selectedIconColor: cs.primary,
+        selectedLabelColor: cs.primary,
+        unselectedIconColor: cs.onSurfaceVariant,
+        unselectedLabelColor: cs.onSurfaceVariant,
+        tabs: const [
+          GlassTab(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long),
+            label: 'Giao dịch',
+          ),
+          GlassTab(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Trang chủ',
+          ),
+          GlassTab(
+            icon: Icon(Icons.settings_outlined),
+            activeIcon: Icon(Icons.settings),
+            label: 'Cài đặt',
+          ),
+        ],
+      ),
     );
   }
 }

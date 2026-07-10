@@ -1,21 +1,24 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'core/config.dart';
 import 'core/db/powersync_db.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/reminder_notification_service.dart';
-import 'core/utils/widget_sync.dart';
 import 'core/services/gdrive_auth_service.dart';
 import 'core/services/gdrive_backup_service.dart';
+import 'core/theme/app_glass_policy.dart';
+import 'core/utils/widget_sync.dart';
 import 'features/onboarding/presentation/startup_gate.dart';
 import 'features/reminders/data/reminder_repository.dart';
 import 'shared/widgets/splash_screen.dart';
-
-import 'package:flutter/foundation.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -54,12 +57,33 @@ void callbackDispatcher() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final preferences = await SharedPreferences.getInstance();
+  final initialGlassQuality = AppGlassPolicy.parseSavedQuality(
+    preferences.getString(AppGlassPolicy.adaptiveQualityPrefsKey),
+  );
   await LiquidGlassWidgets.initialize();
   Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
   runApp(
     LiquidGlassWidgets.wrap(
       child: const ProviderScope(child: _AppRoot()),
-      theme: GlassThemeData.simple(quality: GlassQuality.premium),
+      theme: GlassThemeData.simple(quality: AppGlassPolicy.themeQuality),
+      adaptiveQuality: true,
+      // Intentional Phase 7 opt-in; this is the package's device quality cap.
+      // ignore: experimental_member_use
+      adaptiveConfig: GlassAdaptiveScopeConfig(
+        minQuality: AppGlassPolicy.minimumAdaptiveQuality,
+        maxQuality: AppGlassPolicy.maximumAdaptiveQuality,
+        initialQuality: initialGlassQuality,
+        allowStepUp: true,
+        onQualityChanged: (_, quality) {
+          unawaited(
+            preferences.setString(
+              AppGlassPolicy.adaptiveQualityPrefsKey,
+              quality.name,
+            ),
+          );
+        },
+      ),
     ),
   );
 }

@@ -88,3 +88,13 @@
 ## [Phase 6] - 2026-07-10 18:32
 - Treat app-version bumping as a required completion step for every plan implementation session that changes code, not as optional release cleanup.
 - Increment both patch version and build number once per completed code-delivery session so user-visible versioning and Android/iOS build identity advance together; skip the bump for documentation-only sessions.
+
+## [Phase 6] - 2026-07-10 19:12
+- Close Phase 6 after the user's manual test confirmation and proceed directly to Phase 7.
+
+## [Phase 7] - 2026-07-10 19:12
+- Use liquid_glass_widgets root adaptiveQuality as the device-performance ceiling instead of creating a custom benchmark; persist the settled tier so repeat cold starts avoid a fresh warm-up window.
+- Keep the inherited theme and interactive controls at GlassQuality.standard; reserve premium requests for fixed focal surfaces such as the fancy bottom nav and onboarding hero, while allowing adaptive fallback to minimal.
+- Do not add a user-facing standard/premium preference in this phase. Quality remains derived from the existing normal/fancy presentation choice plus package device policy, avoiding a new provider/settings migration.
+- Accept the package's annotated experimental adaptive config with a scoped analyzer ignore and focused tests because it is the installed package's intended API for automatic quality capping; keep the opt-in isolated in main.dart.
+- Use RepaintBoundary only around the existing heavy fixed glass surfaces and do not expand Liquid Glass into data-heavy or long-scroll surfaces.

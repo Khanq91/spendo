@@ -135,3 +135,17 @@
 - Added a mandatory handoff step to the master plan: every completed implementation session with code changes must bump both the patch version and build number in pubspec.yaml.
 - Future progress entries must record the old and new app versions. Documentation-only sessions do not bump the app version.
 - Current pubspec.yaml version is 1.7.5+10; it was preserved because this entry only changes process documentation.
+
+## [Phase 6] - 2026-07-10 19:12
+- User confirmed the Phase 6 manual testing is complete; Phase 6 acceptance is closed.
+- Current status: Phase 6 complete; Phase 7 Liquid Glass quality policy started.
+
+## [Phase 7] - 2026-07-10 19:12
+- Added AppGlassPolicy to centralize root, interactive, focal, and adaptive quality tiers instead of hardcoding GlassQuality.premium at each surface.
+- Enabled the package's root adaptive-quality scope, restored/persisted its settled device tier through SharedPreferences, and kept system Reduce Motion/Reduce Transparency handling enabled.
+- Kept root theme and interactive glass controls at standard; fixed focal surfaces may request premium, with the adaptive scope enforcing a device-dependent ceiling.
+- Added RepaintBoundary around the fancy bottom nav/FAB and onboarding hero glass surfaces; no glass was added to transaction lists, charts, Settings lists, or other data-heavy scroll content.
+- Added policy parsing tests and a visual-mode picker quality test. Ran 7 focused/regression tests covering glass policy, visual mode, press feedback, 500-item lazy transactions, and Stats charts: all passed.
+- Scoped analyzer reports no new Phase 7 diagnostics; one existing Workmanager deprecation info remains in main.dart. Full analyzer reports 0 errors, 20 warnings, and 119 infos (139 existing issues, exit code 1).
+- Bumped app version from 1.7.5+10 to 1.7.6+11.
+- Current status: Phase 7 code-complete and manual acceptance-pending. Next step: cold-start twice to verify adaptive-tier persistence, then smoke onboarding, normal/fancy switching, nav/FAB, Home/Transactions/Settings scrolling, and system Reduce Motion/Reduce Transparency behavior on real devices including a lower-end Android device if available.
