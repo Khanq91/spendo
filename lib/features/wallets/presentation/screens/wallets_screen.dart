@@ -396,7 +396,11 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
                 const SizedBox(width: 4),
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
+                  duration: appMotion.whenMotionAllowed(
+                    context,
+                    appMotion.listDuration,
+                  ),
+                  curve: appMotion.curveStandard,
                   child: Icon(
                     Icons.keyboard_arrow_down,
                     size: 16,
@@ -415,7 +419,11 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
           ),
           crossFadeState:
               _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 200),
+          duration: appMotion.whenMotionAllowed(
+            context,
+            appMotion.listDuration,
+          ),
+          sizeCurve: appMotion.curveLayout,
         ),
       ],
     );

@@ -125,29 +125,52 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
                       ),
                     ),
                   ),
-                  if (payments.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 24,
-                      ),
-                      child: Text(
-                        'Chưa có thanh toán nào',
-                        style: TextStyle(
-                          color: cs.onSurfaceVariant,
-                          fontSize: 13,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  else
-                    ...payments.map(
-                      (p) => _PaymentTile(
-                        payment: p,
-                        typeColor: typeColor,
-                        onDelete: () => _deletePayment(p.id),
-                      ),
+                  AnimatedSwitcher(
+                    duration: appMotion.whenMotionAllowed(
+                      context,
+                      appMotion.listDuration,
                     ),
+                    transitionBuilder:
+                        (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: SizeTransition(
+                            sizeFactor: animation,
+                            alignment: Alignment.topCenter,
+                            child: child,
+                          ),
+                        ),
+                    child:
+                        payments.isEmpty
+                            ? Padding(
+                              key: const ValueKey('payments_empty'),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 24,
+                              ),
+                              child: Text(
+                                'Chưa có thanh toán nào',
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                            : Column(
+                              key: ValueKey(
+                                payments.map((payment) => payment.id).join('|'),
+                              ),
+                              children: [
+                                for (final payment in payments)
+                                  _PaymentTile(
+                                    key: ValueKey(payment.id),
+                                    payment: payment,
+                                    typeColor: typeColor,
+                                    onDelete: () => _deletePayment(payment.id),
+                                  ),
+                              ],
+                            ),
+                  ),
                   const SizedBox(height: 80),
                 ]),
               );
@@ -478,6 +501,7 @@ class _PaymentTile extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _PaymentTile({
+    super.key,
     required this.payment,
     required this.typeColor,
     required this.onDelete,
@@ -642,23 +666,31 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child:
-                          _loading
-                              ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
+                      child: AnimatedSwitcher(
+                        duration: appMotion.whenMotionAllowed(
+                          context,
+                          appMotion.tapUpDuration,
+                        ),
+                        child:
+                            _loading
+                                ? const SizedBox(
+                                  key: ValueKey('payment_loading'),
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : const Text(
+                                  'Xác nhận',
+                                  key: ValueKey('payment_label'),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              )
-                              : const Text(
-                                'Xác nhận',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                      ),
                     ),
                   ),
             ),

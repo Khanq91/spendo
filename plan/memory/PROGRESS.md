@@ -116,3 +116,22 @@
 - Added a focused Stats widget test that renders the animated summary and pie chart, switches tabs, and verifies the daily bar chart; it passed with pinned Flutter 3.44.5.
 - Formatted the touched Stats files with pinned Dart 3.44.5. Scoped Flutter 3.44.5 analyzer passed with no issues; the new Stats test plus the motion and 500-transaction lazy-list regression tests all passed.
 - Current status: Phase 5 code-complete and manual acceptance-pending. Next step: test month/custom ranges (including 31/32/90/>90 days), pie touch, bar tooltips, light/dark/fancy, reduce motion, and screenshot/performance behavior on a device.
+
+## [Phase 5] - 2026-07-10 18:23
+- User confirmed Phase 5 manual testing is complete; Phase 5 acceptance is closed.
+- Current status: Phase 5 complete; Phase 6 secondary-screen polish started.
+
+## [Phase 6] - 2026-07-10 18:23
+- Standardized Wallet archived, Budget alert, and Settings category expansion timing through shared MotionSpec with reduce-motion fallback.
+- Added animated CTA/loading state to monthly/category Budget sheets and the Loan payment sheet without changing repository payloads or providers.
+- Added a local add/delete transition for Loan payment history, Reminder list transitions, Reminder toggle state feedback, and press feedback for reminder suggestions/presets.
+- Added press/selected transitions to the shared VisualModePicker and clarified in Settings that visual mode affects presentation only.
+- Added visual_mode_picker_test.dart; it verifies one callback and selection update after switching to fancy mode.
+- Ran four regression tests covering Visual Mode picker, PressableScale, the 500-item lazy transaction sliver, and Stats charts: all passed.
+- Scoped analyzer has 0 errors. The Phase 6 axisAlignment diagnostic and two unused imports from the supplied 40-item log were fixed; 37 pre-existing warnings/infos remain in the large touched files.
+- Current status: Phase 6 code-complete and manual acceptance-pending. Next step: smoke Wallet archived expansion, Budget set/update/delete/loading, Loan payment add/delete, Reminder suggestion/toggle/delete, Settings category expansion, normal/fancy picker, and reduce-motion behavior on a device.
+
+## [Phase 6] - 2026-07-10 18:32
+- Added a mandatory handoff step to the master plan: every completed implementation session with code changes must bump both the patch version and build number in pubspec.yaml.
+- Future progress entries must record the old and new app versions. Documentation-only sessions do not bump the app version.
+- Current pubspec.yaml version is 1.7.5+10; it was preserved because this entry only changes process documentation.

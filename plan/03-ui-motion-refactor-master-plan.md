@@ -556,6 +556,10 @@ Moi phase UI nen chay:
    - text scale basic
    - reduce motion fallback
    - light/dark/fancy contrast
+6. App version:
+   - Moi luot hoan tat implementation co thay doi code theo plan phai tang version trong pubspec.yaml truoc khi ban giao.
+   - Mac dinh tang ca patch version va build number (vi du 1.7.5+10 -> 1.7.6+11) de Android/iOS deu nhan dien day la build moi.
+   - Ghi version cu -> moi trong plan/memory/PROGRESS.md; luot chi sua tai lieu/quy trinh thi khong bump version.
 
 ## 9. Uu tien thuc te
 

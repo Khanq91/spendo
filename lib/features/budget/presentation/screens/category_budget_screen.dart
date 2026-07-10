@@ -6,7 +6,6 @@ import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
-import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../../transactions/presentation/widgets/numpad.dart';
 import '../../data/category_budget_repository.dart';
@@ -493,25 +492,33 @@ class _SetCategoryBudgetSheetState extends State<_SetCategoryBudgetSheet> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child:
-                        _loading
-                            ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                    child: AnimatedSwitcher(
+                      duration: appMotion.whenMotionAllowed(
+                        context,
+                        appMotion.tapUpDuration,
+                      ),
+                      child:
+                          _loading
+                              ? const SizedBox(
+                                key: ValueKey('category_budget_loading'),
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : Text(
+                                isEdit
+                                    ? 'Cập nhật hạn mức'
+                                    : 'Đặt hạn mức ${_amountCtrl.formatted} ₫',
+                                key: const ValueKey('category_budget_label'),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            )
-                            : Text(
-                              isEdit
-                                  ? 'Cập nhật hạn mức'
-                                  : 'Đặt hạn mức ${_amountCtrl.formatted} ₫',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                    ),
                   ),
             ),
           ),

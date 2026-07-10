@@ -6,6 +6,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../../../../core/db/powersync_db.dart';
 import '../../../../core/notifications/reminder_notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../habits/domain/detected_habit.dart';
 import '../../../habits/presentation/providers/habit_provider.dart';
@@ -62,7 +63,26 @@ class RemindersScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          ...reminders.map((r) => _ReminderTile(reminder: r)),
+                          AnimatedSwitcher(
+                            duration: appMotion.whenMotionAllowed(
+                              context,
+                              appMotion.listDuration,
+                            ),
+                            child: Column(
+                              key: ValueKey(
+                                reminders
+                                    .map((reminder) => reminder.id)
+                                    .join('|'),
+                              ),
+                              children: [
+                                for (final reminder in reminders)
+                                  _ReminderTile(
+                                    key: ValueKey(reminder.id),
+                                    reminder: reminder,
+                                  ),
+                              ],
+                            ),
+                          ),
                         ],
                         if (kDebugMode && reminders.isNotEmpty) ...[
                           _DebugPanel(reminders: reminders),
@@ -217,8 +237,9 @@ class _HabitSuggestionTile extends ConsumerWidget {
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
-            GestureDetector(
+            PressableScale(
               onTap: () => repo.dismiss(habit.id),
+              borderRadius: BorderRadius.circular(16),
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Icon(
@@ -618,7 +639,7 @@ class _PresetSection extends ConsumerWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (_, i) {
               final preset = available[i];
-              return GestureDetector(
+              return PressableScale(
                 onTap:
                     () => showModalBottomSheet(
                       context: context,
@@ -656,7 +677,7 @@ class _PresetSection extends ConsumerWidget {
 
 class _ReminderTile extends ConsumerWidget {
   final RecurringReminder reminder;
-  const _ReminderTile({required this.reminder});
+  const _ReminderTile({super.key, required this.reminder});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -666,29 +687,45 @@ class _ReminderTile extends ConsumerWidget {
     final actions = ref.read(reminderActionsProvider);
 
     return ListTile(
-      leading: Container(
+      leading: AnimatedContainer(
+        duration: appMotion.whenMotionAllowed(context, appMotion.listDuration),
+        curve: appMotion.curveStandard,
         width: 40,
         height: 40,
         decoration: BoxDecoration(
           color:
               reminder.isActive
-                  ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
+                  ? Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.12)
                   : cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(
-          LucideIcons.bell,
-          size: 18,
-          color: reminder.isActive ? Theme.of(context).colorScheme.primary : cs.onSurfaceVariant,
+        child: AnimatedSwitcher(
+          duration: appMotion.whenMotionAllowed(
+            context,
+            appMotion.tapUpDuration,
+          ),
+          child: Icon(
+            LucideIcons.bell,
+            key: ValueKey(reminder.isActive),
+            size: 18,
+            color:
+                reminder.isActive
+                    ? Theme.of(context).colorScheme.primary
+                    : cs.onSurfaceVariant,
+          ),
         ),
       ),
-      title: Text(
-        reminder.title,
+      title: AnimatedDefaultTextStyle(
+        duration: appMotion.whenMotionAllowed(context, appMotion.listDuration),
+        curve: appMotion.curveStandard,
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: reminder.isActive ? cs.onSurface : cs.onSurfaceVariant,
         ),
+        child: Text(reminder.title),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

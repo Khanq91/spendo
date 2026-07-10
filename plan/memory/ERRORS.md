@@ -68,3 +68,13 @@
 - The first scoped analyzer run found one new unused local in `stats_screen.dart`; it was removed and the rerun reported `No issues found` for both touched Stats files.
 - `pubspec.yaml` changed concurrently from `1.7.3+10` to `1.7.4+10`; this was not part of Phase 5 and was preserved without modification.
 - The focused Stats widget test proves summary/pie/bar rendering and tab switching, but cannot prove real chart interpolation, tooltip interaction, light/dark/fancy contrast, or reduce-motion behavior; these remain manual device checks.
+
+## [Phase 6] - 2026-07-10 18:23
+- The integrated apply_patch helper repeatedly failed during Windows sandbox setup with helper_unknown_error. The same Codex patch helper was run outside the broken sandbox to apply scoped patches.
+- The first scoped flutter analyze attempt timed out before output; rerunning with --no-pub completed normally.
+- The user-supplied analyzer log reported 40 diagnostics and no errors. One new deprecated axisAlignment use and two safe unused imports were fixed; the rerun reports 37 pre-existing warnings/infos and 0 errors.
+- Remaining diagnostics are mainly withOpacity deprecations plus existing async-context, activeColor/value deprecations, and the disabled Settings _import helper. Avoid mixing that cleanup into Phase 6 behavior work.
+- Widget tests do not validate animation feel, sheet insets, list transition jank, or visual contrast on a real device; Phase 6 still needs the manual smoke checks listed in PROGRESS.md.
+
+## [Phase 6] - 2026-07-10 18:32
+- No implementation error in this documentation-only update. pubspec.yaml is currently 1.7.5+10 and was intentionally not bumped; future code-delivery sessions must perform and record the version bump before handoff.

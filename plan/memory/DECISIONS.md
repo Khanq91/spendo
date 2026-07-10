@@ -74,3 +74,17 @@
 - Preserve prior data while Riverpod refreshes when `AsyncValue` still has a value, allowing chart values to tween rather than replacing the chart with a loading surface on every date-range change.
 - Add the Stats summary as a plain Material data surface above both tabs; do not add Liquid Glass around summaries or charts.
 - Treat Phase 5 as code-complete but acceptance-pending until live-device checks cover date ranges, tooltips, themes, accessibility motion settings, and chart performance.
+
+## [Phase 5] - 2026-07-10 18:23
+- Close Phase 5 after the user's manual test confirmation and proceed to Phase 6.
+
+## [Phase 6] - 2026-07-10 18:23
+- Split the broad secondary-screen phase into small presentation-only slices: expansion timing, CTA/loading state, local list feedback, and visual-mode selection feedback.
+- Reuse MotionSpec and Flutter built-ins instead of adding a package; every new duration respects the existing reduce-motion policy.
+- Animate only the Loan payment block and Reminder list block when their IDs change, rather than transitioning an entire screen or modifying repository/provider behavior.
+- Keep Settings plain and data-focused; improve hierarchy and selected-state feedback without adding Liquid Glass to the long settings list.
+- Do not turn the supplied analyzer output into a broad deprecated-API cleanup pass; fix Phase 6 regressions and safe unused imports, then record the remaining pre-existing diagnostics separately.
+
+## [Phase 6] - 2026-07-10 18:32
+- Treat app-version bumping as a required completion step for every plan implementation session that changes code, not as optional release cleanup.
+- Increment both patch version and build number once per completed code-delivery session so user-visible versioning and Android/iOS build identity advance together; skip the bump for documentation-only sessions.

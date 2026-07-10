@@ -3,6 +3,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/visual_mode_provider.dart';
+import 'motion/motion.dart';
 
 class VisualModePicker extends StatelessWidget {
   const VisualModePicker({
@@ -95,19 +96,31 @@ class _VisualModeTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Icon(
-            selected ? LucideIcons.circleCheck : LucideIcons.circle,
-            color: selected ? cs.primary : cs.outline,
-            size: 20,
+          AnimatedSwitcher(
+            duration: appMotion.whenMotionAllowed(
+              context,
+              appMotion.tapUpDuration,
+            ),
+            transitionBuilder:
+                (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+            child: Icon(
+              selected ? LucideIcons.circleCheck : LucideIcons.circle,
+              key: ValueKey(selected),
+              color: selected ? cs.primary : cs.outline,
+              size: 20,
+            ),
           ),
         ],
       ),
     );
 
     if (useGlass) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      return PressableScale(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
         child: GlassContainer(
           width: double.infinity,
           padding: EdgeInsets.zero,
@@ -119,9 +132,16 @@ class _VisualModeTile extends StatelessWidget {
       );
     }
 
-    return Material(
-      color: selected ? cs.primaryContainer.withValues(alpha: 0.5) : cs.surface,
-      child: InkWell(onTap: onTap, child: content),
+    return PressableScale(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: appMotion.whenMotionAllowed(context, appMotion.listDuration),
+        curve: appMotion.curveStandard,
+        color:
+            selected ? cs.primaryContainer.withValues(alpha: 0.5) : cs.surface,
+        child: content,
+      ),
     );
   }
 }

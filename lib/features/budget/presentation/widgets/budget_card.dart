@@ -120,7 +120,11 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
                       const Spacer(),
                       AnimatedRotation(
                         turns: _expanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 200),
+                        duration: appMotion.whenMotionAllowed(
+                          context,
+                          appMotion.listDuration,
+                        ),
+                        curve: appMotion.curveStandard,
                         child: Icon(
                           Icons.keyboard_arrow_down,
                           size: 18,
@@ -140,8 +144,11 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
                     _expanded
                         ? CrossFadeState.showSecond
                         : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 220),
-                sizeCurve: Curves.easeOutCubic,
+                duration: appMotion.whenMotionAllowed(
+                  context,
+                  appMotion.listDuration,
+                ),
+                sizeCurve: appMotion.curveLayout,
               ),
             ],
 

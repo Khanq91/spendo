@@ -11,6 +11,7 @@ import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/export_service.dart';
 import '../../../../core/utils/import_service.dart';
 import '../../../../shared/widgets/visual_mode_picker.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/data/category_repository.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
@@ -1269,7 +1270,11 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                 ),
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
+                  duration: appMotion.whenMotionAllowed(
+                    context,
+                    appMotion.listDuration,
+                  ),
+                  curve: appMotion.curveStandard,
                   child: Icon(
                     Icons.keyboard_arrow_down,
                     size: 20,
@@ -1335,8 +1340,11 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
           ),
           crossFadeState:
               _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 220),
-          sizeCurve: Curves.easeOutCubic,
+          duration: appMotion.whenMotionAllowed(
+            context,
+            appMotion.listDuration,
+          ),
+          sizeCurve: appMotion.curveLayout,
         ),
       ],
     );
@@ -1360,7 +1368,8 @@ class _TabChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
+        curve: appMotion.curveStandard,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color:
@@ -1414,6 +1423,11 @@ class _VisualModeSheet extends ConsumerWidget {
                 fontWeight: FontWeight.w600,
                 color: cs.onSurface,
               ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Hiệu ứng chỉ thay đổi phần trình bày, không ảnh hưởng dữ liệu.',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 14),
             VisualModePicker(

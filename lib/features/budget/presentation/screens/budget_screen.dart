@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/utils/currency_formatter.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../../transactions/presentation/widgets/numpad.dart';
 import '../../data/budget_repository.dart';
 import '../../domain/budget.dart';
 import '../providers/budget_provider.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 
 class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
@@ -48,6 +48,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   }
 
   Future<void> _delete() async {
+    if (_loading) return;
+    setState(() => _loading = true);
     final month = ref.read(selectedMonthProvider);
     final key = Budget.monthKey(month);
     await BudgetRepository().delete(key);
@@ -57,13 +59,13 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   @override
   Widget build(BuildContext context) {
     final month = ref.watch(selectedMonthProvider);
-    final hasBudget =
-        ref.watch(currentBudgetProvider).valueOrNull != null;
+    final hasBudget = ref.watch(currentBudgetProvider).valueOrNull != null;
     final cs = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -88,23 +90,27 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                     const Text(
                       'Hạn mức chi tiêu',
                       style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Text(
                       'Tháng ${month.month}/${month.year}',
                       style: TextStyle(
-                          fontSize: 12, color: cs.onSurfaceVariant),
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
                 const Spacer(),
                 if (hasBudget)
                   TextButton(
-                    onPressed: _delete,
+                    onPressed: _loading ? null : _delete,
                     style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFFE53935)),
-                    child: const Text('Xoá',
-                        style: TextStyle(fontSize: 13)),
+                      foregroundColor: const Color(0xFFE53935),
+                    ),
+                    child: const Text('Xoá', style: TextStyle(fontSize: 13)),
                   ),
               ],
             ),
@@ -120,21 +126,22 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               children: [
                 ListenableBuilder(
                   listenable: _amountCtrl,
-                  builder: (_, __) => Text(
-                    _amountCtrl.formatted,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF6C63FF),
-                      letterSpacing: -1,
-                    ),
-                  ),
+                  builder:
+                      (_, __) => Text(
+                        _amountCtrl.formatted,
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF6C63FF),
+                          letterSpacing: -1,
+                        ),
+                      ),
                 ),
                 const SizedBox(width: 4),
-                Text('₫',
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: cs.onSurfaceVariant)),
+                Text(
+                  '₫',
+                  style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+                ),
               ],
             ),
           ),
@@ -151,34 +158,44 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: ListenableBuilder(
               listenable: _amountCtrl,
-              builder: (_, __) => FilledButton(
-                onPressed: _amountCtrl.hasValue && !_loading
-                    ? _save
-                    : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF6C63FF),
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              builder:
+                  (_, __) => FilledButton(
+                    onPressed: _amountCtrl.hasValue && !_loading ? _save : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF6C63FF),
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: appMotion.whenMotionAllowed(
+                        context,
+                        appMotion.tapUpDuration,
+                      ),
+                      child:
+                          _loading
+                              ? const SizedBox(
+                                key: ValueKey('budget_loading'),
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : Text(
+                                hasBudget
+                                    ? 'Cập nhật hạn mức'
+                                    : 'Đặt hạn mức ${_amountCtrl.formatted} ₫',
+                                key: const ValueKey('budget_label'),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                    ),
                   ),
-                ),
-                child: _loading
-                    ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white),
-                )
-                    : Text(
-                  hasBudget
-                      ? 'Cập nhật hạn mức'
-                      : 'Đặt hạn mức ${_amountCtrl.formatted} ₫',
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
             ),
           ),
         ],
