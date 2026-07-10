@@ -27,3 +27,11 @@
 - Corrected Home loading behavior after manual review: Summary, Wallet, and Feature grid now remain visible while only the transaction-list sliver shows skeleton rows.
 - Scoped analyzer with Flutter 3.44.5 passed for `lib/features/home/presentation/screens/home_screen.dart`: no issues found.
 - Current status: Home loading/data transition is narrowed to the list area; next step is manual visual check on Home initial load and month switch.
+
+## [Phase 1] - 2026-07-10 08:40
+- Added press feedback to both normal and fancy add-transaction FABs while preserving each child button's existing callback and semantics.
+- Extended `PressableScale` with `deferTapToChild` so it can observe pointer state without competing with or duplicating a nested button tap.
+- Replaced the Wallets full-screen loading spinner with a lightweight net-worth/wallet-list skeleton using the existing reduce-motion-aware `SkeletonBlock`.
+- Added a scoped widget test proving deferred tap mode invokes the child callback exactly once.
+- Ran Flutter 3.44.5 scoped analyzer for the 3 touched production files: no issues found. Ran the new widget test: 1 passed, exit code 0.
+- Current status: Phase 1 implementation is complete; manual normal/fancy FAB, Home/Transactions/Wallets visual smoke, screenshot comparison, and 100+ transaction scroll checks are still required before closing acceptance and starting Phase 2.

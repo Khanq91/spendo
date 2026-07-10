@@ -13,6 +13,7 @@ class PressableScale extends StatefulWidget {
     this.borderRadius,
     this.behavior = HitTestBehavior.opaque,
     this.haptic = false,
+    this.deferTapToChild = false,
   });
 
   final Widget child;
@@ -22,6 +23,7 @@ class PressableScale extends StatefulWidget {
   final BorderRadius? borderRadius;
   final HitTestBehavior behavior;
   final bool haptic;
+  final bool deferTapToChild;
 
   @override
   State<PressableScale> createState() => _PressableScaleState();
@@ -30,7 +32,8 @@ class PressableScale extends StatefulWidget {
 class _PressableScaleState extends State<PressableScale> {
   bool _pressed = false;
 
-  bool get _isInteractive => widget.enabled && widget.onTap != null;
+  bool get _isInteractive =>
+      widget.enabled && (widget.onTap != null || widget.deferTapToChild);
 
   void _setPressed(bool value) {
     if (!_isInteractive || _pressed == value) return;
@@ -55,22 +58,33 @@ class _PressableScaleState extends State<PressableScale> {
       child: widget.child,
     );
 
+    final interactiveChild =
+        widget.deferTapToChild
+            ? Listener(
+              behavior: widget.behavior,
+              onPointerDown: (_) => _setPressed(true),
+              onPointerUp: (_) => _setPressed(false),
+              onPointerCancel: (_) => _setPressed(false),
+              child: child,
+            )
+            : GestureDetector(
+              behavior: widget.behavior,
+              onTap: _handleTap,
+              onTapDown: (_) => _setPressed(true),
+              onTapUp: (_) => _setPressed(false),
+              onTapCancel: () => _setPressed(false),
+              child: child,
+            );
+
     return MouseRegion(
       cursor: _isInteractive ? SystemMouseCursors.click : MouseCursor.defer,
-      child: GestureDetector(
-        behavior: widget.behavior,
-        onTap: _handleTap,
-        onTapDown: (_) => _setPressed(true),
-        onTapUp: (_) => _setPressed(false),
-        onTapCancel: () => _setPressed(false),
-        child:
-            widget.borderRadius == null
-                ? child
-                : ClipRRect(
-                  borderRadius: widget.borderRadius!,
-                  child: child,
-                ),
-      ),
+      child:
+          widget.borderRadius == null
+              ? interactiveChild
+              : ClipRRect(
+                borderRadius: widget.borderRadius!,
+                child: interactiveChild,
+              ),
     );
   }
 }

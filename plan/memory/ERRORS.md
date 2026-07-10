@@ -18,3 +18,9 @@
 
 ## [Phase 1] - 2026-07-09 16:17
 - User observed the Home loading skeleton covered Summary/Wallet cards; avoid wrapping the entire Home body in loading skeleton for transaction stream states.
+
+## [Phase 1] - 2026-07-10 08:40
+- Sandboxed `dart format` and scoped `flutter analyze` again hung without output; running the Flutter 3.44.5 commands outside the sandbox completed normally.
+- The first scoped analyzer found 1 stale unused import and 5 deprecated `withOpacity` calls in the touched Wallets file; cleanup was limited to that file, and the rerun reported no issues.
+- The scoped widget test passed with exit code 0, but Flutter still printed `unable to find directory entry in pubspec.yaml: assets/images/`; keep this existing asset configuration warning separate from Phase 1 motion behavior.
+- `audit/flutter_analyze.txt` was regenerated during this session and now reflects a full-project run with 0 errors and 156 existing warnings/infos; it remains a generated/concurrent worktree change and was not edited manually.

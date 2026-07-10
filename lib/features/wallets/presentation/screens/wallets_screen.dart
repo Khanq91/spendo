@@ -5,7 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../home/presentation/widgets/summary_card.dart' show WalletProgressBar;
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../data/wallet_repository.dart';
 import '../../domain/wallet.dart';
 import '../providers/wallet_provider.dart';
@@ -35,44 +35,44 @@ class WalletsScreen extends ConsumerWidget {
         ],
       ),
       body: walletsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _WalletsSkeleton(),
         error: (e, _) => Center(child: Text('Lỗi: $e')),
         data: (wallets) => ListView(
-          children: [
-            _NetWorthCard(
-              netWorthAsync: netWorthAsync,
-              breakdownAsync: breakdownAsync,
-            ),
-            if (wallets.isEmpty)
-              _EmptyState(onAdd: () => _openForm(context))
-            else ...[
-              const SizedBox(height: 8),
-              ...wallets.map((w) => _WalletTile(wallet: w)),
-            ],
-            archivedAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (archived) {
-                if (archived.isEmpty) return const SizedBox.shrink();
-                return _ArchivedSection(wallets: archived);
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              child: OutlinedButton.icon(
-                onPressed: () => _openForm(context),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Thêm nguồn tiền'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+              children: [
+                _NetWorthCard(
+                  netWorthAsync: netWorthAsync,
+                  breakdownAsync: breakdownAsync,
+                ),
+                if (wallets.isEmpty)
+                  _EmptyState(onAdd: () => _openForm(context))
+                else ...[
+                  const SizedBox(height: 8),
+                  ...wallets.map((w) => _WalletTile(wallet: w)),
+                ],
+                archivedAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (archived) {
+                    if (archived.isEmpty) return const SizedBox.shrink();
+                    return _ArchivedSection(wallets: archived);
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openForm(context),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Thêm nguồn tiền'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
       ),
     );
   }
@@ -82,6 +82,64 @@ class WalletsScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       builder: (_) => const WalletFormSheet(),
+    );
+  }
+}
+
+class _WalletsSkeleton extends StatelessWidget {
+  const _WalletsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      key: const ValueKey('wallets_loading'),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        const SkeletonBlock(
+          height: 126,
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+        const SizedBox(height: 20),
+        const SkeletonBlock(width: 112, height: 14),
+        const SizedBox(height: 10),
+        for (var i = 0; i < 3; i++) ...[
+          const _WalletTileSkeleton(),
+          if (i < 2) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _WalletTileSkeleton extends StatelessWidget {
+  const _WalletTileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          SkeletonBlock(
+            width: 42,
+            height: 42,
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBlock(width: 132, height: 14),
+                SizedBox(height: 8),
+                SkeletonBlock(width: 88, height: 12),
+              ],
+            ),
+          ),
+          SizedBox(width: 12),
+          SkeletonBlock(width: 76, height: 14),
+        ],
+      ),
     );
   }
 }
@@ -130,9 +188,9 @@ class _NetWorthCard extends StatelessWidget {
                       loading: () => const Text(
                         '...',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700),
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700),
                       ),
                       error: (_, __) => const SizedBox.shrink(),
                       data: (total) {
@@ -197,8 +255,8 @@ class _DarkProgressBar extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   color: isOverflow
-                      ? Colors.redAccent.withOpacity(0.3)
-                      : Colors.white.withOpacity(0.2),
+                      ? Colors.redAccent.withValues(alpha: 0.3)
+                      : Colors.white.withValues(alpha: 0.2),
                 ),
                 FractionallySizedBox(
                   widthFactor: ratio,
@@ -245,7 +303,7 @@ class _WalletTile extends ConsumerWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
+          color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(categoryIcon(wallet.type.iconName), size: 20, color: color),
@@ -334,10 +392,10 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
           firstChild: const SizedBox.shrink(),
           secondChild: Column(
             children:
-            widget.wallets.map((w) => _ArchivedTile(wallet: w)).toList(),
+                widget.wallets.map((w) => _ArchivedTile(wallet: w)).toList(),
           ),
           crossFadeState:
-          _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 200),
         ),
       ],
@@ -359,11 +417,11 @@ class _ArchivedTile extends ConsumerWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(categoryIcon(wallet.type.iconName),
-            size: 20, color: color.withOpacity(0.5)),
+            size: 20, color: color.withValues(alpha: 0.5)),
       ),
       title: Text(wallet.name,
           style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),

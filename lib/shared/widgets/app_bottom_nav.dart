@@ -11,6 +11,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
 import 'aurora_theme_background.dart';
+import 'motion/motion.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -108,22 +109,28 @@ class _AppShellState extends ConsumerState<AppShell> {
       floatingActionButton:
           _showFab
               ? isFancy
-                  ? GlassButton(
-                    key: const Key('spendo_fab_add_transaction'),
-                    icon: const Icon(Icons.add),
-                    iconSize: 28,
-                    useOwnLayer: true,
-                    quality: GlassQuality.premium,
-                    width: 56,
-                    height: 56,
-                    onTap: _showAddTransactionSheet,
+                  ? PressableScale(
+                    deferTapToChild: true,
+                    child: GlassButton(
+                      key: const Key('spendo_fab_add_transaction'),
+                      icon: const Icon(Icons.add),
+                      iconSize: 28,
+                      useOwnLayer: true,
+                      quality: GlassQuality.premium,
+                      width: 56,
+                      height: 56,
+                      onTap: _showAddTransactionSheet,
+                    ),
                   )
-                  : FloatingActionButton(
-                    key: const Key('spendo_fab_add_transaction'),
-                    heroTag: 'global_fab',
-                    onPressed: _showAddTransactionSheet,
-                    shape: const CircleBorder(),
-                    child: const Icon(Icons.add, size: 28),
+                  : PressableScale(
+                    deferTapToChild: true,
+                    child: FloatingActionButton(
+                      key: const Key('spendo_fab_add_transaction'),
+                      heroTag: 'global_fab',
+                      onPressed: _showAddTransactionSheet,
+                      shape: const CircleBorder(),
+                      child: const Icon(Icons.add, size: 28),
+                    ),
                   )
               : null,
     );

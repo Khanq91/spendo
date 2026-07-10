@@ -15,3 +15,9 @@
 
 ## [Phase 1] - 2026-07-09 16:17
 - Keep Home header/content cards outside the transaction loading state; loading skeletons should represent the list area only so stable summary/wallet surfaces do not visually disappear.
+
+## [Phase 1] - 2026-07-10 08:40
+- Let nested FAB implementations keep ownership of tap callbacks; `PressableScale.deferTapToChild` uses pointer observation only, avoiding gesture-arena conflicts and double submission.
+- Use the existing pulse-only `SkeletonBlock` for Wallets instead of adding shimmer/package dependencies; its reduce-motion behavior remains centralized in `MotionSpec`.
+- Do not force an `AnimatedSwitcher` around Home slivers in Phase 1 because that would replace the current sliver render strategy; defer keyed list transitions to the shared lazy list work in Phase 4.
+- Treat Phase 1 as code-complete but acceptance-pending until visual, screenshot, and list-performance smoke checks are performed on a device/emulator.
