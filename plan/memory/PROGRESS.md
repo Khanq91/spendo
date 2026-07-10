@@ -102,3 +102,17 @@
 - Added a 500-transaction widget test that verifies stable keys and confirms the sliver does not build every `TransactionListItem` upfront.
 - Scoped Flutter 3.44.5 analyzer passed with no issues; the new lazy-list test and existing pressable-scale regression test both passed.
 - Current status: Phase 4 code-complete and manual acceptance-pending. Next step: test search/category/month switching, detail-sheet taps, scroll-position/FAB padding, and 200-1000 transaction scrolling on a device.
+
+## [Phase 4] - 2026-07-10 17:05
+- User confirmed Phase 4 manual testing is complete; Phase 4 acceptance is closed.
+- Current status: Phase 4 complete; Phase 5 Stats chart transition started without reopening the older plan drafts.
+
+## [Phase 5] - 2026-07-10 17:05
+- Added a compact animated Thu/Chi/Ròng summary row to Stats using the existing `statsSummaryProvider`, `AnimatedMoneyText`, and loading skeleton primitive.
+- Enabled `fl_chart` implicit data tweening for pie and daily/weekly bar charts through shared `MotionSpec` duration/curve with reduce-motion fallback.
+- Isolated pie touch state inside the chart widget so radius feedback no longer rebuilds the category legend and surrounding content.
+- Added fade/slide transitions for Stats loading, empty, and data regions, plus a keyed range-label transition in `StatsTimeSelector`.
+- Kept chart surfaces Material/plain and left Riverpod providers, PowerSync, tooltips, axes, date grouping, and transaction logic unchanged.
+- Added a focused Stats widget test that renders the animated summary and pie chart, switches tabs, and verifies the daily bar chart; it passed with pinned Flutter 3.44.5.
+- Formatted the touched Stats files with pinned Dart 3.44.5. Scoped Flutter 3.44.5 analyzer passed with no issues; the new Stats test plus the motion and 500-transaction lazy-list regression tests all passed.
+- Current status: Phase 5 code-complete and manual acceptance-pending. Next step: test month/custom ranges (including 31/32/90/>90 days), pie touch, bar tooltips, light/dark/fancy, reduce motion, and screenshot/performance behavior on a device.

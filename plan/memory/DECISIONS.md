@@ -64,3 +64,13 @@
 - Keep two presentation styles (`plain` and `filledHeader`) so Home/Wallet Detail and Transactions retain their existing hierarchy and divider treatment.
 - Apply `MotionListItem` only to transaction rows, not day headers, and keep animation built-in/reduce-motion-aware to avoid adding a package or making group labels visually noisy.
 - Keep stable key-to-index lookup in the sliver delegate so filtered/updated lists can preserve keyed child state without a linear scan per lookup.
+
+## [Phase 4] - 2026-07-10 17:05
+- Close Phase 4 after the user's manual test confirmation and proceed directly to Phase 5.
+
+## [Phase 5] - 2026-07-10 17:05
+- Use the implicit `PieChartData`/`BarChartData` tweening already provided by `fl_chart 0.68.0`, configured through shared `MotionSpec`, instead of adding controllers, custom painters, or another animation package.
+- Keep pie touch index state inside `_CategoryPieChart`; only the chart should rebuild for radius feedback, not the legend/list around it.
+- Preserve prior data while Riverpod refreshes when `AsyncValue` still has a value, allowing chart values to tween rather than replacing the chart with a loading surface on every date-range change.
+- Add the Stats summary as a plain Material data surface above both tabs; do not add Liquid Glass around summaries or charts.
+- Treat Phase 5 as code-complete but acceptance-pending until live-device checks cover date ranges, tooltips, themes, accessibility motion settings, and chart performance.

@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/domain/category.dart';
 import 'package:collection/collection.dart';
@@ -36,6 +37,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final summary = ref.watch(statsSummaryProvider);
+    final transactionsAsync = ref.watch(statsTransactionsProvider);
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -46,9 +50,155 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
           indicatorSize: TabBarIndicatorSize.label,
         ),
       ),
-      body: TabBarView(
-        controller: _tab,
-        children: const [_CategoryTab(), _DailyTab()],
+      body: Column(
+        children: [
+          _StatsSummaryRow(
+            summary: summary,
+            isLoading:
+                transactionsAsync.isLoading && !transactionsAsync.hasValue,
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: TabBarView(
+              controller: _tab,
+              children: const [_CategoryTab(), _DailyTab()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsSummaryRow extends StatelessWidget {
+  const _StatsSummaryRow({required this.summary, required this.isLoading});
+
+  final ({int income, int expense, int balance}) summary;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = appMotion.whenMotionAllowed(
+      context,
+      appMotion.valueDuration,
+    );
+
+    return SizedBox(
+      height: 76,
+      child: AnimatedSwitcher(
+        duration: duration,
+        switchInCurve: appMotion.curveStandard,
+        switchOutCurve: appMotion.curveLayout,
+        child:
+            isLoading
+                ? const Padding(
+                  key: ValueKey('stats-summary-loading'),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Expanded(child: SkeletonBlock(height: 48)),
+                      SizedBox(width: 8),
+                      Expanded(child: SkeletonBlock(height: 48)),
+                      SizedBox(width: 8),
+                      Expanded(child: SkeletonBlock(height: 48)),
+                    ],
+                  ),
+                )
+                : Padding(
+                  key: const ValueKey('stats-summary-values'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _StatsSummaryValue(
+                          label: 'Thu',
+                          value: summary.income,
+                          color: AppTheme.incomeColor,
+                          prefix: '+',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatsSummaryValue(
+                          label: 'Chi',
+                          value: summary.expense,
+                          color: AppTheme.expenseAltColor,
+                          prefix: '-',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatsSummaryValue(
+                          label: 'Ròng',
+                          value: summary.balance,
+                          color:
+                              summary.balance >= 0
+                                  ? AppTheme.incomeColor
+                                  : AppTheme.expenseAltColor,
+                          showPositiveSign: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+      ),
+    );
+  }
+}
+
+class _StatsSummaryValue extends StatelessWidget {
+  const _StatsSummaryValue({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.prefix = '',
+    this.showPositiveSign = false,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+  final String prefix;
+  final bool showPositiveSign;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 2),
+            AnimatedMoneyText(
+              value: value,
+              formatter: (animatedValue) {
+                final rounded = animatedValue.round();
+                final sign = showPositiveSign && rounded > 0 ? '+' : prefix;
+                return '$sign${formatVND(rounded)}';
+              },
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -64,10 +214,9 @@ class _CategoryTab extends ConsumerStatefulWidget {
 }
 
 class _CategoryTabState extends ConsumerState<_CategoryTab> {
-  int _touchedIndex = -1;
-
   @override
   Widget build(BuildContext context) {
+    final transactionsAsync = ref.watch(statsTransactionsProvider);
     final byCategory = ref.watch(statsExpensesByCategoryProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
     final allCats = categoriesAsync.valueOrNull ?? [];
@@ -75,29 +224,122 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
 
     final catMap = {for (final c in allCats) c.id: c};
     final total = byCategory.values.fold(0, (s, v) => s + v);
+    final isLoading =
+        (transactionsAsync.isLoading && !transactionsAsync.hasValue) ||
+        (categoriesAsync.isLoading && !categoriesAsync.hasValue);
 
-    if (byCategory.isEmpty) return const _EmptyStats();
+    if (isLoading) {
+      return const _StatsStateTransition(
+        stateKey: 'category-loading',
+        child: _StatsChartLoading(),
+      );
+    }
+
+    if (byCategory.isEmpty) {
+      return const _StatsStateTransition(
+        stateKey: 'category-empty',
+        child: _EmptyStats(),
+      );
+    }
 
     final entries =
         byCategory.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
+    return _StatsStateTransition(
+      stateKey: 'category-data',
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 220,
+              child: _CategoryPieChart(
+                entries: entries,
+                categories: catMap,
+                total: total,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Tổng chi: ',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                AnimatedMoneyText(
+                  value: total,
+                  formatter: (value) => formatVND(value.round()),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ...entries.map((entry) {
+              final cat = catMap[entry.key];
+              final pct = total > 0 ? (entry.value / total * 100) : 0.0;
+              return _LegendRow(
+                category: cat,
+                amount: entry.value,
+                percent: pct,
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryPieChart extends StatefulWidget {
+  const _CategoryPieChart({
+    required this.entries,
+    required this.categories,
+    required this.total,
+  });
+
+  final List<MapEntry<String, int>> entries;
+  final Map<String, Category> categories;
+  final int total;
+
+  @override
+  State<_CategoryPieChart> createState() => _CategoryPieChartState();
+}
+
+class _CategoryPieChartState extends State<_CategoryPieChart> {
+  int _touchedIndex = -1;
+
+  @override
+  void didUpdateWidget(covariant _CategoryPieChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_touchedIndex >= widget.entries.length) _touchedIndex = -1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final sections =
-        entries.asMap().entries.map((e) {
-          final i = e.key;
-          final entry = e.value;
-          final cat = catMap[entry.key];
-          final pct = total > 0 ? entry.value / total : 0.0;
-          final isTouched = i == _touchedIndex;
+        widget.entries.asMap().entries.map((indexedEntry) {
+          final index = indexedEntry.key;
+          final entry = indexedEntry.value;
+          final category = widget.categories[entry.key];
+          final percent = widget.total > 0 ? entry.value / widget.total : 0.0;
+          final isTouched = index == _touchedIndex;
 
           return PieChartSectionData(
             value: entry.value.toDouble(),
-            color: cat?.color ?? cs.outlineVariant,
+            color: category?.color ?? cs.outlineVariant,
             radius: isTouched ? 72 : 60,
-            // Ẩn label % trên chart
             title:
-                (pct <= 0.05)
-                    ? ''
-                    : '${(pct * 100).toStringAsFixed(0)}%',
+                percent <= 0.05 ? '' : '${(percent * 100).toStringAsFixed(0)}%',
             titleStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -106,54 +348,28 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
           );
         }).toList();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 220,
-            child: PieChart(
-              PieChartData(
-                sections: sections,
-                centerSpaceRadius: 48,
-                sectionsSpace: 2,
-                pieTouchData: PieTouchData(
-                  touchCallback: (event, response) {
-                    setState(() {
-                      if (!event.isInterestedForInteractions ||
-                          response?.touchedSection == null) {
-                        _touchedIndex = -1;
-                        return;
-                      }
-                      _touchedIndex =
-                          response!.touchedSection!.touchedSectionIndex;
-                    });
-                  },
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tổng chi: ${formatVND(total)}',
-            style: TextStyle(
-              fontSize: 13,
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 20),
-          ...entries.map((entry) {
-            final cat = catMap[entry.key];
-            final pct = total > 0 ? (entry.value / total * 100) : 0.0;
-            return _LegendRow(
-              category: cat,
-              amount: entry.value,
-              percent: pct,
-            );
-          }),
-        ],
+    return PieChart(
+      PieChartData(
+        sections: sections,
+        centerSpaceRadius: 48,
+        sectionsSpace: 2,
+        pieTouchData: PieTouchData(
+          touchCallback: (event, response) {
+            final nextIndex =
+                !event.isInterestedForInteractions ||
+                        response?.touchedSection == null
+                    ? -1
+                    : response!.touchedSection!.touchedSectionIndex;
+            if (nextIndex == _touchedIndex) return;
+            setState(() => _touchedIndex = nextIndex);
+          },
+        ),
       ),
+      swapAnimationDuration: appMotion.whenMotionAllowed(
+        context,
+        appMotion.chartDuration,
+      ),
+      swapAnimationCurve: appMotion.curveStandard,
     );
   }
 }
@@ -213,60 +429,79 @@ class _DailyTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final transactionsAsync = ref.watch(statsTransactionsProvider);
     final dailyTotals = ref.watch(statsDailyTotalsProvider);
     final range = ref.watch(statsDateRangeProvider);
     final cs = Theme.of(context).colorScheme;
+    final isLoading =
+        transactionsAsync.isLoading && !transactionsAsync.hasValue;
 
-    if (dailyTotals.isEmpty) return const _EmptyStats();
+    if (isLoading) {
+      return const _StatsStateTransition(
+        stateKey: 'daily-loading',
+        child: _StatsChartLoading(),
+      );
+    }
+
+    if (dailyTotals.isEmpty) {
+      return const _StatsStateTransition(
+        stateKey: 'daily-empty',
+        child: _EmptyStats(),
+      );
+    }
 
     final daySpan = range.daySpan;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Bar chart ──────────────────────────────────────────────
-          if (daySpan <= 90) ...[
+    return _StatsStateTransition(
+      stateKey: 'daily-data',
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Bar chart ──────────────────────────────────────────────
+            if (daySpan <= 90) ...[
+              Text(
+                daySpan <= 31 ? 'Chi tiêu theo ngày' : 'Chi tiêu theo tuần',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 200,
+                child:
+                    daySpan <= 31
+                        ? _buildDailyBarChart(context, dailyTotals, range, cs)
+                        : _buildWeeklyBarChart(context, dailyTotals, range, cs),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // ── Daily detail list ──────────────────────────────────────
             Text(
-              daySpan <= 31 ? 'Chi tiêu theo ngày' : 'Chi tiêu theo tuần',
+              'Chi tiết từng ngày',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: cs.onSurface,
               ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: daySpan <= 31
-                  ? _buildDailyBarChart(context, dailyTotals, range, cs)
-                  : _buildWeeklyBarChart(context, dailyTotals, range, cs),
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            ...dailyTotals.entries
+                .toList()
+                .sorted((a, b) => b.key.compareTo(a.key))
+                .map((entry) {
+                  return _DailyRow(
+                    date: entry.key,
+                    income: entry.value.income,
+                    expense: entry.value.expense,
+                  );
+                }),
           ],
-
-          // ── Daily detail list ──────────────────────────────────────
-          Text(
-            'Chi tiết từng ngày',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...dailyTotals.entries
-              .toList()
-              .sorted((a, b) => b.key.compareTo(a.key))
-              .map((entry) {
-                return _DailyRow(
-                  date: entry.key,
-                  income: entry.value.income,
-                  expense: entry.value.expense,
-                );
-              }),
-        ],
+        ),
       ),
     );
   }
@@ -282,10 +517,11 @@ class _DailyTab extends ConsumerWidget {
     final gridColor = cs.outlineVariant;
     final labelColor = cs.onSurfaceVariant;
 
-    final maxVal = dailyTotals.values
-        .map((e) => e.expense > e.income ? e.expense : e.income)
-        .fold(0, (a, b) => a > b ? a : b)
-        .toDouble();
+    final maxVal =
+        dailyTotals.values
+            .map((e) => e.expense > e.income ? e.expense : e.income)
+            .fold(0, (a, b) => a > b ? a : b)
+            .toDouble();
 
     return BarChart(
       BarChartData(
@@ -336,7 +572,7 @@ class _DailyTab extends ConsumerWidget {
             barRods: [
               BarChartRodData(
                 toY: (data?.expense ?? 0).toDouble(),
-                color: AppTheme.expenseAltColor.withOpacity(0.8),
+                color: AppTheme.expenseAltColor.withValues(alpha: 0.8),
                 width: daySpan <= 15 ? 8 : 5,
                 borderRadius: BorderRadius.circular(3),
               ),
@@ -360,6 +596,11 @@ class _DailyTab extends ConsumerWidget {
           ),
         ),
       ),
+      swapAnimationDuration: appMotion.whenMotionAllowed(
+        context,
+        appMotion.chartDuration,
+      ),
+      swapAnimationCurve: appMotion.curveStandard,
     );
   }
 
@@ -382,7 +623,11 @@ class _DailyTab extends ConsumerWidget {
 
       int weekExpense = 0;
       int weekIncome = 0;
-      for (var d = weekStart; d.isBefore(weekEnd); d = d.add(const Duration(days: 1))) {
+      for (
+        var d = weekStart;
+        d.isBefore(weekEnd);
+        d = d.add(const Duration(days: 1))
+      ) {
         final key = DateTime(d.year, d.month, d.day);
         final data = dailyTotals[key];
         weekExpense += data?.expense ?? 0;
@@ -398,10 +643,11 @@ class _DailyTab extends ConsumerWidget {
       weekStart = weekEnd;
     }
 
-    final maxVal = weeks
-        .map((w) => w.expense > w.income ? w.expense : w.income)
-        .fold(0, (a, b) => a > b ? a : b)
-        .toDouble();
+    final maxVal =
+        weeks
+            .map((w) => w.expense > w.income ? w.expense : w.income)
+            .fold(0, (a, b) => a > b ? a : b)
+            .toDouble();
 
     return BarChart(
       BarChartData(
@@ -441,19 +687,20 @@ class _DailyTab extends ConsumerWidget {
             ),
           ),
         ),
-        barGroups: weeks.asMap().entries.map((e) {
-          return BarChartGroupData(
-            x: e.key,
-            barRods: [
-              BarChartRodData(
-                toY: e.value.expense.toDouble(),
-                color: AppTheme.expenseAltColor.withOpacity(0.8),
-                width: 10,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ],
-          );
-        }).toList(),
+        barGroups:
+            weeks.asMap().entries.map((e) {
+              return BarChartGroupData(
+                x: e.key,
+                barRods: [
+                  BarChartRodData(
+                    toY: e.value.expense.toDouble(),
+                    color: AppTheme.expenseAltColor.withValues(alpha: 0.8),
+                    width: 10,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ],
+              );
+            }).toList(),
         barTouchData: BarTouchData(
           touchTooltipData: BarTouchTooltipData(
             getTooltipColor: (_) => cs.inverseSurface,
@@ -471,6 +718,11 @@ class _DailyTab extends ConsumerWidget {
           ),
         ),
       ),
+      swapAnimationDuration: appMotion.whenMotionAllowed(
+        context,
+        appMotion.chartDuration,
+      ),
+      swapAnimationCurve: appMotion.curveStandard,
     );
   }
 }
@@ -536,6 +788,62 @@ class _DailyRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatsStateTransition extends StatelessWidget {
+  const _StatsStateTransition({required this.stateKey, required this.child});
+
+  final String stateKey;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: appMotion.whenMotionAllowed(context, appMotion.chartDuration),
+      switchInCurve: appMotion.curveStandard,
+      switchOutCurve: appMotion.curveLayout,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.025),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+        );
+      },
+      child: SizedBox.expand(key: ValueKey(stateKey), child: child),
+    );
+  }
+}
+
+class _StatsChartLoading extends StatelessWidget {
+  const _StatsChartLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SkeletonBlock(
+              width: 190,
+              height: 170,
+              borderRadius: BorderRadius.all(Radius.circular(28)),
+            ),
+            SizedBox(height: 20),
+            SkeletonBlock(width: 150, height: 14),
+            SizedBox(height: 12),
+            SkeletonBlock(width: 220, height: 12),
+          ],
+        ),
       ),
     );
   }

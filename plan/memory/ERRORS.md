@@ -62,3 +62,9 @@
 - Pinned Dart formatting again hung in the sandbox with no output and was terminated; the identical Flutter 3.44.5 formatter completed successfully outside the sandbox.
 - Scoped Flutter 3.44.5 analysis completed with no issues, and both focused widget tests passed; no Phase 4 code error remains known.
 - Automated widget coverage proves lazy construction for 500 transactions but does not measure real-device frame timing, scroll-position feel, FAB/nav overlap, or detail-sheet interaction; those remain manual acceptance checks.
+
+## [Phase 5] - 2026-07-10 17:05
+- Sandboxed pinned Dart formatting timed out again after 30 seconds; the same formatter completed outside the sandbox in under one second.
+- The first scoped analyzer run found one new unused local in `stats_screen.dart`; it was removed and the rerun reported `No issues found` for both touched Stats files.
+- `pubspec.yaml` changed concurrently from `1.7.3+10` to `1.7.4+10`; this was not part of Phase 5 and was preserved without modification.
+- The focused Stats widget test proves summary/pie/bar rendering and tab switching, but cannot prove real chart interpolation, tooltip interaction, light/dark/fancy contrast, or reduce-motion behavior; these remain manual device checks.
