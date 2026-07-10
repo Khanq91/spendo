@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../domain/transaction.dart';
 import '../providers/transaction_provider.dart';
-import '../widgets/transaction_list_item.dart';
+import '../widgets/grouped_transaction_sliver.dart';
 import '../../../home/presentation/widgets/month_selector.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 
@@ -129,11 +128,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         key: const ValueKey('transactions_empty'),
                         hasFilter: selectedCat != null || _showSearch,
                       )
-                      : ListView(
+                      : CustomScrollView(
                         key: const ValueKey('transactions_list'),
-                        children: [
-                          ..._buildGroupedList(context, txs, categoryMap),
-                          const SizedBox(height: 80),
+                        slivers: [
+                          GroupedTransactionSliver(
+                            transactions: txs,
+                            categoryMap: categoryMap,
+                            style: GroupedTransactionStyle.filledHeader,
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 80)),
                         ],
                       ),
             ),
@@ -141,79 +144,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ],
       ),
     );
-  }
-
-  List<Widget> _buildGroupedList(
-    BuildContext context,
-    List<Transaction> txs,
-    Map<String, Category> categoryMap,
-  ) {
-    final cs = Theme.of(context).colorScheme;
-    final Map<String, List<Transaction>> grouped = {};
-    for (final tx in txs) {
-      final key =
-          '${tx.createdAt.year}-${tx.createdAt.month}-${tx.createdAt.day}';
-      grouped.putIfAbsent(key, () => []).add(tx);
-    }
-
-    final widgets = <Widget>[];
-    for (final entry in grouped.entries) {
-      final dayTxs = entry.value;
-      final date = dayTxs.first.createdAt;
-      final dayNet = dayTxs.fold<int>(
-        0,
-        (s, t) => t.isExpense ? s - t.amount : s + t.amount,
-      );
-      final isPos = dayNet >= 0;
-
-      widgets.add(
-        Container(
-          color: cs.surfaceContainerHighest,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-          child: Row(
-            children: [
-              Text(
-                formatDayHeader(date),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              // Day net không ẩn (chỉ là grouping label)
-              Text(
-                '${isPos ? '+' : '-'}${formatVND(dayNet.abs())}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color:
-                      isPos ? AppTheme.incomeColor : AppTheme.expenseAltColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      for (final tx in dayTxs) {
-        widgets.add(
-          TransactionListItem(
-            transaction: tx,
-            category: categoryMap[tx.categoryId],
-          ),
-        );
-        widgets.add(
-          Divider(
-            height: 1,
-            indent: 68,
-            endIndent: 16,
-            color: cs.outlineVariant,
-          ),
-        );
-      }
-    }
-    return widgets;
   }
 }
 

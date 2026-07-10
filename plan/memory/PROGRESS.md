@@ -90,3 +90,15 @@
 - Replaced the Add Transaction amount `AnimatedSwitcher` with the shared `AnimatedMoneyText`, using `_amountCtrl.value` and the same `formatVND` formatter as Home `SummaryCard`.
 - Re-ran pinned Dart formatting and scoped analyzer: no errors; existing 19 warnings/infos remain.
 - Current status: amount motion is now consistent with Home; Phase 3 manual smoke checks remain pending.
+
+## [Phase 3] - 2026-07-10 16:54
+- User confirmed Phase 3 manual testing is complete; Phase 3 acceptance is closed.
+- Current status: Phase 3 complete; Phase 4 transaction-list lazy/key refactor started.
+
+## [Phase 4] - 2026-07-10 16:54
+- Added shared `GroupedTransactionSliver` and replaced the eager grouped widget lists in Home, Transactions, and Wallet Detail without changing their providers or detail-sheet behavior.
+- Flattened transaction groups into lightweight day/item descriptors, then lazily built visible rows through `SliverChildBuilderDelegate`.
+- Added stable `ValueKey('day_yyyyMMdd')` headers, `ValueKey(transaction.id)` items, keyed child-index lookup, and reduce-motion-aware `MotionListItem` enter feedback.
+- Added a 500-transaction widget test that verifies stable keys and confirms the sliver does not build every `TransactionListItem` upfront.
+- Scoped Flutter 3.44.5 analyzer passed with no issues; the new lazy-list test and existing pressable-scale regression test both passed.
+- Current status: Phase 4 code-complete and manual acceptance-pending. Next step: test search/category/month switching, detail-sheet taps, scroll-position/FAB padding, and 200-1000 transaction scrolling on a device.

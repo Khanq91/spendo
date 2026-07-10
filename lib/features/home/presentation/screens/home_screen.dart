@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/utils/date_helpers.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../wallets/presentation/widgets/wallet_card_home.dart';
-import '../../../transactions/domain/transaction.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
-import '../../../transactions/presentation/widgets/transaction_list_item.dart';
+import '../../../transactions/presentation/widgets/grouped_transaction_sliver.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/domain/category.dart';
 import '../widgets/feature_grid.dart';
@@ -128,93 +125,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 );
               }
-              return SliverList(
-                delegate: SliverChildListDelegate(
-                  _buildGroupedList(context, txs, categoryMap),
-                ),
+              return GroupedTransactionSliver(
+                transactions: txs,
+                categoryMap: categoryMap,
               );
             },
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
-    );
-  }
-
-  List<Widget> _buildGroupedList(
-    BuildContext context,
-    List<Transaction> txs,
-    Map<String, Category> categoryMap,
-  ) {
-    final cs = Theme.of(context).colorScheme;
-
-    final Map<String, List<Transaction>> grouped = {};
-    for (final tx in txs) {
-      final key =
-          '${tx.createdAt.year}-${tx.createdAt.month}-${tx.createdAt.day}';
-      grouped.putIfAbsent(key, () => []).add(tx);
-    }
-
-    final widgets = <Widget>[];
-    for (final entry in grouped.entries) {
-      final dayTxs = entry.value;
-      final date = dayTxs.first.createdAt;
-
-      final dayTotal = dayTxs.fold<int>(
-        0,
-        (sum, t) => t.isExpense ? sum - t.amount : sum + t.amount,
-      );
-      final isPositive = dayTotal >= 0;
-
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Row(
-            children: [
-              Text(
-                formatDayHeader(date),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${isPositive ? '+' : ''}${dayTotal < 0 ? '-' : ''}${_absFormatted(dayTotal)} ₫',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color:
-                      isPositive
-                          ? AppTheme.incomeColor
-                          : AppTheme.expenseAltColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      widgets.add(const Divider(height: 1, indent: 16, endIndent: 16));
-
-      for (final tx in dayTxs) {
-        widgets.add(
-          TransactionListItem(
-            transaction: tx,
-            category: categoryMap[tx.categoryId],
-          ),
-        );
-      }
-    }
-
-    return widgets;
-  }
-
-  String _absFormatted(int n) {
-    return n.abs().toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]}.',
     );
   }
 }

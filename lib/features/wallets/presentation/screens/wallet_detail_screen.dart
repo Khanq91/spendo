@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../transactions/domain/transaction.dart';
-import '../../../transactions/presentation/widgets/transaction_list_item.dart';
+import '../../../transactions/presentation/widgets/grouped_transaction_sliver.dart';
 import '../../../home/presentation/widgets/month_selector.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../data/wallet_repository.dart';
@@ -135,12 +134,9 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
               if (txs.isEmpty) {
                 return SliverToBoxAdapter(child: _EmptyTx(filter: _filter));
               }
-              final grouped = _groupByDate(txs);
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (_, i) => grouped[i],
-                  childCount: grouped.length,
-                ),
+              return GroupedTransactionSliver(
+                transactions: txs,
+                categoryMap: categoryMap,
               );
             },
           ),
@@ -160,71 +156,6 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
     } catch (_) {
       return null;
     }
-  }
-
-  List<Widget> _groupByDate(List<Transaction> txs) {
-    final cs = Theme.of(context).colorScheme;
-    final categoriesAsync = ref.read(categoriesProvider);
-    final categoryMap = <String, Category>{};
-    for (final c in categoriesAsync.valueOrNull ?? []) {
-      categoryMap[c.id] = c;
-    }
-
-    final Map<String, List<Transaction>> grouped = {};
-    for (final tx in txs) {
-      final key =
-          '${tx.createdAt.year}-${tx.createdAt.month}-${tx.createdAt.day}';
-      grouped.putIfAbsent(key, () => []).add(tx);
-    }
-
-    final widgets = <Widget>[];
-    for (final entry in grouped.entries) {
-      final dayTxs = entry.value;
-      final date = dayTxs.first.createdAt;
-      final dayNet = dayTxs.fold<int>(
-        0,
-        (s, t) => t.isExpense ? s - t.amount : s + t.amount,
-      );
-      final isPos = dayNet >= 0;
-
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Row(
-            children: [
-              Text(
-                formatDayHeader(date),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${isPos ? '+' : '-'}${formatVND(dayNet.abs())}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color:
-                      isPos ? AppTheme.incomeColor : AppTheme.expenseAltColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-      widgets.add(const Divider(height: 1, indent: 16, endIndent: 16));
-      for (final tx in dayTxs) {
-        widgets.add(
-          TransactionListItem(
-            transaction: tx,
-            category: categoryMap[tx.categoryId],
-          ),
-        );
-      }
-    }
-    return widgets;
   }
 
   void _openEdit(BuildContext context, Wallet wallet) {

@@ -55,3 +55,12 @@
 
 ## [Phase 3] - 2026-07-10 12:45
 - Prefer the shared `AnimatedMoneyText` for Add Transaction amount after confirming `AmountInputController.value` is numeric and `SummaryCard` already uses the same `formatVND` path. This keeps duration, tabular figures, curve, and reduce-motion behavior consistent across finance surfaces.
+
+## [Phase 3] - 2026-07-10 16:54
+- Close Phase 3 after the user's manual test confirmation and proceed to Phase 4 without reopening the older plan drafts.
+
+## [Phase 4] - 2026-07-10 16:54
+- Use one shared sliver with lightweight row descriptors instead of prebuilding grouped widget lists; this preserves the existing Riverpod data inputs while making actual row construction lazy.
+- Keep two presentation styles (`plain` and `filledHeader`) so Home/Wallet Detail and Transactions retain their existing hierarchy and divider treatment.
+- Apply `MotionListItem` only to transaction rows, not day headers, and keep animation built-in/reduce-motion-aware to avoid adding a package or making group labels visually noisy.
+- Keep stable key-to-index lookup in the sliver delegate so filtered/updated lists can preserve keyed child state without a linear scan per lookup.

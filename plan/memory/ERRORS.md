@@ -57,3 +57,8 @@
 
 ## [Phase 3] - 2026-07-10 12:45
 - Scoped analyzer after switching amount motion to `AnimatedMoneyText` still reports only the same 19 existing warnings/infos and no errors.
+
+## [Phase 4] - 2026-07-10 16:54
+- Pinned Dart formatting again hung in the sandbox with no output and was terminated; the identical Flutter 3.44.5 formatter completed successfully outside the sandbox.
+- Scoped Flutter 3.44.5 analysis completed with no issues, and both focused widget tests passed; no Phase 4 code error remains known.
+- Automated widget coverage proves lazy construction for 500 transactions but does not measure real-device frame timing, scroll-position feel, FAB/nav overlap, or detail-sheet interaction; those remain manual acceptance checks.
