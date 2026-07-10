@@ -411,34 +411,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 ListenableBuilder(
                   listenable: _amountCtrl,
                   builder:
-                      (_, __) => AnimatedSwitcher(
-                        duration: appMotion.whenMotionAllowed(
-                          context,
-                          appMotion.valueDuration,
-                        ),
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: ScaleTransition(
-                              scale: Tween<double>(begin: 0.96, end: 1).animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: appMotion.curveStandard,
-                                ),
-                              ),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Text(
-                          _amountCtrl.formatted,
-                          key: ValueKey(_amountCtrl.formatted),
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w600,
-                            color: color,
-                            letterSpacing: -1,
-                          ),
+                      (_, __) => AnimatedMoneyText(
+                        value: _amountCtrl.value,
+                        formatter: (value) => formatVND(value.round()),
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w600,
+                          color: color,
+                          letterSpacing: -1,
                         ),
                       ),
                 ),

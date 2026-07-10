@@ -52,3 +52,6 @@
 - Use `AnimatedSwitcher` for the formatted amount string rather than changing `AmountInputController`; this keeps numpad/input behavior and amount validation untouched while adding visible feedback.
 - Wrap ChoiceChip with `PressableScale(deferTapToChild: true)` so the chip remains the owner of selection semantics and the new press effect cannot duplicate the selection callback.
 - Set `_isSubmitting` before budget/wallet checks and reset it in `finally`; this covers confirmation-dialog waits as well as repository writes without changing the existing transaction payload.
+
+## [Phase 3] - 2026-07-10 12:45
+- Prefer the shared `AnimatedMoneyText` for Add Transaction amount after confirming `AmountInputController.value` is numeric and `SummaryCard` already uses the same `formatVND` path. This keeps duration, tabular figures, curve, and reduce-motion behavior consistent across finance surfaces.

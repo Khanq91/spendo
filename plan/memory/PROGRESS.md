@@ -85,3 +85,8 @@
 - Added guarded submit/loading state so budget and wallet confirmation dialogs, add/edit persistence, and navigation remain unchanged while duplicate submits are prevented.
 - Formatted the sheet with pinned Dart 3.44.5; analyzer found no errors and only existing warnings/infos. Motion regression test passed.
 - Current status: Phase 3 code-complete; next step is manual keyboard/inset, add income/expense, edit, budget warning, wallet picker, and screenshot smoke.
+
+## [Phase 3] - 2026-07-10 12:45
+- Replaced the Add Transaction amount `AnimatedSwitcher` with the shared `AnimatedMoneyText`, using `_amountCtrl.value` and the same `formatVND` formatter as Home `SummaryCard`.
+- Re-ran pinned Dart formatting and scoped analyzer: no errors; existing 19 warnings/infos remain.
+- Current status: amount motion is now consistent with Home; Phase 3 manual smoke checks remain pending.

@@ -54,3 +54,6 @@
 ## [Phase 3] - 2026-07-10 12:32
 - Sandboxed Flutter commands remain unreliable, but pinned Flutter 3.44.5 outside the sandbox completed formatting and scoped analysis. Analyzer reported 19 existing warnings/infos and no errors in `add_transaction_sheet.dart`.
 - The regression test emitted the existing dependency/package resolution output and completed with `All tests passed!` (1 test).
+
+## [Phase 3] - 2026-07-10 12:45
+- Scoped analyzer after switching amount motion to `AnimatedMoneyText` still reports only the same 19 existing warnings/infos and no errors.
