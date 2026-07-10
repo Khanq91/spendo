@@ -130,9 +130,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         hasFilter: selectedCat != null || _showSearch,
                       )
                       : ListView(
-                        key: ValueKey(
-                          'transactions_list_${txs.length}_${selectedCat ?? 'all'}_${_showSearch ? 'search' : 'month'}',
-                        ),
+                        key: const ValueKey('transactions_list'),
                         children: [
                           ..._buildGroupedList(context, txs, categoryMap),
                           const SizedBox(height: 80),

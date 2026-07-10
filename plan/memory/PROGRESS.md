@@ -35,3 +35,13 @@
 - Added a scoped widget test proving deferred tap mode invokes the child callback exactly once.
 - Ran Flutter 3.44.5 scoped analyzer for the 3 touched production files: no issues found. Ran the new widget test: 1 passed, exit code 0.
 - Current status: Phase 1 implementation is complete; manual normal/fancy FAB, Home/Transactions/Wallets visual smoke, screenshot comparison, and 100+ transaction scroll checks are still required before closing acceptance and starting Phase 2.
+
+## [Phase 1] - 2026-07-10 10:52
+- Re-ran `test/shared/widgets/motion/pressable_scale_test.dart` with pinned Flutter 3.44.5 outside the sandbox: 1 test passed.
+- Phase 1 remains acceptance-pending because its remaining checks require a running device/emulator: normal/fancy FAB, Home/Transactions/Wallets screenshot comparison, and 100+ transaction scrolling.
+- Current status: no Phase 2 code started; next step is complete the manual Phase 1 acceptance checks, then begin money/progress motion.
+
+## [Phase 1] - 2026-07-10 11:11
+- Fixed the Transactions category-switch transition: category changes now update one stable `ListView` instead of triggering `AnimatedSwitcher` with outgoing and incoming text lists stacked together.
+- Scoped analyzer with pinned Flutter 3.44.5 passed for `transactions_screen.dart`: no issues found.
+- Current status: Phase 1 acceptance still needs an on-device category-switch visual smoke check.

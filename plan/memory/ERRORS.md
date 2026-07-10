@@ -24,3 +24,10 @@
 - The first scoped analyzer found 1 stale unused import and 5 deprecated `withOpacity` calls in the touched Wallets file; cleanup was limited to that file, and the rerun reported no issues.
 - The scoped widget test passed with exit code 0, but Flutter still printed `unable to find directory entry in pubspec.yaml: assets/images/`; keep this existing asset configuration warning separate from Phase 1 motion behavior.
 - `audit/flutter_analyze.txt` was regenerated during this session and now reflects a full-project run with 0 errors and 156 existing warnings/infos; it remains a generated/concurrent worktree change and was not edited manually.
+
+## [Phase 1] - 2026-07-10 10:52
+- Sandboxed pinned-Flutter widget testing timed out at 60 seconds with no output; the identical test outside the sandbox completed successfully in 11.5 seconds.
+- The successful test still emits the existing `assets/images/` directory warning from `pubspec.yaml`; it does not fail the test and is outside this UI-motion phase.
+
+## [Phase 1] - 2026-07-10 11:11
+- Category-switch text overlap was caused by the `ListView` key containing `selectedCat`, which made `AnimatedSwitcher` paint old and new transaction lists simultaneously during its transition.
