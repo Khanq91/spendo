@@ -34,15 +34,14 @@ class AnimatedProgressBar extends StatelessWidget {
         child: SizedBox(
           height: height,
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: clampedValue, end: clampedValue),
+            tween: Tween(end: clampedValue),
             duration: reduceMotion ? Duration.zero : appMotion.valueDuration,
             curve: appMotion.curveStandard,
             builder: (context, animatedValue, _) {
               return LinearProgressIndicator(
                 value: animatedValue,
                 minHeight: height,
-                backgroundColor:
-                    trackColor ?? cs.surfaceContainerHighest,
+                backgroundColor: trackColor ?? cs.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   valueColor ?? cs.primary,
                 ),

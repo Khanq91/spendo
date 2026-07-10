@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../wallets/presentation/providers/wallet_provider.dart';
 
 class SummaryCards extends ConsumerStatefulWidget {
@@ -66,18 +67,19 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                         ),
                         const SizedBox(height: 2),
                         ShaderMask(
-                          shaderCallback: (bounds) => LinearGradient(
-                            colors: [
-                              Colors.white,
-                              Colors.white.withOpacity(0.75),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ).createShader(bounds),
-                          child: Text(
-                            _balanceVisible
-                                ? formatVND(widget.balance)
-                                : '••••••',
+                          shaderCallback:
+                              (bounds) => LinearGradient(
+                                colors: [
+                                  Colors.white,
+                                  Colors.white.withOpacity(0.75),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ).createShader(bounds),
+                          child: AnimatedMoneyText(
+                            value: widget.balance,
+                            formatter: (value) => formatVND(value.round()),
+                            privacyMask: _balanceVisible ? null : '••••••',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
@@ -91,8 +93,9 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                   ),
                   // Toggle button
                   GestureDetector(
-                    onTap: () =>
-                        setState(() => _balanceVisible = !_balanceVisible),
+                    onTap:
+                        () =>
+                            setState(() => _balanceVisible = !_balanceVisible),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
                       child: Icon(
@@ -112,7 +115,8 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                 loading: () => const SizedBox(height: 8),
                 error: (_, __) => const SizedBox(height: 8),
                 data: (bd) {
-                  if (bd.x1 == 0 && bd.x2 == 0) return const SizedBox(height: 8);
+                  if (bd.x1 == 0 && bd.x2 == 0)
+                    return const SizedBox(height: 8);
                   return Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: _WalletProgressBar(
@@ -182,9 +186,10 @@ class _WalletProgressBar extends StatelessWidget {
     final normalColor = isOnDarkBg ? Colors.white70 : Colors.green.shade400;
     final warningColor = isOnDarkBg ? Colors.orangeAccent : Colors.orange;
     final overflowColor = isOnDarkBg ? Colors.redAccent : Colors.red;
-    final trackColor = isOnDarkBg
-        ? Colors.white.withOpacity(0.2)
-        : Colors.grey.withOpacity(0.15);
+    final trackColor =
+        isOnDarkBg
+            ? Colors.white.withOpacity(0.2)
+            : Colors.grey.withOpacity(0.15);
 
     final barColor = isOverflow ? overflowColor : normalColor;
 
@@ -201,9 +206,8 @@ class _WalletProgressBar extends StatelessWidget {
                 // Nền (warning color khi overflow, track color bình thường)
                 Container(
                   width: double.infinity,
-                  color: isOverflow
-                      ? overflowColor.withOpacity(0.3)
-                      : trackColor,
+                  color:
+                      isOverflow ? overflowColor.withOpacity(0.3) : trackColor,
                 ),
                 // Bar chính — clamp 100%
                 FractionallySizedBox(
@@ -228,9 +232,7 @@ class _WalletProgressBar extends StatelessWidget {
                 'Đã dùng ${formatVND(x2)}',
                 style: TextStyle(
                   fontSize: 10,
-                  color: isOnDarkBg
-                      ? Colors.white60
-                      : Colors.grey.shade600,
+                  color: isOnDarkBg ? Colors.white60 : Colors.grey.shade600,
                 ),
               ),
               const Spacer(),
@@ -238,9 +240,7 @@ class _WalletProgressBar extends StatelessWidget {
                 '/ ${formatVND(x1)}',
                 style: TextStyle(
                   fontSize: 10,
-                  color: isOnDarkBg
-                      ? Colors.white60
-                      : Colors.grey.shade600,
+                  color: isOnDarkBg ? Colors.white60 : Colors.grey.shade600,
                 ),
               ),
             ],
@@ -330,8 +330,10 @@ class _MiniCardState extends State<_MiniCard> {
                   style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  _visible ? formatVND(widget.amount) : '••••••',
+                AnimatedMoneyText(
+                  value: widget.amount,
+                  formatter: (value) => formatVND(value.round()),
+                  privacyMask: _visible ? null : '••••••',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

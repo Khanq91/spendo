@@ -37,7 +37,8 @@ class WalletsScreen extends ConsumerWidget {
       body: walletsAsync.when(
         loading: () => const _WalletsSkeleton(),
         error: (e, _) => Center(child: Text('Lỗi: $e')),
-        data: (wallets) => ListView(
+        data:
+            (wallets) => ListView(
               children: [
                 _NetWorthCard(
                   netWorthAsync: netWorthAsync,
@@ -185,18 +186,21 @@ class _NetWorthCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     netWorthAsync.when(
-                      loading: () => const Text(
-                        '...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700),
-                      ),
+                      loading:
+                          () => const Text(
+                            '...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                       error: (_, __) => const SizedBox.shrink(),
                       data: (total) {
                         final isNeg = total < 0;
-                        return Text(
-                          formatVND(total),
+                        return AnimatedMoneyText(
+                          value: total,
+                          formatter: (value) => formatVND(value.round()),
                           style: TextStyle(
                             color: isNeg ? Colors.redAccent : Colors.white,
                             fontSize: 24,
@@ -254,9 +258,10 @@ class _DarkProgressBar extends StatelessWidget {
               children: [
                 Container(
                   width: double.infinity,
-                  color: isOverflow
-                      ? Colors.redAccent.withValues(alpha: 0.3)
-                      : Colors.white.withValues(alpha: 0.2),
+                  color:
+                      isOverflow
+                          ? Colors.redAccent.withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.2),
                 ),
                 FractionallySizedBox(
                   widthFactor: ratio,
@@ -308,15 +313,21 @@ class _WalletTile extends ConsumerWidget {
         ),
         child: Icon(categoryIcon(wallet.type.iconName), size: 20, color: color),
       ),
-      title: Text(wallet.name,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-      subtitle: Text(wallet.type.label,
-          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+      title: Text(
+        wallet.name,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
+      subtitle: Text(
+        wallet.type.label,
+        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+      ),
       trailing: balanceAsync.when(
-        loading: () => const SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2)),
+        loading:
+            () => const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
         error: (_, __) => const SizedBox.shrink(),
         data: (balance) {
           final isNegative = balance < 0;
@@ -324,8 +335,9 @@ class _WalletTile extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                formatVND(balance.abs()),
+              AnimatedMoneyText(
+                value: balance.abs(),
+                formatter: (value) => formatVND(value.round()),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -333,9 +345,13 @@ class _WalletTile extends ConsumerWidget {
                 ),
               ),
               if (isNegative)
-                Text('⚠️ Âm',
-                    style: TextStyle(
-                        fontSize: 10, color: AppTheme.expenseAltColor)),
+                Text(
+                  '⚠️ Âm',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.expenseAltColor,
+                  ),
+                ),
             ],
           );
         },
@@ -381,8 +397,11 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: Icon(Icons.keyboard_arrow_down,
-                      size: 16, color: cs.onSurfaceVariant),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 16,
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -420,13 +439,20 @@ class _ArchivedTile extends ConsumerWidget {
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(categoryIcon(wallet.type.iconName),
-            size: 20, color: color.withValues(alpha: 0.5)),
+        child: Icon(
+          categoryIcon(wallet.type.iconName),
+          size: 20,
+          color: color.withValues(alpha: 0.5),
+        ),
       ),
-      title: Text(wallet.name,
-          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
-      subtitle: Text('Đã lưu trữ',
-          style: TextStyle(fontSize: 12, color: cs.outlineVariant)),
+      title: Text(
+        wallet.name,
+        style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+      ),
+      subtitle: Text(
+        'Đã lưu trữ',
+        style: TextStyle(fontSize: 12, color: cs.outlineVariant),
+      ),
       trailing: TextButton(
         onPressed: () async => WalletRepository().unarchive(wallet.id),
         style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
@@ -452,8 +478,10 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(LucideIcons.wallet, size: 48, color: cs.outlineVariant),
           const SizedBox(height: 12),
-          Text('Chưa có nguồn tiền nào',
-              style: TextStyle(color: cs.onSurfaceVariant)),
+          Text(
+            'Chưa có nguồn tiền nào',
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
           const SizedBox(height: 4),
           Text(
             'Thêm ví, tài khoản ngân hàng để theo dõi số dư',

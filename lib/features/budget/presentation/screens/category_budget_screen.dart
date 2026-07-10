@@ -11,6 +11,7 @@ import '../../../transactions/presentation/widgets/amount_input_controller.dart'
 import '../../../transactions/presentation/widgets/numpad.dart';
 import '../../data/category_budget_repository.dart';
 import '../providers/category_budget_provider.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 
 class CategoryBudgetScreen extends ConsumerWidget {
   const CategoryBudgetScreen({super.key});
@@ -24,106 +25,121 @@ class CategoryBudgetScreen extends ConsumerWidget {
 
     // Tách: đã có budget lên trên, chưa có xuống dưới
     final withBudget =
-    allCats.where((c) => budgetMap.containsKey(c.id)).toList();
+        allCats.where((c) => budgetMap.containsKey(c.id)).toList();
     final withoutBudget =
-    allCats.where((c) => !budgetMap.containsKey(c.id)).toList();
+        allCats.where((c) => !budgetMap.containsKey(c.id)).toList();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
-      builder: (_, scrollCtrl) => Column(
-        children: [
-          // Handle
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: cs.outlineVariant,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              children: [
-                const Text(
-                  'Hạn mức theo danh mục',
-                  style:
-                  TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      builder:
+          (_, scrollCtrl) => Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const Spacer(),
-                Text(
-                  '${withBudget.length}/${allCats.length} danh mục',
-                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Hạn mức theo danh mục',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${withBudget.length}/${allCats.length} danh mục',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+
+              const Divider(height: 1),
+
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  children: [
+                    // ── Đã có budget ──────────────────────────────────────────
+                    if (withBudget.isNotEmpty) ...[
+                      _SectionLabel(label: 'Đang theo dõi'),
+                      ...withBudget.map((cat) {
+                        final progress = progressMap[cat.id];
+                        final budget = budgetMap[cat.id]!;
+                        return _CategoryBudgetTile(
+                          category: cat,
+                          budgetAmount: budget.amount,
+                          progress: progress,
+                          onEdit:
+                              () => _openSetSheet(
+                                context,
+                                ref,
+                                cat,
+                                existingAmount: budget.amount,
+                              ),
+                          onDelete: () async {
+                            await CategoryBudgetRepository().delete(cat.id);
+                          },
+                        );
+                      }),
+                    ],
+
+                    // ── Chưa có budget ────────────────────────────────────────
+                    if (withoutBudget.isNotEmpty) ...[
+                      _SectionLabel(
+                        label:
+                            withBudget.isEmpty
+                                ? 'Chọn danh mục để đặt hạn mức'
+                                : 'Thêm danh mục',
+                      ),
+                      ...withoutBudget.map(
+                        (cat) => _CategoryNobudgetTile(
+                          category: cat,
+                          onAdd: () => _openSetSheet(context, ref, cat),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ],
           ),
-
-          const Divider(height: 1),
-
-          Expanded(
-            child: ListView(
-              controller: scrollCtrl,
-              children: [
-                // ── Đã có budget ──────────────────────────────────────────
-                if (withBudget.isNotEmpty) ...[
-                  _SectionLabel(label: 'Đang theo dõi'),
-                  ...withBudget.map((cat) {
-                    final progress = progressMap[cat.id];
-                    final budget = budgetMap[cat.id]!;
-                    return _CategoryBudgetTile(
-                      category: cat,
-                      budgetAmount: budget.amount,
-                      progress: progress,
-                      onEdit: () => _openSetSheet(context, ref, cat,
-                          existingAmount: budget.amount),
-                      onDelete: () async {
-                        await CategoryBudgetRepository().delete(cat.id);
-                      },
-                    );
-                  }),
-                ],
-
-                // ── Chưa có budget ────────────────────────────────────────
-                if (withoutBudget.isNotEmpty) ...[
-                  _SectionLabel(
-                    label: withBudget.isEmpty
-                        ? 'Chọn danh mục để đặt hạn mức'
-                        : 'Thêm danh mục',
-                  ),
-                  ...withoutBudget.map((cat) => _CategoryNobudgetTile(
-                    category: cat,
-                    onAdd: () => _openSetSheet(context, ref, cat),
-                  )),
-                ],
-
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   void _openSetSheet(
-      BuildContext context,
-      WidgetRef ref,
-      Category cat, {
-        int? existingAmount,
-      }) {
+    BuildContext context,
+    WidgetRef ref,
+    Category cat, {
+    int? existingAmount,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _SetCategoryBudgetSheet(
-        category: cat,
-        existingAmount: existingAmount,
-      ),
+      builder:
+          (_) => _SetCategoryBudgetSheet(
+            category: cat,
+            existingAmount: existingAmount,
+          ),
     );
   }
 }
@@ -195,38 +211,51 @@ class _CategoryBudgetTile extends StatelessWidget {
               color: color.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(categoryIcon(category.iconName),
-                size: 20, color: color),
-          ),
-          title: Text(category.name,
-              style:
-              const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          subtitle: p != null
-              ? Text(
-            '${formatVND(p.spent)} / ${formatVND(budgetAmount)}'
-                '${p.isOver ? '  ⚠️ Vượt hạn' : ''}',
-            style: TextStyle(
-              fontSize: 12,
-              color: p.isOver ? AppTheme.expenseAltColor : cs.onSurfaceVariant,
+            child: Icon(
+              categoryIcon(category.iconName),
+              size: 20,
+              color: color,
             ),
-          )
-              : Text(
-            formatVND(budgetAmount),
-            style:
-            TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
+          title: Text(
+            category.name,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          subtitle:
+              p != null
+                  ? Text(
+                    '${formatVND(p.spent)} / ${formatVND(budgetAmount)}'
+                    '${p.isOver ? '  ⚠️ Vượt hạn' : ''}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          p.isOver
+                              ? AppTheme.expenseAltColor
+                              : cs.onSurfaceVariant,
+                    ),
+                  )
+                  : Text(
+                    formatVND(budgetAmount),
+                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                  ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: Icon(LucideIcons.pencil,
-                    size: 16, color: cs.onSurfaceVariant),
+                icon: Icon(
+                  LucideIcons.pencil,
+                  size: 16,
+                  color: cs.onSurfaceVariant,
+                ),
                 onPressed: onEdit,
                 visualDensity: VisualDensity.compact,
               ),
               IconButton(
-                icon: Icon(LucideIcons.trash2,
-                    size: 16, color: AppTheme.expenseAltColor),
+                icon: Icon(
+                  LucideIcons.trash2,
+                  size: 16,
+                  color: AppTheme.expenseAltColor,
+                ),
                 onPressed: onDelete,
                 visualDensity: VisualDensity.compact,
               ),
@@ -239,11 +268,11 @@ class _CategoryBudgetTile extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(56, 0, 16, 8),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: p.percent.clamp(0.0, 1.0),
-                minHeight: 4,
-                backgroundColor: barColor.withOpacity(0.15),
-                valueColor: AlwaysStoppedAnimation(barColor),
+              child: AnimatedProgressBar(
+                value: p.percent,
+                height: 4,
+                trackColor: barColor.withOpacity(0.15),
+                valueColor: barColor,
               ),
             ),
           ),
@@ -259,10 +288,7 @@ class _CategoryNobudgetTile extends StatelessWidget {
   final Category category;
   final VoidCallback onAdd;
 
-  const _CategoryNobudgetTile({
-    required this.category,
-    required this.onAdd,
-  });
+  const _CategoryNobudgetTile({required this.category, required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
@@ -279,8 +305,11 @@ class _CategoryNobudgetTile extends StatelessWidget {
               color: color.withOpacity(0.10),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(categoryIcon(category.iconName),
-                size: 20, color: color.withOpacity(0.6)),
+            child: Icon(
+              categoryIcon(category.iconName),
+              size: 20,
+              color: color.withOpacity(0.6),
+            ),
           ),
           title: Text(
             category.name,
@@ -312,10 +341,7 @@ class _SetCategoryBudgetSheet extends StatefulWidget {
   final Category category;
   final int? existingAmount;
 
-  const _SetCategoryBudgetSheet({
-    required this.category,
-    this.existingAmount,
-  });
+  const _SetCategoryBudgetSheet({required this.category, this.existingAmount});
 
   @override
   State<_SetCategoryBudgetSheet> createState() =>
@@ -354,8 +380,9 @@ class _SetCategoryBudgetSheetState extends State<_SetCategoryBudgetSheet> {
     final isEdit = widget.existingAmount != null;
 
     return Padding(
-      padding:
-      EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -382,8 +409,11 @@ class _SetCategoryBudgetSheetState extends State<_SetCategoryBudgetSheet> {
                     color: color.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(categoryIcon(widget.category.iconName),
-                      size: 16, color: color),
+                  child: Icon(
+                    categoryIcon(widget.category.iconName),
+                    size: 16,
+                    color: color,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -393,12 +423,16 @@ class _SetCategoryBudgetSheetState extends State<_SetCategoryBudgetSheet> {
                       Text(
                         isEdit ? 'Sửa hạn mức' : 'Đặt hạn mức',
                         style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w600),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       Text(
                         widget.category.name,
                         style: TextStyle(
-                            fontSize: 12, color: cs.onSurfaceVariant),
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -417,20 +451,22 @@ class _SetCategoryBudgetSheetState extends State<_SetCategoryBudgetSheet> {
               children: [
                 ListenableBuilder(
                   listenable: _amountCtrl,
-                  builder: (_, __) => Text(
-                    _amountCtrl.formatted,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w600,
-                      color: color,
-                      letterSpacing: -1,
-                    ),
-                  ),
+                  builder:
+                      (_, __) => Text(
+                        _amountCtrl.formatted,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w600,
+                          color: color,
+                          letterSpacing: -1,
+                        ),
+                      ),
                 ),
                 const SizedBox(width: 4),
-                Text('₫',
-                    style: TextStyle(
-                        fontSize: 14, color: cs.onSurfaceVariant)),
+                Text(
+                  '₫',
+                  style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+                ),
               ],
             ),
           ),
@@ -447,31 +483,36 @@ class _SetCategoryBudgetSheetState extends State<_SetCategoryBudgetSheet> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: ListenableBuilder(
               listenable: _amountCtrl,
-              builder: (_, __) => FilledButton(
-                onPressed:
-                _amountCtrl.hasValue && !_loading ? _save : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: color,
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              builder:
+                  (_, __) => FilledButton(
+                    onPressed: _amountCtrl.hasValue && !_loading ? _save : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: color,
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child:
+                        _loading
+                            ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : Text(
+                              isEdit
+                                  ? 'Cập nhật hạn mức'
+                                  : 'Đặt hạn mức ${_amountCtrl.formatted} ₫',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                   ),
-                ),
-                child: _loading
-                    ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
-                    : Text(
-                  isEdit
-                      ? 'Cập nhật hạn mức'
-                      : 'Đặt hạn mức ${_amountCtrl.formatted} ₫',
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600),
-                ),
-              ),
             ),
           ),
         ],

@@ -11,6 +11,7 @@ class AnimatedMoneyText extends StatelessWidget {
     this.privacyMask,
     this.animate = true,
     this.textAlign,
+    this.overflow,
   });
 
   final num value;
@@ -19,6 +20,7 @@ class AnimatedMoneyText extends StatelessWidget {
   final String? privacyMask;
   final bool animate;
   final TextAlign? textAlign;
+  final TextOverflow? overflow;
 
   @override
   Widget build(BuildContext context) {
@@ -32,11 +34,12 @@ class AnimatedMoneyText extends StatelessWidget {
         privacyMask ?? formatter(value),
         style: effectiveStyle,
         textAlign: textAlign,
+        overflow: overflow,
       );
     }
 
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: value.toDouble(), end: value.toDouble()),
+      tween: Tween(end: value.toDouble()),
       duration: appMotion.valueDuration,
       curve: appMotion.curveStandard,
       builder: (context, animatedValue, _) {
@@ -44,6 +47,7 @@ class AnimatedMoneyText extends StatelessWidget {
           formatter(animatedValue),
           style: effectiveStyle,
           textAlign: textAlign,
+          overflow: overflow,
         );
       },
     );

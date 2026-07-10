@@ -8,6 +8,7 @@ import '../../../categories/presentation/providers/category_provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/category_budget_provider.dart';
 import '../widgets/budget_type_sheet.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 
 class BudgetCard extends ConsumerStatefulWidget {
   const BudgetCard({super.key});
@@ -82,9 +83,10 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
             if (hasCategoryAlerts) ...[
               if (hasMonthlyBudget) const SizedBox(height: 8),
               InkWell(
-                onTap: hasCategoryAlerts
-                    ? () => setState(() => _expanded = !_expanded)
-                    : null,
+                onTap:
+                    hasCategoryAlerts
+                        ? () => setState(() => _expanded = !_expanded)
+                        : null,
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -103,17 +105,16 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
                       const SizedBox(width: 6),
                       Text(
                         '${nearLimit.where((e) => e.isOver).length} danh mục vượt hạn'
-                            '${() {
-                          final nearCount = nearLimit
-                              .where((e) => !e.isOver && e.percent >= 0.7)
-                              .length;
+                        '${() {
+                          final nearCount = nearLimit.where((e) => !e.isOver && e.percent >= 0.7).length;
                           return nearCount > 0 ? ', $nearCount gần vượt' : '';
                         }()}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: nearLimit.any((e) => e.isOver)
-                              ? AppTheme.expenseAltColor
-                              : Colors.orange,
+                          color:
+                              nearLimit.any((e) => e.isOver)
+                                  ? AppTheme.expenseAltColor
+                                  : Colors.orange,
                         ),
                       ),
                       const Spacer(),
@@ -135,9 +136,10 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
               AnimatedCrossFade(
                 firstChild: const SizedBox.shrink(),
                 secondChild: _CategoryAlertList(items: nearLimit),
-                crossFadeState: _expanded
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
+                crossFadeState:
+                    _expanded
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
                 duration: const Duration(milliseconds: 220),
                 sizeCurve: Curves.easeOutCubic,
               ),
@@ -152,9 +154,9 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
   }
 
   Color _resolveMainColor(
-      ({int budget, int spent, double percent, bool isOver})? progress,
-      BuildContext context,
-      ) {
+    ({int budget, int spent, double percent, bool isOver})? progress,
+    BuildContext context,
+  ) {
     if (progress == null) return Theme.of(context).colorScheme.primary;
     if (progress.isOver) return AppTheme.expenseAltColor;
     if (progress.percent > 0.8) return Colors.orange;
@@ -180,11 +182,12 @@ class _MonthlyBudgetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOver = progress.isOver;
-    final color = isOver
-        ? AppTheme.expenseAltColor
-        : progress.percent > 0.8
-        ? Colors.orange
-        : const Color(0xFF6C63FF);
+    final color =
+        isOver
+            ? AppTheme.expenseAltColor
+            : progress.percent > 0.8
+            ? Colors.orange
+            : const Color(0xFF6C63FF);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,11 +222,11 @@ class _MonthlyBudgetRow extends StatelessWidget {
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progress.percent.clamp(0.0, 1.0),
-            minHeight: 6,
-            backgroundColor: color.withOpacity(0.15),
-            valueColor: AlwaysStoppedAnimation(color),
+          child: AnimatedProgressBar(
+            value: progress.percent,
+            height: 6,
+            trackColor: color.withOpacity(0.15),
+            valueColor: color,
           ),
         ),
         const SizedBox(height: 8),
@@ -255,13 +258,9 @@ class _MonthlyBudgetRow extends StatelessWidget {
 
 class _CategoryAlertList extends ConsumerWidget {
   final List<
-      ({
-      String categoryId,
-      int budget,
-      int spent,
-      double percent,
-      bool isOver,
-      })> items;
+    ({String categoryId, int budget, int spent, double percent, bool isOver})
+  >
+  items;
 
   const _CategoryAlertList({required this.items});
 
@@ -278,11 +277,12 @@ class _CategoryAlertList extends ConsumerWidget {
           final cat = catMap[item.categoryId];
           if (cat == null) return const SizedBox.shrink();
 
-          final color = item.isOver
-              ? AppTheme.expenseAltColor
-              : item.percent >= 0.9
-              ? Colors.orange
-              : Colors.amber;
+          final color =
+              item.isOver
+                  ? AppTheme.expenseAltColor
+                  : item.percent >= 0.9
+                  ? Colors.orange
+                  : Colors.amber;
 
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -290,16 +290,18 @@ class _CategoryAlertList extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Icon(categoryIcon(cat.iconName),
-                        size: 14, color: cat.color),
-                    const SizedBox(width: 6),
-                    Text(
-                      cat.name,
-                      style: const TextStyle(fontSize: 12),
+                    Icon(
+                      categoryIcon(cat.iconName),
+                      size: 14,
+                      color: cat.color,
                     ),
+                    const SizedBox(width: 6),
+                    Text(cat.name, style: const TextStyle(fontSize: 12)),
                     const Spacer(),
                     Text(
-                      item.isOver ? '⚠️ Vượt' : '${(item.percent * 100).toStringAsFixed(0)}%',
+                      item.isOver
+                          ? '⚠️ Vượt'
+                          : '${(item.percent * 100).toStringAsFixed(0)}%',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -310,18 +312,20 @@ class _CategoryAlertList extends ConsumerWidget {
                     Text(
                       '${formatVND(item.spent)} / ${formatVND(item.budget)}',
                       style: TextStyle(
-                          fontSize: 11, color: cs.onSurfaceVariant),
+                        fontSize: 11,
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: item.percent.clamp(0.0, 1.0),
-                    minHeight: 3,
-                    backgroundColor: color.withOpacity(0.15),
-                    valueColor: AlwaysStoppedAnimation(color),
+                  child: AnimatedProgressBar(
+                    value: item.percent,
+                    height: 3,
+                    trackColor: color.withOpacity(0.15),
+                    valueColor: color,
                   ),
                 ),
                 const SizedBox(height: 8),

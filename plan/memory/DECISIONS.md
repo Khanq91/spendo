@@ -27,3 +27,19 @@
 
 ## [Phase 1] - 2026-07-10 11:11
 - Keep `AnimatedSwitcher` only for the empty/list state in Transactions; a category filter is a data update, not a page transition, so the list key must remain stable to prevent text overlap.
+
+## [Phase 1] - 2026-07-10 11:25
+- Do not mark Phase 1 accepted from the passing widget test alone; rendering, screenshot comparison, fancy-mode behavior, and list scrolling require a live device/emulator.
+- Keep the existing `assets/images/` warning separate from motion acceptance because it does not fail the scoped widget test and is outside this phase's UI behavior.
+
+## [Phase 1] - 2026-07-10 11:40
+- Close Phase 1 after user confirmation; the remaining live-device checks are treated as accepted for this handoff.
+
+## [Phase 2] - 2026-07-10 11:40
+- Use `Tween(end: value)` in shared motion primitives so `TweenAnimationBuilder` interpolates from its current rendered value when providers emit a new amount/progress.
+- Keep privacy-masked money values static; do not animate hidden balances into visible numeric frames.
+- Preserve existing text overflow and layout APIs when replacing `Text` with `AnimatedMoneyText`.
+- Apply progress motion first to existing `LinearProgressIndicator` locations; do not introduce new layout, providers, or animation packages.
+
+## [Phase 2] - 2026-07-10 11:52
+- Extend the same primitive to Wallets and Transactions summaries because they are compact, value-focused surfaces; leave list rows and large data-heavy lists untouched until the keyed/lazy list phase.

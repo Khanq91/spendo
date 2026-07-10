@@ -328,8 +328,9 @@ class _MiniSummaryRow extends ConsumerWidget {
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
           const Spacer(),
-          Text(
-            '+${formatVND(income)}',
+          AnimatedMoneyText(
+            value: income,
+            formatter: (value) => '+${formatVND(value.round())}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -337,8 +338,9 @@ class _MiniSummaryRow extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Text(
-            '-${formatVND(expense)}',
+          AnimatedMoneyText(
+            value: expense,
+            formatter: (value) => '-${formatVND(value.round())}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,

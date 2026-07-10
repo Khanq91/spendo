@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/loan_repository.dart';
@@ -24,20 +25,20 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
   Widget build(BuildContext context) {
     // Watch stream để tự update khi payment thay đổi
     final loansAsync = ref.watch(loansProvider);
-    final loan = loansAsync.valueOrNull
-        ?.where((l) => l.id == widget.loan.id)
-        .firstOrNull ??
+    final loan =
+        loansAsync.valueOrNull
+            ?.where((l) => l.id == widget.loan.id)
+            .firstOrNull ??
         widget.loan;
 
-    final paymentsAsync = ref.watch(
-      _paymentsProvider(loan.id),
-    );
+    final paymentsAsync = ref.watch(_paymentsProvider(loan.id));
 
     final cs = Theme.of(context).colorScheme;
     final color = loan.isClosed ? cs.outlineVariant : loan.color;
-    final typeColor = loan.type == LoanType.borrowed
-        ? Colors.red.shade400
-        : Colors.green.shade500;
+    final typeColor =
+        loan.type == LoanType.borrowed
+            ? Colors.red.shade400
+            : Colors.green.shade500;
 
     return Scaffold(
       appBar: AppBar(
@@ -48,28 +49,30 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(LucideIcons.pencil, size: 18),
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              builder: (_) => LoanFormSheet(existing: loan),
-            ),
+            onPressed:
+                () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => LoanFormSheet(existing: loan),
+                ),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 20),
             onSelected: (val) => _handleMenu(context, val, loan),
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'toggle_close',
-                child: Text(loan.isClosed ? 'Mở lại' : 'Đánh dấu tất toán'),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Text(
-                  'Xoá',
-                  style: TextStyle(color: AppTheme.expenseAltColor),
-                ),
-              ),
-            ],
+            itemBuilder:
+                (_) => [
+                  PopupMenuItem(
+                    value: 'toggle_close',
+                    child: Text(loan.isClosed ? 'Mở lại' : 'Đánh dấu tất toán'),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      'Xoá',
+                      style: TextStyle(color: AppTheme.expenseAltColor),
+                    ),
+                  ),
+                ],
           ),
         ],
       ),
@@ -79,15 +82,15 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
             child: _InfoCard(loan: loan, color: color, typeColor: typeColor),
           ),
           paymentsAsync.when(
-            loading: () => const SliverToBoxAdapter(
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => SliverToBoxAdapter(
-              child: Center(child: Text('Lỗi: $e')),
-            ),
+            loading:
+                () => const SliverToBoxAdapter(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+            error:
+                (e, _) =>
+                    SliverToBoxAdapter(child: Center(child: Text('Lỗi: $e'))),
             data: (payments) {
-              final totalPaid =
-              payments.fold(0, (s, p) => s + p.amount);
+              final totalPaid = payments.fold(0, (s, p) => s + p.amount);
               final remaining = loan.principal - totalPaid;
 
               return SliverList(
@@ -130,17 +133,21 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
                       ),
                       child: Text(
                         'Chưa có thanh toán nào',
-                        style:
-                        TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                        style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     )
                   else
-                    ...payments.map((p) => _PaymentTile(
-                      payment: p,
-                      typeColor: typeColor,
-                      onDelete: () => _deletePayment(p.id),
-                    )),
+                    ...payments.map(
+                      (p) => _PaymentTile(
+                        payment: p,
+                        typeColor: typeColor,
+                        onDelete: () => _deletePayment(p.id),
+                      ),
+                    ),
                   const SizedBox(height: 80),
                 ]),
               );
@@ -151,8 +158,7 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
     );
   }
 
-  Future<void> _handleMenu(
-      BuildContext context, String val, Loan loan) async {
+  Future<void> _handleMenu(BuildContext context, String val, Loan loan) async {
     final repo = LoanRepository();
     if (val == 'toggle_close') {
       if (loan.isClosed) {
@@ -163,23 +169,26 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
     } else if (val == 'delete') {
       final confirm = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Xoá khoản vay?'),
-          content: const Text(
-              'Xoá khoản vay và toàn bộ lịch sử thanh toán. Không thể hoàn tác.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Huỷ'),
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Xoá khoản vay?'),
+              content: const Text(
+                'Xoá khoản vay và toàn bộ lịch sử thanh toán. Không thể hoàn tác.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Huỷ'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.expenseAltColor,
+                  ),
+                  child: const Text('Xoá'),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style:
-              TextButton.styleFrom(foregroundColor: AppTheme.expenseAltColor),
-              child: const Text('Xoá'),
-            ),
-          ],
-        ),
       );
       if (confirm == true && mounted) {
         await repo.delete(loan.id);
@@ -199,21 +208,23 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
   Future<void> _deletePayment(String paymentId) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Xoá thanh toán này?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Huỷ'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Xoá thanh toán này?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Huỷ'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.expenseAltColor,
+                ),
+                child: const Text('Xoá'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style:
-            TextButton.styleFrom(foregroundColor: AppTheme.expenseAltColor),
-            child: const Text('Xoá'),
-          ),
-        ],
-      ),
     );
     if (confirm == true) {
       await LoanRepository().deletePayment(paymentId);
@@ -223,10 +234,10 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
 
 // ── Provider cục bộ cho payments stream ──────────────────────────────────────
 
-final _paymentsProvider =
-StreamProvider.autoDispose.family<List<LoanPayment>, String>(
+final _paymentsProvider = StreamProvider.autoDispose
+    .family<List<LoanPayment>, String>(
       (ref, loanId) => LoanRepository().watchPayments(loanId),
-);
+    );
 
 // ── Info card ─────────────────────────────────────────────────────────────────
 
@@ -260,12 +271,17 @@ class _InfoCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: typeColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: typeColor.withOpacity(0.4), width: 0.8),
+                    color: typeColor.withOpacity(0.4),
+                    width: 0.8,
+                  ),
                 ),
                 child: Text(
                   loan.type.label,
@@ -279,8 +295,10 @@ class _InfoCard extends StatelessWidget {
               if (status == LoanStatus.overdue) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -297,8 +315,10 @@ class _InfoCard extends StatelessWidget {
               ] else if (status == LoanStatus.upcoming) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -337,14 +357,15 @@ class _InfoCard extends StatelessWidget {
             children: [
               _MetaChip(
                 label:
-                'Bắt đầu: ${loan.startDate.day}/${loan.startDate.month}/${loan.startDate.year}',
+                    'Bắt đầu: ${loan.startDate.day}/${loan.startDate.month}/${loan.startDate.year}',
               ),
               if (loan.dueDate != null) ...[
                 const SizedBox(width: 8),
                 _MetaChip(
                   label:
-                  'Hạn: ${loan.dueDate!.day}/${loan.dueDate!.month}/${loan.dueDate!.year}',
-                  warning: status == LoanStatus.overdue ||
+                      'Hạn: ${loan.dueDate!.day}/${loan.dueDate!.month}/${loan.dueDate!.year}',
+                  warning:
+                      status == LoanStatus.overdue ||
                       status == LoanStatus.upcoming,
                 ),
               ],
@@ -374,9 +395,10 @@ class _MetaChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: warning
-            ? Colors.orange.withOpacity(0.1)
-            : cs.surfaceContainerHighest,
+        color:
+            warning
+                ? Colors.orange.withOpacity(0.1)
+                : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -419,10 +441,7 @@ class _PaidSummaryRow extends StatelessWidget {
             children: [
               Text(
                 'Đã trả: ${formatVND(totalPaid)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: cs.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
               const Spacer(),
               Text(
@@ -438,13 +457,11 @@ class _PaidSummaryRow extends StatelessWidget {
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
+            child: AnimatedProgressBar(
               value: ratio,
-              minHeight: 6,
-              backgroundColor: typeColor.withOpacity(0.15),
-              valueColor: AlwaysStoppedAnimation(
-                remaining <= 0 ? Colors.green : typeColor,
-              ),
+              height: 6,
+              trackColor: typeColor.withOpacity(0.15),
+              valueColor: remaining <= 0 ? Colors.green : typeColor,
             ),
           ),
         ],
@@ -586,18 +603,22 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
             children: [
               ListenableBuilder(
                 listenable: _amountCtrl,
-                builder: (_, __) => Text(
-                  _amountCtrl.formatted,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                    letterSpacing: -1,
-                  ),
-                ),
+                builder:
+                    (_, __) => Text(
+                      _amountCtrl.formatted,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
+                        color: cs.primary,
+                        letterSpacing: -1,
+                      ),
+                    ),
               ),
               const SizedBox(width: 4),
-              Text('₫', style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+              Text(
+                '₫',
+                style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+              ),
             ],
           ),
           const Divider(height: 12, thickness: 0.5),
@@ -609,34 +630,37 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
             padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
             child: ListenableBuilder(
               listenable: _amountCtrl,
-              builder: (_, __) => SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loading || !_amountCtrl.hasValue ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              builder:
+                  (_, __) => SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed:
+                          _loading || !_amountCtrl.hasValue ? null : _submit,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child:
+                          _loading
+                              ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'Xác nhận',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                     ),
                   ),
-                  child: _loading
-                      ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                      : const Text(
-                    'Xác nhận',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
             ),
           ),
         ],

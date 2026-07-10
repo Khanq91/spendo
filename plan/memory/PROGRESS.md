@@ -45,3 +45,30 @@
 - Fixed the Transactions category-switch transition: category changes now update one stable `ListView` instead of triggering `AnimatedSwitcher` with outgoing and incoming text lists stacked together.
 - Scoped analyzer with pinned Flutter 3.44.5 passed for `transactions_screen.dart`: no issues found.
 - Current status: Phase 1 acceptance still needs an on-device category-switch visual smoke check.
+
+## [Phase 1] - 2026-07-10 11:25
+- Re-read `AGENTS.md`, `plan/03-ui-motion-refactor-master-plan.md`, and resumed from `plan/memory/PROGRESS.md`; no root `PROGRESS.md` exists.
+- Re-ran `test/shared/widgets/motion/pressable_scale_test.dart` with pinned Flutter 3.44.5 outside the sandbox: 1 test passed.
+- Flutter emitted the existing `assets/images/` pubspec directory warning, but the test completed successfully.
+- Device discovery did not return within the allowed timeout, so normal/fancy visual screenshots, category-switch rendering, and 100+ transaction scroll performance remain manual acceptance checks.
+- Current status: Phase 1 remains code-complete and acceptance-pending; no Phase 2 code started. Next step: run the listed smoke/screenshot/performance checks on a connected emulator/device, then close Phase 1 or record any visual regressions.
+
+## [Phase 1] - 2026-07-10 11:40
+- User confirmed the Phase 1 test/acceptance is stable; Phase 1 is closed.
+- Started Phase 2 money/progress motion without changing Riverpod, PowerSync, or provider behavior.
+- Current status: Phase 2 in progress; shared money/progress primitives are being wired into the first finance surfaces.
+
+## [Phase 2] - 2026-07-10 11:40
+- Fixed `AnimatedMoneyText` and `AnimatedProgressBar` to tween toward the new value using the previous rendered value instead of setting identical begin/end values.
+- Added compatibility for `AnimatedMoneyText.overflow` so existing text layout behavior is preserved.
+- Applied `AnimatedMoneyText` to Home balance and income/expense mini cards, preserving privacy masking.
+- Applied `AnimatedProgressBar` to Home budget-style progress rows, monthly/category budget progress, and loan paid progress.
+- Formatted all touched Dart files. Scoped analyzer has no errors; remaining warnings/infos are pre-existing diagnostics in touched screens.
+- Current status: Phase 2 partially implemented. Next step: wire wallet net worth/balances and transaction mini summary, then run focused tests and manual light/dark/fancy/reduce-motion checks.
+
+## [Phase 2] - 2026-07-10 11:52
+- Extended `AnimatedMoneyText` to Wallets total net worth, wallet tile balances, and Transactions mini income/expense summary.
+- Preserved existing sign formatting, negative-balance color, and provider-derived values.
+- Formatted the two additional screens. Scoped analyzer remains error-free with 28 existing warnings/infos.
+- Re-ran `test/shared/widgets/motion/pressable_scale_test.dart`: 1 test passed.
+- Current status: Phase 2 remains in progress; manual validation is still required for value transitions, privacy masking, progress bars, and reduce-motion behavior.

@@ -31,3 +31,18 @@
 
 ## [Phase 1] - 2026-07-10 11:11
 - Category-switch text overlap was caused by the `ListView` key containing `selectedCat`, which made `AnimatedSwitcher` paint old and new transaction lists simultaneously during its transition.
+
+## [Phase 1] - 2026-07-10 11:25
+- `flutter devices` did not return within the sandbox timeout, so live-device acceptance could not be performed in this session.
+- Pinned Flutter 3.44.5 widget test completed successfully outside the sandbox, but printed `unable to find directory entry in pubspec.yaml: assets/images/`; retain as an existing configuration warning, not a test failure.
+
+## [Phase 1] - 2026-07-10 11:40
+- User confirmed the Phase 1 test/acceptance is stable; Phase 1 closed without additional code changes.
+
+## [Phase 2] - 2026-07-10 11:40
+- Initial scoped analyzer found a real error after replacing a `Text`: `AnimatedMoneyText` did not expose the existing `overflow` parameter. Added the parameter and forwarded it to both static and animated `Text` branches.
+- Rerun has 0 errors and 28 existing warnings/infos, mostly `withOpacity`, unused imports/locals, and unrelated async-gap diagnostics in the touched feature files.
+
+## [Phase 2] - 2026-07-10 11:52
+- Scoped analyzer after Wallets/Transactions wiring still reports 28 existing warnings/infos and no errors.
+- Motion widget regression test passes; no new test failure observed.
