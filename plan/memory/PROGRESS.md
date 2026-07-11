@@ -12,12 +12,29 @@
 - `flutter test --no-pub` fail vì `test/widget_test.dart` không có `main`; 7 test còn lại pass.
 - Chỉ có Windows desktop và Edge; không có Android/iOS device hoặc emulator, nên chưa có cold-start/frame/scroll profile hợp lệ cho mobile.
 
-## Architecture and data flow — in progress
+## Architecture and data flow — complete (2026-07-11)
 
-## Performance — pending
+- Đã map riêng PowerSync/Supabase, localOnly data, SharedPreferences, Google Drive/Workmanager, SePay, notifications và Android widget; không ép tất cả vào một sơ đồ giả.
+- Đã xác nhận auth Supabase không có route/caller, wallet_id vượt ranh giới synced/localOnly và SettingsScreen gom nhiều trách nhiệm.
 
-## UI/UX — pending
+## Performance — complete (2026-07-11)
 
-## Stability and security — pending
+- Đã audit startup, Riverpod watch scope, SQL reactivity/N+1, habit analysis, IndexedStack/timer và animation policy.
+- Không có mobile device/emulator nên cold-start/frame/memory/battery claims chưa được đo và được gắn Likely trong báo cáo.
 
-## Report — pending
+## UI/UX — complete (2026-07-11)
+
+- Đã xem 5 ảnh chuẩn, 24 ảnh live và ảnh screenshots/live_app/ui_error/a94e39195eeedfb086ff.jpg; đã ánh xạ lỗi Danh mục tới Settings.
+- Video MP4 có tồn tại nhưng viewer/browser/decoder không khả dụng trong môi trường hiện tại, nên không dùng video làm bằng chứng kết luận.
+- Đã audit loading/error/empty, hierarchy, responsive risk, SafeArea/keyboard, semantics, reduce motion, dark/fancy và Liquid Glass bằng code + ảnh.
+
+## Stability and security — complete (2026-07-11)
+
+- Finding Critical: PowerSync gọi tx.complete() cả khi upload lỗi.
+- Đã audit backup/restore/retention, background isolate, category integrity, iOS capabilities, account-local DB boundary và RLS/sync-rule evidence.
+- Supabase migrations/RLS, PowerSync server sync rules và SePay webhook: Not found in codebase.
+
+## Report — complete (2026-07-11)
+
+- Báo cáo cuối: audit/TECHNICAL_AUDIT.md với đúng 7 phần, 30 findings, Top 10 theo công thức cố định và kế hoạch refactor có acceptance/test/rollback.
+- Không triển khai quick win, không sửa production code, không đổi dependency/schema và không tăng version 1.7.6+11.
