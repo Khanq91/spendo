@@ -104,3 +104,8 @@
 - Analyzer vẫn exit 1 vì 139 diagnostic baseline. Footer wrapper ghi `Warnings = 0` nhưng body có 20 warning; đây là ARCH-005 ngoài scope và cần sửa counter riêng.
 - Format check exit 1: 66/122 file sẽ đổi format. Do dùng `--output=none`, không có broad formatting trong worktree.
 - Chưa thể xác nhận thao tác xóa asset trên GitHub Release tại local; cần một lần push lên `main`. Nếu upload thất bại sau bước dọn, release có thể tạm thời không còn APK cho tới lần workflow thành công tiếp theo.
+
+## [Phase 7] - 2026-07-13 11:56
+- Baseline `audit/flutter_analyze.txt` hoàn chỉnh có 139 diagnostic nhưng regex cũ trả `0/0/119`; warning bắt đầu bằng `warning -` nên pattern `' warning '` không match.
+- Regex neo đầu dòng thử trực tiếp trên log và chạy qua wrapper thật đều trả `0/20/119`; analyzer vẫn exit 1 vì 139 diagnostic baseline.
+- Analyzer, full test và format check đều treo không output trong sandbox; chạy ngoài sandbox hoàn tất. Full test pass 9/9, format check vẫn fail baseline 66/122 file và không ghi file do `--output=none`.

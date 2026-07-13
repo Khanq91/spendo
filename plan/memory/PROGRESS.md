@@ -55,3 +55,13 @@
 - [x] Workflow xóa mọi asset `.apk` cũ trong release `latest` ngay trước khi upload, nên sau mỗi push chỉ giữ APK vừa build; asset không phải APK không bị ảnh hưởng.
 - [ ] `dart format --output=none --set-exit-if-changed .` vẫn fail baseline với 66/122 file cần format; không file nào bị sửa bởi check.
 - Bước tiếp theo: sửa analyzer counter/ratchet warning trong một issue độc lập; không gộp broad format hoặc các finding data/auth vào ARCH-004.
+
+## [Phase 7] - 2026-07-13 11:56
+- [x] Chỉ xử lý phần analyzer counter của ARCH-005; không dọn 139 diagnostic hoặc format hàng loạt.
+- [x] Đổi bộ đếm sang regex neo đầu dòng diagnostic, chấp nhận indentation của analyzer và không đếm metadata/footer.
+- [x] Đối chiếu trên baseline hiện có: `0 error`, `20 warning`, `119 info`, khớp `139 issues found`.
+- [x] Tăng version từ `1.7.7+12` lên `1.7.8+13` cho session có thay đổi script/config.
+- [x] Wrapper chạy hoàn chỉnh: 139 diagnostic, footer đúng `0 error / 20 warning / 119 info`; exit 1 là baseline analyzer debt.
+- [x] `flutter test --no-pub`: 9/9 test pass.
+- [ ] `dart format --output=none --set-exit-if-changed .` vẫn fail baseline: 66/122 file sẽ đổi format; check không sửa file.
+- Bước tiếp theo: nếu verification xanh theo baseline, cân nhắc warning ratchet CI như một issue riêng; không bật analyzer gate tuyệt đối khi debt hiện có chưa được quản lý.

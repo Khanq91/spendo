@@ -1,24 +1,18 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : 160051c1-f89b-44c3-891a-d10c1b473ed0
-Generated At : 2026-07-13 10:18:32
+Run ID       : dcb2ae44-fd4e-484b-91ae-b62078e3bc1e
+Generated At : 2026-07-13 11:58:58
 Computer     : DESKTOP-VR5416E
 User         : HUIT
 Working Dir  : D:\khang\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : e949a0d
+Git Commit   : 077e698
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
 
 Flutter SDK:
-
-┌─────────────────────────────────────────────────────────┐
-│ A new version of Flutter is available!                  │
-│                                                         │
-│ To update to the latest version, run "flutter upgrade". │
-└─────────────────────────────────────────────────────────┘
 Flutter 3.44.5 • channel stable • https://github.com/flutter/flutter.git
 Framework • revision f94f4fc76b (6 days ago) • 2026-07-06 11:19:24 -0700
 Engine • hash d3a3293399556a85388faf8c6f0723a7a5597aa8 (revision 83675ed276) (12 days ago) • 2026-06-30 16:59:03.000Z
@@ -178,18 +172,18 @@ warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try r
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:522:39 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:541:50 - deprecated_member_use
 
-139 issues found. (ran in 31.9s)
+139 issues found. (ran in 14.8s)
 
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-13 10:19:12
-Duration    : 40.36s
+Finished At : 2026-07-13 11:59:16
+Duration    : 18.45s
 Exit Code   : 1
 Status      : FAILED
 ------------------------------------------------------------
 Analyzer Summary:
 Errors      : 0
-Warnings    : 0
+Warnings    : 20
 Infos       : 119
 ============================================================

@@ -109,10 +109,10 @@ for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format 'yyyy
 for /f "delims=" %%i in ('powershell -NoProfile -Command "[DateTimeOffset]::Now.ToUnixTimeMilliseconds()"') do set "FINISH_MS=%%i"
 for /f "delims=" %%i in ('powershell -NoProfile -Command "[math]::Round((%FINISH_MS% - %START_MS%) / 1000, 2)"') do set "DURATION=%%i"
 
-REM Count analyzer lines
-for /f "delims=" %%i in ('powershell -NoProfile -Command "$text = Get-Content '%LOG_FILE%' -Raw; ([regex]::Matches($text, ' error ')).Count"') do set "ERROR_COUNT=%%i"
-for /f "delims=" %%i in ('powershell -NoProfile -Command "$text = Get-Content '%LOG_FILE%' -Raw; ([regex]::Matches($text, ' warning ')).Count"') do set "WARNING_COUNT=%%i"
-for /f "delims=" %%i in ('powershell -NoProfile -Command "$text = Get-Content '%LOG_FILE%' -Raw; ([regex]::Matches($text, ' info ')).Count"') do set "INFO_COUNT=%%i"
+REM Count only analyzer diagnostic rows, regardless of leading indentation.
+for /f "delims=" %%i in ('powershell -NoProfile -Command "$text = Get-Content '%LOG_FILE%' -Raw; ([regex]::Matches($text, '(?m)^\s*error\s+-')).Count"') do set "ERROR_COUNT=%%i"
+for /f "delims=" %%i in ('powershell -NoProfile -Command "$text = Get-Content '%LOG_FILE%' -Raw; ([regex]::Matches($text, '(?m)^\s*warning\s+-')).Count"') do set "WARNING_COUNT=%%i"
+for /f "delims=" %%i in ('powershell -NoProfile -Command "$text = Get-Content '%LOG_FILE%' -Raw; ([regex]::Matches($text, '(?m)^\s*info\s+-')).Count"') do set "INFO_COUNT=%%i"
 
 set "STATUS=FAILED"
 if "%ANALYZE_EXIT_CODE%"=="0" set "STATUS=SUCCESS"

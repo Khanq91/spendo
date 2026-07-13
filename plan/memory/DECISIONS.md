@@ -115,3 +115,7 @@
 - Đặt test gate ngay sau `flutter pub get` và trước keystore/build để CI fail sớm, không cần secret ký APK khi test đã lỗi.
 - Dọn APK cũ sau khi APK mới đã build/rename thành công và ngay trước upload; nếu tag `latest` chưa tồn tại thì bỏ qua, đồng thời giữ nguyên các asset không phải APK.
 - Chưa thêm analyzer/format gate: baseline hiện còn 139 diagnostics và 66 file lệch format; bật gate tuyệt đối trong cùng diff sẽ làm CI đỏ vì debt ngoài scope. Ratchet phải là issue riêng.
+
+## [Phase 7] - 2026-07-13 11:56
+- Neo regex theo đầu dòng và token `severity -` thay vì tìm severity ở bất kỳ vị trí nào; cách này đếm đúng cả warning không thụt lề lẫn info có thụt lề, đồng thời tránh metadata/footer.
+- Chỉ sửa độ chính xác báo cáo của wrapper trong session này. Analyzer ratchet CI là tradeoff riêng vì baseline vẫn cố ý exit 1 với 139 diagnostic hiện có.
