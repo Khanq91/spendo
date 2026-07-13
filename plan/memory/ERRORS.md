@@ -109,3 +109,11 @@
 - Baseline `audit/flutter_analyze.txt` hoàn chỉnh có 139 diagnostic nhưng regex cũ trả `0/0/119`; warning bắt đầu bằng `warning -` nên pattern `' warning '` không match.
 - Regex neo đầu dòng thử trực tiếp trên log và chạy qua wrapper thật đều trả `0/20/119`; analyzer vẫn exit 1 vì 139 diagnostic baseline.
 - Analyzer, full test và format check đều treo không output trong sandbox; chạy ngoài sandbox hoàn tất. Full test pass 9/9, format check vẫn fail baseline 66/122 file và không ghi file do `--output=none`.
+
+## [Phase 4] - 2026-07-13 12:26
+- Baseline analyzer wrapper lại treo không output trong sandbox và phải dừng; chạy ngoài sandbox hoàn tất với 139 diagnostics = 0 error, 20 warning, 119 info. Không coi timeout là kết quả analyzer.
+- Lần đầu chạy PowerSync DB regression test fail trước assertion vì `powersync_x64.dll` không nằm trên loader path; sau khi dùng custom `PowerSyncOpenFactory`, loader tiếp tục thiếu `sqlite3.dll`.
+- Workaround test ổn định: resolve `powersync_flutter_libs` từ `.dart_tool/package_config.json`, nạp DLL PowerSync bằng absolute path và override SQLite Windows sang `winsqlite3.dll` của hệ điều hành ngay trong DB isolate. Không copy binary vào repo.
+- Final wrapper exit 1 do analyzer debt còn lại nhưng giảm đúng một warning cũ trong file đã chạm: 138 diagnostics = 0 error, 19 warning, 119 info; scoped analyzer cho 4 file STATE-001 báo `No issues found`.
+- Final format check exit 1: 63/123 file sẽ đổi format; `--output=none` không ghi file và `git diff --check` pass. Không format hàng loạt ngoài scope.
+- Full test pass 12/12. Chưa có Android/iOS device run, query-plan benchmark hoặc runtime metric cho 1/20/100 Ví.

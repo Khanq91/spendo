@@ -65,3 +65,13 @@
 - [x] `flutter test --no-pub`: 9/9 test pass.
 - [ ] `dart format --output=none --set-exit-if-changed .` vẫn fail baseline: 66/122 file sẽ đổi format; check không sửa file.
 - Bước tiếp theo: nếu verification xanh theo baseline, cân nhắc warning ratchet CI như một issue riêng; không bật analyzer gate tuyệt đối khi debt hiện có chưa được quản lý.
+
+## [Phase 4] - 2026-07-13 12:26
+- [x] Chỉ xử lý STATE-001: số dư, breakdown, net worth và lịch sử Ví không reactive theo thay đổi của `transactions`; không chạm schema, sync, auth hoặc navigation.
+- [x] Chuyển các nguồn dữ liệu Ví sang PowerSync watch query theo cả `wallets` và `transactions`; giữ nguyên tên provider và `AsyncValue` contract tại UI.
+- [x] Thay vòng lặp 2N one-shot query bằng một aggregate SQL cho toàn bộ Ví active; query count của provider không còn tăng tuyến tính theo số Ví.
+- [x] Thêm 3 regression test bằng temp PowerSync DB: summary từng Ví emit lại, total active wallets emit lại và lịch sử Ví emit lại sau insert transaction.
+- [x] Tăng version từ `1.7.8+13` lên `1.7.9+14`.
+- [x] Focused test 3/3 pass; full `flutter test --no-pub` 12/12 pass; scoped analyzer không có issue; final wrapper còn baseline 138 diagnostics = 0 error, 19 warning, 119 info.
+- [ ] Chưa đo SQL latency/query plan trên fixture 1/20/100 Ví và chưa smoke test trên Android/iOS device; không tuyên bố đã tối ưu runtime.
+- Bước tiếp theo: profile aggregate query với dataset thực và kiểm add/edit/delete/move transaction trên device; sau đó mới xem xét phần error-state còn lại của Phase 4/UI-001.

@@ -119,3 +119,10 @@
 ## [Phase 7] - 2026-07-13 11:56
 - Neo regex theo đầu dòng và token `severity -` thay vì tìm severity ở bất kỳ vị trí nào; cách này đếm đúng cả warning không thụt lề lẫn info có thụt lề, đồng thời tránh metadata/footer.
 - Chỉ sửa độ chính xác báo cáo của wrapper trong session này. Analyzer ratchet CI là tradeoff riêng vì baseline vẫn cố ý exit 1 với 139 diagnostic hiện có.
+
+## [Phase 4] - 2026-07-13 12:26
+- Giữ nguyên tên các Riverpod provider và kiểu dữ liệu UI nhận qua `AsyncValue`, nhưng đổi implementation từ one-shot `FutureProvider` sang `StreamProvider` để dependency thực sự là thay đổi của bảng `transactions`.
+- Dùng một aggregate CTE cho toàn bộ Ví active thay vì gọi `calculateBalance`/`getIncomeExpense` tuần tự theo từng Ví; đây là thay đổi query cục bộ, không đổi model, schema hoặc state management.
+- Cho phép inject `PowerSyncDatabase` vào repository nhưng giữ constructor mặc định dùng global `db`; seam này bổ sung testability mà không buộc các caller hiện tại thay đổi.
+- Ghim `sqlite3 2.4.5` và `sqlite_async 0.8.3` dưới dev_dependencies đúng các phiên bản đã có trong lock để test factory có thể nạp PowerSync/SQLite native binary; không upgrade hoặc thay package production.
+- Giữ các one-shot repository method hiện có để tránh đổi API ngoài nhu cầu; provider mới chỉ dùng các watch method bổ sung.

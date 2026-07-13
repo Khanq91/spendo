@@ -1,13 +1,13 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : dcb2ae44-fd4e-484b-91ae-b62078e3bc1e
-Generated At : 2026-07-13 11:58:58
+Run ID       : 28b76f39-5b18-4e3e-b246-3d5cb424d303
+Generated At : 2026-07-13 12:24:45
 Computer     : DESKTOP-VR5416E
 User         : HUIT
 Working Dir  : D:\khang\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : 077e698
+Git Commit   : e8cbef1
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
@@ -132,7 +132,6 @@ warning - The declaration '_import' isn't referenced. Try removing the declarati
 warning - Unused import: '../../../../core/theme/app_theme.dart'. Try removing the import directive - lib\features\stats\presentation\widgets\date_range_picker_sheet.dart:2:8 - unused_import
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\stats\presentation\widgets\date_range_picker_sheet.dart:164:84 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\stats\presentation\widgets\date_range_picker_sheet.dart:245:71 - deprecated_member_use
-warning - The declaration '_uuid' isn't referenced. Try removing the declaration of '_uuid' - lib\features\transactions\data\transaction_repository.dart:5:7 - unused_element
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\screens\note_picker_screen.dart:316:35 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:464:33 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:682:36 - deprecated_member_use
@@ -172,18 +171,18 @@ warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try r
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:522:39 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:541:50 - deprecated_member_use
 
-139 issues found. (ran in 14.8s)
+138 issues found. (ran in 14.1s)
 
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-13 11:59:16
-Duration    : 18.45s
+Finished At : 2026-07-13 12:25:03
+Duration    : 17.84s
 Exit Code   : 1
 Status      : FAILED
 ------------------------------------------------------------
 Analyzer Summary:
 Errors      : 0
-Warnings    : 20
+Warnings    : 19
 Infos       : 119
 ============================================================
