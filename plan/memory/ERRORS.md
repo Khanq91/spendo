@@ -97,3 +97,10 @@
 - Scoped formatter và final `dart format --output=none --set-exit-if-changed .` đều timeout sau 60 giây.
 - Focused connector test timeout sau 180 giây. Final analyzer wrapper và full test mỗi lệnh timeout sau 120 giây, đều không có output.
 - `git diff --check` chỉ báo trailing whitespace có sẵn trong file user-owned `plan/01-Prompt-audit.md:64`; không sửa ngoài scope STAB-001. Không được tuyên bố runtime pass cho đến khi toolchain chạy xong.
+
+## [Phase 7] - 2026-07-13 10:21
+- `flutter test`, `dart format` và analyzer wrapper tiếp tục treo không output trong sandbox; chạy ngoài sandbox với Flutter 3.44.5/Dart 3.12.2 hoàn tất bình thường.
+- Một lần analyzer wrapper bị dừng đã để `audit/flutter_analyze.txt` ở trạng thái chỉ có header; wrapper sau đó được chạy lại hoàn chỉnh ngoài sandbox, không chỉnh log thủ công.
+- Analyzer vẫn exit 1 vì 139 diagnostic baseline. Footer wrapper ghi `Warnings = 0` nhưng body có 20 warning; đây là ARCH-005 ngoài scope và cần sửa counter riêng.
+- Format check exit 1: 66/122 file sẽ đổi format. Do dùng `--output=none`, không có broad formatting trong worktree.
+- Chưa thể xác nhận thao tác xóa asset trên GitHub Release tại local; cần một lần push lên `main`. Nếu upload thất bại sau bước dọn, release có thể tạm thời không còn APK cho tới lần workflow thành công tiếp theo.

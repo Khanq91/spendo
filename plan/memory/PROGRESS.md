@@ -46,3 +46,12 @@
 - [x] Tăng version từ `1.7.6+11` lên `1.7.7+12` cho session có thay đổi code.
 - [ ] Chưa xác nhận runtime vì formatter, analyzer wrapper, focused test và full test đều timeout không có output trong môi trường hiện tại.
 - Bước tiếp theo: chạy lại test connector và full verification trong Flutter shell ổn định; sau đó bổ sung failure-injection test ở mức PowerSync/Supabase trước khi mở rộng Phase 1.
+
+## [Phase 7] - 2026-07-13 10:21
+- [x] Chỉ xử lý ARCH-004: bỏ `test/widget_test.dart` placeholder không có `main` và thêm `flutter test --no-pub` trước bước ký/build APK trong CI.
+- [x] Giữ nguyên production Dart, dependency và business behavior; tăng version từ `1.7.7+12` lên `1.7.8+13` theo quy ước session có code/config delivery.
+- [x] `flutter test --no-pub`: 9/9 test pass khi chạy ngoài sandbox.
+- [x] `scripts/analyze_codex.bat`: 139 diagnostics, 0 error, 20 warning, 119 info; không có diagnostic mới từ thay đổi này.
+- [x] Workflow xóa mọi asset `.apk` cũ trong release `latest` ngay trước khi upload, nên sau mỗi push chỉ giữ APK vừa build; asset không phải APK không bị ảnh hưởng.
+- [ ] `dart format --output=none --set-exit-if-changed .` vẫn fail baseline với 66/122 file cần format; không file nào bị sửa bởi check.
+- Bước tiếp theo: sửa analyzer counter/ratchet warning trong một issue độc lập; không gộp broad format hoặc các finding data/auth vào ARCH-004.

@@ -108,3 +108,10 @@
 - Chỉ xử lý STAB-001 vì đây là finding Critical duy nhất và có rollback boundary nhỏ; không gộp session/account boundary rộng hơn vào cùng thay đổi.
 - Giữ nguyên constructor và API Supabase/PowerSync hiện tại. Dùng seam upload/acknowledge nhỏ để test retry invariant mà không thêm mocking package.
 - Propagate exception gốc và cố ý không complete CRUD transaction. Remote operation thành công một phần có thể bị retry, nên tính idempotent vẫn cần staging test ở mức cao hơn.
+
+## [Phase 7] - 2026-07-13 10:21
+- Chọn ARCH-004 làm issue duy nhất của session vì tạo quality gate nhỏ, kiểm chứng được và không chạm business state, database hoặc navigation.
+- Xóa placeholder test thay vì tạo smoke test giả cho app bootstrap; các test hiện có đã cung cấp 9 assertion paths thực, còn bootstrap đầy đủ phụ thuộc plugin/native services và cần fixture riêng.
+- Đặt test gate ngay sau `flutter pub get` và trước keystore/build để CI fail sớm, không cần secret ký APK khi test đã lỗi.
+- Dọn APK cũ sau khi APK mới đã build/rename thành công và ngay trước upload; nếu tag `latest` chưa tồn tại thì bỏ qua, đồng thời giữ nguyên các asset không phải APK.
+- Chưa thêm analyzer/format gate: baseline hiện còn 139 diagnostics và 66 file lệch format; bật gate tuyệt đối trong cùng diff sẽ làm CI đỏ vì debt ngoài scope. Ratchet phải là issue riêng.
