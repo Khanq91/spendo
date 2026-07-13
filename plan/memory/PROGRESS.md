@@ -38,3 +38,11 @@
 
 - Báo cáo cuối: audit/TECHNICAL_AUDIT.md với đúng 7 phần, 30 findings, Top 10 theo công thức cố định và kế hoạch refactor có acceptance/test/rollback.
 - Không triển khai quick win, không sửa production code, không đổi dependency/schema và không tăng version 1.7.6+11.
+
+## [Phase 1] - 2026-07-13 09:55
+- [x] Chỉ chọn STAB-001, finding Critical về tính toàn vẹn hàng đợi PowerSync; các finding backup, auth, wallet và session boundary nằm ngoài scope session này.
+- [x] Chỉ gọi `CrudTransaction.complete()` sau khi toàn bộ thao tác Supabase thành công; exception tiếp tục được ném ra và batch được giữ pending để retry.
+- [x] Thêm regression test cho thứ tự upload/complete khi thành công và không complete khi upload lỗi.
+- [x] Tăng version từ `1.7.6+11` lên `1.7.7+12` cho session có thay đổi code.
+- [ ] Chưa xác nhận runtime vì formatter, analyzer wrapper, focused test và full test đều timeout không có output trong môi trường hiện tại.
+- Bước tiếp theo: chạy lại test connector và full verification trong Flutter shell ổn định; sau đó bổ sung failure-injection test ở mức PowerSync/Supabase trước khi mở rộng Phase 1.

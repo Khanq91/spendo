@@ -37,29 +37,39 @@ class SupabasePowerSyncConnector extends PowerSyncBackendConnector {
     // Fields PowerSync tự thêm vào, không có trong Supabase schema
     const excludedFields = {'updated_at'};
 
-    try {
-      for (final op in tx.crud) {
-        final table = op.table;
-        final data = Map<String, dynamic>.from(op.opData ?? {})
-          ..removeWhere((k, _) => excludedFields.contains(k));
+    await uploadCrudTransaction(
+      uploadOperations: () async {
+        for (final op in tx.crud) {
+          final table = op.table;
+          final data = Map<String, dynamic>.from(op.opData ?? {})
+            ..removeWhere((k, _) => excludedFields.contains(k));
 
-        switch (op.op) {
-          case UpdateType.put:
-            await client.from(table).upsert({
-              'id': op.id,
-              'user_id': userId,
-              ...data,
-            });
-          case UpdateType.patch:
-            await client.from(table).update(data).eq('id', op.id);
-          case UpdateType.delete:
-            await client.from(table).delete().eq('id', op.id);
+          switch (op.op) {
+            case UpdateType.put:
+              await client.from(table).upsert({
+                'id': op.id,
+                'user_id': userId,
+                ...data,
+              });
+            case UpdateType.patch:
+              await client.from(table).update(data).eq('id', op.id);
+            case UpdateType.delete:
+              await client.from(table).delete().eq('id', op.id);
+          }
         }
-      }
-      await tx.complete();
-    } catch (e) {
-      await tx.complete();
-      rethrow;
-    }
+      },
+      complete: tx.complete,
+    );
   }
+}
+
+/// Runs one PowerSync CRUD batch and acknowledges it only after every remote
+/// operation succeeds. A thrown upload error intentionally leaves the batch
+/// pending so PowerSync can retry it.
+Future<void> uploadCrudTransaction({
+  required Future<void> Function() uploadOperations,
+  required Future<void> Function() complete,
+}) async {
+  await uploadOperations();
+  await complete();
 }

@@ -61,7 +61,7 @@ Trước tiên:
    * dart --version
    * flutter pub get
    * dart format --output=none --set-exit-if-changed .
-   * flutter analyze
+   * flutter analyze  (Chạy scripts [analyze_codex.bat](d:/khang/data/flutterDev/project/spendo/scripts/analyze_codex.bat)và xem kết quả ở [flutter_analyze.txt](d:/khang/data/flutterDev/project/spendo/audit/flutter_analyze.txt)) 
    * flutter test
 
 Không tự ý sửa lỗi chỉ để các lệnh trên chạy thành công. Hãy ghi lại baseline ban đầu.

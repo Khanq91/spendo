@@ -90,3 +90,10 @@
 ## [Phase 7] - 2026-07-10 19:19
 - No new implementation error was reported during manual acceptance; the user confirmed Phase 7 testing is complete.
 - Existing analyzer diagnostics and the experimental `GlassAdaptiveScopeConfig` upgrade caveat remain recorded in the previous Phase 7 entry; no workaround or code change was needed for this closeout.
+
+## [Phase 1] - 2026-07-13 09:55
+- Baseline `scripts\\analyze_codex.bat` timeout sau 300 giây; `audit/flutter_analyze.txt` chỉ đến dòng `Flutter SDK:` nên là log chưa hoàn tất.
+- Baseline `flutter test --no-pub` không có output và bị dừng khi tái hiện Flutter-shell hang đã biết.
+- Scoped formatter và final `dart format --output=none --set-exit-if-changed .` đều timeout sau 60 giây.
+- Focused connector test timeout sau 180 giây. Final analyzer wrapper và full test mỗi lệnh timeout sau 120 giây, đều không có output.
+- `git diff --check` chỉ báo trailing whitespace có sẵn trong file user-owned `plan/01-Prompt-audit.md:64`; không sửa ngoài scope STAB-001. Không được tuyên bố runtime pass cho đến khi toolchain chạy xong.

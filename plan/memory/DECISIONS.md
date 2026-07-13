@@ -103,3 +103,8 @@
 - Close Phase 7 from the user's manual test confirmation and treat the Phase 0-7 roadmap as complete.
 - Do not invent a Phase 8 because `plan/03-ui-motion-refactor-master-plan.md` ends at Phase 7; any follow-up work must be separately scoped.
 - Keep version 1.7.6+11 because this closeout changes tracker documentation only.
+
+## [Phase 1] - 2026-07-13 09:55
+- Chỉ xử lý STAB-001 vì đây là finding Critical duy nhất và có rollback boundary nhỏ; không gộp session/account boundary rộng hơn vào cùng thay đổi.
+- Giữ nguyên constructor và API Supabase/PowerSync hiện tại. Dùng seam upload/acknowledge nhỏ để test retry invariant mà không thêm mocking package.
+- Propagate exception gốc và cố ý không complete CRUD transaction. Remote operation thành công một phần có thể bị retry, nên tính idempotent vẫn cần staging test ở mức cao hơn.
