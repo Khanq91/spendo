@@ -42,6 +42,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   double _progress = 0.0;
   String _statusMsg = 'Starting up…';
   bool _initDone = false;
+  bool _isInitializing = false;
+  bool _hasInitError = false;
   String _appVersion = '';
 
   // ── Resolve brightness từ app theme mode + system ─────────────────────────
@@ -159,17 +161,39 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _startInit() async {
-    await widget.onInit((progress, message) {
+    if (_isInitializing) return;
+
+    setState(() {
+      _isInitializing = true;
+      _hasInitError = false;
+      _progress = 0.0;
+      _statusMsg = 'Starting up…';
+    });
+
+    try {
+      await widget.onInit((progress, message) {
+        if (!mounted) return;
+        setState(() {
+          _progress = progress;
+          _statusMsg = message;
+        });
+      });
+    } catch (error, stackTrace) {
+      debugPrint('[Init] Critical startup error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
       setState(() {
-        _progress = progress;
-        _statusMsg = message;
+        _isInitializing = false;
+        _hasInitError = true;
+        _statusMsg = 'Không thể khởi động ứng dụng.';
       });
-    });
+      return;
+    }
 
     if (!mounted) return;
 
     setState(() {
+      _isInitializing = false;
       _progress = 1.0;
       _statusMsg = 'Ready!';
       _initDone = true;
@@ -318,15 +342,37 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                           child: child,
                                         ),
                                       ),
-                                  child: Text(
-                                    _statusMsg,
-                                    key: ValueKey(_statusMsg),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: statusColor,
-                                      letterSpacing: 0.4,
-                                    ),
-                                  ),
+                                  child:
+                                      _hasInitError
+                                          ? Column(
+                                            key: const ValueKey('init-error'),
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                _statusMsg,
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: statusColor,
+                                                  letterSpacing: 0.4,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 10),
+                                              OutlinedButton(
+                                                onPressed: _startInit,
+                                                child: const Text('Thử lại'),
+                                              ),
+                                            ],
+                                          )
+                                          : Text(
+                                            _statusMsg,
+                                            key: ValueKey(_statusMsg),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: statusColor,
+                                              letterSpacing: 0.4,
+                                            ),
+                                          ),
                                 ),
                                 const SizedBox(height: 14),
                                 _ProgressBar(

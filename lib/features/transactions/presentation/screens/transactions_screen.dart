@@ -30,12 +30,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final transactionsAsync = ref.watch(transactionsProvider);
     final txs = ref.watch(filteredTransactionsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
     final allCategories = categoriesAsync.valueOrNull ?? [];
     final selectedCat = ref.watch(selectedCategoryFilterProvider);
     final month = ref.watch(selectedMonthProvider);
     final cs = Theme.of(context).colorScheme;
+    final hasInitialTransactionError =
+        transactionsAsync.hasError && !transactionsAsync.hasValue;
 
     final categoryMap = <String, Category>{};
     for (final c in allCategories) {
@@ -112,7 +115,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     ref.read(selectedCategoryFilterProvider.notifier).state =
                         id,
           ),
-          _MiniSummaryRow(txs: txs),
+          if (!hasInitialTransactionError) _MiniSummaryRow(txs: txs),
           const Divider(height: 1),
           Expanded(
             child: AnimatedSwitcher(
@@ -123,7 +126,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               switchInCurve: appMotion.curveStandard,
               switchOutCurve: appMotion.curveStandard,
               child:
-                  txs.isEmpty
+                  hasInitialTransactionError
+                      ? _TransactionLoadError(
+                        key: const ValueKey('transactions_error'),
+                        onRetry: () => ref.invalidate(transactionsProvider),
+                      )
+                      : txs.isEmpty
                       ? _EmptyState(
                         key: const ValueKey('transactions_empty'),
                         hasFilter: selectedCat != null || _showSearch,
@@ -141,6 +149,32 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransactionLoadError extends StatelessWidget {
+  const _TransactionLoadError({super.key, required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(LucideIcons.circleAlert, size: 48, color: cs.error),
+          const SizedBox(height: 12),
+          Text(
+            'Không thể tải giao dịch',
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(onPressed: onRetry, child: const Text('Thử lại')),
         ],
       ),
     );

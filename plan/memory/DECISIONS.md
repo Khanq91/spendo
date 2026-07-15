@@ -131,3 +131,15 @@
 - Xử lý UI-001 theo lát cắt Stats + WalletCardHome trước thay vì sửa đồng thời toàn bộ Transactions/Home. Hai bề mặt này có regression dễ dựng bằng `Stream.error`, phạm vi rollback nhỏ và đúng quick win của audit.
 - Chỉ hiển thị error state khi `AsyncValue.hasError && !hasValue`; nếu refresh thất bại sau khi đã có dữ liệu, giữ dữ liệu cũ để tránh thay số liệu tài chính đang xem bằng màn lỗi.
 - Retry dùng `ref.invalidate()` đúng provider nguồn, không thêm state manager, repository API hoặc package. Đây là retry một lần theo cơ chế StreamProvider hiện có, không tạo vòng lặp tự động.
+
+## [Phase 4] - 2026-07-15 22:39
+- Giữ `filteredTransactionsProvider` trả `List<Transaction>` để không đổi public API; TransactionsScreen watch song song `transactionsProvider` chỉ để phân biệt initial error với empty data.
+- Chỉ thay empty bằng error khi `hasError && !hasValue`; nếu provider còn value cũ trong lúc refresh lỗi, UI tiếp tục dùng dữ liệu đó theo policy đã áp dụng cho Stats.
+- Retry chỉ invalidate `transactionsProvider`. Không invalidate filter/category state và không tự retry, tránh mất lựa chọn người dùng hoặc tạo request loop.
+- Giữ hai error widget private theo từng screen vì Transactions cần fill vùng body còn Home là một sliver trong trang dài; chưa tạo shared abstraction khi layout contract khác nhau.
+
+## [Phase 5] - 2026-07-15 23:03
+- Bắt exception tại `SplashScreen`, là boundary sở hữu trạng thái khởi động và navigation, thay vì catch từng service hoặc cho `_initServices` trả thành công giả.
+- Không thêm timeout cho Supabase/PowerSync trong lát cắt này: timeout có thể cho người dùng vào app khi dependency bắt buộc chưa sẵn sàng; việc phân loại critical/optional cần một quyết định và phép đo riêng.
+- Retry chạy lại toàn bộ callback init hiện có và có duplicate guard. Cách này giữ public API/boot order, rollback nhỏ, đồng thời tránh tạo state machine hoặc package mới trước khi có yêu cầu rộng hơn.
+- Không hiển thị exception kỹ thuật cho người dùng; UI dùng thông báo tiếng Việt ổn định, còn log giữ error + stack trace để chẩn đoán.

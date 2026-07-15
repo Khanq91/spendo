@@ -123,3 +123,17 @@
 - `scripts/analyze_codex.bat` hoàn tất ngoài sandbox nhưng exit 1 do 138 diagnostic tồn tại (0 error, 19 warning, 119 info); scoped analyzer cho 4 file UI-001 báo `No issues found`.
 - Full `flutter test --no-pub` chạy ngoài sandbox pass 14/14. Không có Android/iOS device hoặc emulator nên không xác nhận được visual layout, retry với DB thật hay navigation trên thiết bị.
 - WalletCardHome vẫn nằm trong danh sách formatter baseline; đã tránh broad format và chỉ giữ thay đổi UI-001 cần thiết trong file đó.
+
+## [Phase 4] - 2026-07-15 22:39
+- Helper `apply_patch` trong Windows sandbox tiếp tục fail với `helper_unknown_error`; workaround là gọi trực tiếp Codex apply-patch helper ngoài sandbox cho từng patch scoped. Không dùng shell write hoặc broad rewrite.
+- Focused test lần đầu fail vì AnimatedSwitcher còn giữ outgoing empty state trong transition và nút retry Home nằm dưới viewport 800×600. Test được sửa để chờ transition kết thúc và dùng viewport 800×1000; production layout không bị thay đổi để chiều test.
+- Final format check exit 1 với 60/126 file lệch format baseline; `--output=none` không ghi các file đó. Chỉ bốn file Dart trong scope được format trực tiếp.
+- Analyzer wrapper baseline và final đều exit 1 do cùng 138 diagnostic tồn tại, nhưng đều có 0 error và cùng breakdown 19 warning / 119 info; scoped analyzer cho bốn file đã chạm báo `No issues found`.
+- `pubspec.lock` đã dirty trước session và được bảo toàn, không chỉnh hoặc hoàn nguyên. `audit/flutter_analyze.txt` thay đổi do hai lần chạy wrapper theo yêu cầu.
+
+## [Phase 5] - 2026-07-15 23:03
+- Windows sandbox và helper `apply_patch` tích hợp tiếp tục fail với `helper_unknown_error`; patch scoped được áp dụng bằng Codex apply-patch executable ngoài sandbox, không ghi file trực tiếp.
+- Focused test lần đầu fail vì assertion điều hướng chạy trước chuỗi delay + exit/navigation transition; đổi test sang `pumpAndSettle` sau retry, không thay timing production.
+- Scoped analyzer báo 9 `withOpacity` deprecation có sẵn trong `splash_screen.dart`; không dọn chúng trong STAB-008. Full wrapper baseline/final đều giữ 138 diagnostics = 0/19/119.
+- Final format check exit 1 với 59/127 file lệch format baseline; `--output=none` không ghi các file đó. Hai file Dart trong scope đã được format trực tiếp.
+- Full widget test chỉ dùng callback giả throw/succeed; chưa xác nhận UI retry với lỗi Supabase/PowerSync/plugin thật hoặc layout trên thiết bị.

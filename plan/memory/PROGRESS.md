@@ -84,3 +84,26 @@
 - [x] Focused test pass; full `flutter test --no-pub`: 14/14 pass; scoped analyzer: `No issues found`; wrapper cuối: baseline 138 diagnostics = 0 error, 19 warning, 119 info.
 - [ ] `dart format --output=none --set-exit-if-changed .` vẫn fail baseline: 63/124 file cần format, gồm WalletCardHome vốn đã lệch format; check không ghi file. Chưa có Android/iOS device smoke test.
 - Bước tiếp theo: thực hiện TransactionScreen và Home transaction-list của UI-001 như một lát cắt riêng, kèm test error/retry và không thay đổi provider API.
+
+## [Phase 4] - 2026-07-15 22:39
+- [x] Chỉ xử lý lát cắt UI-001 còn lại cho TransactionsScreen và danh sách giao dịch Home; không chạm provider API, repository, schema, navigation hoặc các finding auth/backup.
+- [x] Root cause: TransactionsScreen chỉ watch danh sách derived nên mất trạng thái lỗi của `transactionsProvider` và render empty/summary 0; Home chỉ in exception thô, không có hành động retry.
+- [x] TransactionsScreen watch thêm `AsyncValue`, chỉ hiện error state khi lỗi tải đầu tiên chưa có value, ẩn mini-summary gây hiểu nhầm và retry bằng cách invalidate đúng `transactionsProvider`. Home dùng error state tiếng Việt + retry thay cho exception thô.
+- [x] Thêm 2 widget regression test: lỗi không còn hiện empty state và nút “Thử lại” thực sự rebuild provider trên cả Transactions lẫn Home.
+- [x] Tăng version từ `1.7.10+15` lên `1.7.11+16`.
+- [x] Baseline: analyzer wrapper `138 diagnostics = 0 error / 19 warning / 119 info`; full test `14/14` pass.
+- [x] Final: focused test `2/2` pass; scoped analyzer `No issues found`; full test `16/16` pass; analyzer wrapper giữ nguyên baseline `138 = 0/19/119`; `git diff --check` pass.
+- [ ] Final format check vẫn fail baseline: 60/126 file sẽ đổi format; `--output=none` không ghi file. Chưa smoke test trên Android/iOS device, nên chưa xác nhận layout/scroll/retry với DB thật.
+- Bước tiếp theo: smoke test hai error state trên device/emulator nếu có; sau đó chọn một finding mới thành session độc lập thay vì mở rộng thêm trong Phase 4.
+
+## [Phase 5] - 2026-07-15 23:03
+- [x] Chỉ xử lý STAB-008: exception ở bước khởi tạo bắt buộc có thể để splash đứng vô hạn; không chạm thứ tự bootstrap, timeout, DB, Supabase, backup nền hoặc cleanup.
+- [x] Root cause: `SplashScreen._startInit` await `onInit` không catch exception, không có error state và không có đường retry.
+- [x] Catch lỗi tại boundary splash, ghi log kèm stack trace, giữ người dùng ở splash, hiển thị thông báo tiếng Việt + nút “Thử lại”; chỉ điều hướng sau một lần init hoàn tất.
+- [x] Guard duplicate init và reset progress/status trước mỗi retry; không nuốt lỗi để tiếp tục vào app khi service bắt buộc chưa sẵn sàng.
+- [x] Thêm widget regression test chứng minh lần đầu throw không điều hướng và lần retry thành công mới mở màn tiếp theo.
+- [x] Tăng version từ `1.7.11+16` lên `1.7.12+17`.
+- [x] Baseline và final analyzer wrapper giống nhau: 138 diagnostics = 0 error / 19 warning / 119 info; exit 1 do technical debt hiện có.
+- [x] Baseline full test 16/16 pass; final focused test 1/1 và full test 17/17 pass.
+- [ ] Final format check vẫn fail baseline: 59/127 file sẽ đổi; `--output=none` không ghi file. Chưa smoke test lỗi init thật trên Android/iOS/Windows.
+- Bước tiếp theo: smoke test bằng failure injection ở bootstrap trên runtime; sau đó tách critical/optional init và đo startup trong một session Phase 5 riêng trước khi cân nhắc timeout.

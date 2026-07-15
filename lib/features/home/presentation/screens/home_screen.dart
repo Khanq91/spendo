@@ -90,9 +90,8 @@ class HomeScreen extends ConsumerWidget {
             loading: () => const _HomeTransactionListSkeleton(),
             error:
                 (e, _) => SliverToBoxAdapter(
-                  child: Center(
-                    key: const ValueKey('home_error'),
-                    child: Text('Lỗi: $e'),
+                  child: _HomeTransactionLoadError(
+                    onRetry: () => ref.invalidate(transactionsProvider),
                   ),
                 ),
             data: (txs) {
@@ -133,6 +132,36 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeTransactionLoadError extends StatelessWidget {
+  const _HomeTransactionLoadError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      key: const ValueKey('home_error'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(LucideIcons.circleAlert, size: 32, color: cs.error),
+            const SizedBox(height: 8),
+            Text(
+              'Không thể tải giao dịch',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(onPressed: onRetry, child: const Text('Thử lại')),
+          ],
+        ),
       ),
     );
   }
