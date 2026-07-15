@@ -142,33 +142,6 @@ Future<void> _initServices(
   report(0.90, 'Syncing widgets…');
   await WidgetSync.syncCategories();
 
-  // 6. Data cleanup
-  report(0.95, 'Cleaning up…');
-  try {
-    await _cleanupOldData();
-  } catch (e) {
-    debugPrint('[Init] Cleanup error: $e');
-  }
-
   report(1.0, 'All done!');
   await Future.delayed(const Duration(milliseconds: 200));
-}
-
-Future<void> _cleanupOldData() async {
-  // Chỉ xóa vĩnh viễn (giao dịch > 2 năm) nếu ĐÃ CÓ backup trên Drive thành công
-  // để tránh mất dữ liệu đáng tiếc.
-  final hasBackup = await GDriveBackupService.instance.hasRecentBackup();
-  if (hasBackup) {
-    final twoYearsAgo = DateTime.now().subtract(const Duration(days: 730));
-
-    // PowerSync SQLite executes
-    await db.execute('DELETE FROM transactions WHERE created_at < ?', [
-      twoYearsAgo.millisecondsSinceEpoch.toString(),
-    ]);
-    debugPrint('[Cleanup] Xoá giao dịch quá 2 năm (do đã có backup Drive)');
-  } else {
-    debugPrint(
-      '[Cleanup] Bỏ qua xoá giao dịch do chưa có backup Drive gần đây',
-    );
-  }
 }

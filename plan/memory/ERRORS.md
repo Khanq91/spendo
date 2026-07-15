@@ -137,3 +137,10 @@
 - Scoped analyzer báo 9 `withOpacity` deprecation có sẵn trong `splash_screen.dart`; không dọn chúng trong STAB-008. Full wrapper baseline/final đều giữ 138 diagnostics = 0/19/119.
 - Final format check exit 1 với 59/127 file lệch format baseline; `--output=none` không ghi các file đó. Hai file Dart trong scope đã được format trực tiếp.
 - Full widget test chỉ dùng callback giả throw/succeed; chưa xác nhận UI retry với lỗi Supabase/PowerSync/plugin thật hoặc layout trên thiết bị.
+
+## [Phase 2] - 2026-07-15 23:15
+- Helper `apply_patch` trong Windows sandbox tiếp tục fail với `helper_unknown_error`; patch scoped được áp dụng bằng Codex apply-patch executable ngoài sandbox, không dùng shell ghi file trực tiếp.
+- Final format check exit 1 với 60/127 file lệch format baseline; `--output=none` không ghi các file đó. Chỉ hai file Dart trong scope được format trực tiếp.
+- Analyzer wrapper baseline/final đều exit 1 do cùng 138 diagnostic tồn tại (0 error / 19 warning / 119 info). Scoped analyzer chỉ báo deprecated `Workmanager.isInDebugMode` có sẵn, ngoài STAB-006.
+- Full test baseline/final đều pass 17/17. Không có Android/iOS device hoặc emulator runtime check; chưa xác nhận startup thực tế và ảnh hưởng dung lượng DB sau khi dừng retention.
+- Preference `shown_retention_policy_notice` có thể còn trong SharedPreferences của người dùng cũ nhưng không còn reader/writer; đây là dữ liệu inert, không cần migration xóa trong issue bảo toàn dữ liệu này.

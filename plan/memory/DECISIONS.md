@@ -143,3 +143,9 @@
 - Không thêm timeout cho Supabase/PowerSync trong lát cắt này: timeout có thể cho người dùng vào app khi dependency bắt buộc chưa sẵn sàng; việc phân loại critical/optional cần một quyết định và phép đo riêng.
 - Retry chạy lại toàn bộ callback init hiện có và có duplicate guard. Cách này giữ public API/boot order, rollback nhỏ, đồng thời tránh tạo state machine hoặc package mới trước khi có yêu cầu rộng hơn.
 - Không hiển thị exception kỹ thuật cho người dùng; UI dùng thông báo tiếng Việt ổn định, còn log giữ error + stack trace để chẩn đoán.
+
+## [Phase 2] - 2026-07-15 23:15
+- Tạm ngừng hoàn toàn automatic transaction retention thay vì thay điều kiện “backup gần đây” bằng một khoảng thời gian khác; tuổi file không chứng minh các row sắp xóa đã được snapshot và có thể restore.
+- Xóa đường cleanup thay vì giữ code destructive sau một constant/flag trong lát cắt này. Rollback vẫn nhỏ qua hai file, còn production không giữ một nhánh xóa nguy hiểm có thể vô tình được bật lại.
+- Bỏ dialog retention thay vì sửa copy thành một policy chưa được triển khai. Google Drive backup UI hiện có vẫn giữ nguyên; chỉ loại bỏ tuyên bố xóa/ẩn không còn đúng với behavior.
+- Chấp nhận DB có thể tăng dung lượng trong ngắn hạn; ưu tiên bảo toàn dữ liệu cho đến khi có manifest, preview, xác nhận người dùng và rollback rõ ràng.

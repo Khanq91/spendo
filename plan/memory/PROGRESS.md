@@ -107,3 +107,14 @@
 - [x] Baseline full test 16/16 pass; final focused test 1/1 và full test 17/17 pass.
 - [ ] Final format check vẫn fail baseline: 59/127 file sẽ đổi; `--output=none` không ghi file. Chưa smoke test lỗi init thật trên Android/iOS/Windows.
 - Bước tiếp theo: smoke test bằng failure injection ở bootstrap trên runtime; sau đó tách critical/optional init và đo startup trong một session Phase 5 riêng trước khi cân nhắc timeout.
+
+## [Phase 2] - 2026-07-15 23:15
+- [x] Chỉ xử lý STAB-006: dừng xóa giao dịch cũ tự động dựa trên việc có một backup Drive gần đây; không mở rộng sang backup schema, atomic restore, manifest hoặc retention UI mới.
+- [x] Root cause: startup coi backup mới nhất không quá 30 ngày là bằng chứng đủ để xóa mọi transaction quá 730 ngày, dù không có backup ID, timestamp/hash theo row hoặc high-water mark chứng minh snapshot chứa dữ liệu hiện tại.
+- [x] Bỏ bước `_cleanupOldData` khỏi `_initServices` và xóa câu SQL `DELETE FROM transactions WHERE created_at < ?`; startup không còn đường xóa hàng loạt transaction theo tuổi dữ liệu.
+- [x] Bỏ dialog “Chính sách lưu trữ” cùng preference một lần hiển thị vì dialog tuyên bố transaction quá hai năm sẽ bị xóa vĩnh viễn và rule quá một năm bị ẩn không được tìm thấy trong codebase.
+- [x] Tăng version từ `1.7.12+17` lên `1.7.13+18` cho session có thay đổi code.
+- [x] Baseline và final analyzer wrapper giống nhau: 138 diagnostics = 0 error / 19 warning / 119 info; exit 1 do technical debt hiện có. Scoped analyzer chỉ còn một info `isInDebugMode` đã có sẵn trong `main.dart`.
+- [x] Baseline và final full test đều pass 17/17. Không thêm source-inspection test vì test đó không kiểm chứng runtime; xác minh scoped bằng diff và `rg` cho thấy không còn `_cleanupOldData`, retention notice hay câu SQL xóa theo cutoff trong `lib`.
+- [ ] Final format check vẫn fail baseline: 60/127 file sẽ đổi format; `--output=none` không ghi file. Chưa chạy app trên device/emulator, chưa đo tăng trưởng DB và chưa có thiết kế retention thay thế với preview/snapshot verification.
+- Bước tiếp theo: xây backup manifest/row counts và retention preview trong một session Phase 2 riêng; chỉ cho phép xóa row sau khi chứng minh row đó nằm trong snapshot có thể restore.
