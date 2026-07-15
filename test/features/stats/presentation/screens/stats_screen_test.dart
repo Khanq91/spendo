@@ -67,4 +67,28 @@ void main() {
 
     expect(find.byType(BarChart), findsOneWidget);
   });
+
+  testWidgets('shows an error state instead of empty statistics', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          statsTransactionsProvider.overrideWith(
+            (ref) => Stream<List<Transaction>>.error(StateError('database')),
+          ),
+          categoriesProvider.overrideWith(
+            (ref) => Stream.value(const <Category>[]),
+          ),
+        ],
+        child: const MaterialApp(home: StatsScreen()),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Không thể tải thống kê'), findsWidgets);
+    expect(find.text('Chưa có dữ liệu'), findsNothing);
+    expect(find.text('Thử lại'), findsWidgets);
+  });
 }

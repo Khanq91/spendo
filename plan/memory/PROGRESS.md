@@ -75,3 +75,12 @@
 - [x] Focused test 3/3 pass; full `flutter test --no-pub` 12/12 pass; scoped analyzer không có issue; final wrapper còn baseline 138 diagnostics = 0 error, 19 warning, 119 info.
 - [ ] Chưa đo SQL latency/query plan trên fixture 1/20/100 Ví và chưa smoke test trên Android/iOS device; không tuyên bố đã tối ưu runtime.
 - Bước tiếp theo: profile aggregate query với dataset thực và kiểm add/edit/delete/move transaction trên device; sau đó mới xem xét phần error-state còn lại của Phase 4/UI-001.
+
+## [Phase 4] - 2026-07-15 16:55
+- [x] Chỉ xử lý lát cắt UI-001 cho Stats và thẻ Ví trên Home; TransactionScreen và Home transaction-list error/retry vẫn ngoài scope session này.
+- [x] Root cause: các derived provider dùng `valueOrNull ?? []`, nên lỗi tải đầu tiên bị suy diễn thành dữ liệu rỗng; WalletCardHome còn ẩn hẳn lỗi bằng `SizedBox.shrink()`.
+- [x] Stats hiển thị error state + retry cho summary, tab Danh mục và tab Theo ngày; thẻ Ví hiển thị thông báo gọn + retry thay vì biến mất. Dữ liệu cũ khi refresh lỗi vẫn được giữ vì chỉ chuyển error state khi `!hasValue`.
+- [x] Thêm regression widget tests cho `Stream.error` ở Stats và WalletCardHome; tăng version `1.7.9+14` lên `1.7.10+15`.
+- [x] Focused test pass; full `flutter test --no-pub`: 14/14 pass; scoped analyzer: `No issues found`; wrapper cuối: baseline 138 diagnostics = 0 error, 19 warning, 119 info.
+- [ ] `dart format --output=none --set-exit-if-changed .` vẫn fail baseline: 63/124 file cần format, gồm WalletCardHome vốn đã lệch format; check không ghi file. Chưa có Android/iOS device smoke test.
+- Bước tiếp theo: thực hiện TransactionScreen và Home transaction-list của UI-001 như một lát cắt riêng, kèm test error/retry và không thay đổi provider API.

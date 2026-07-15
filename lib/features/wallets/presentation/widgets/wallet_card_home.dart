@@ -55,7 +55,9 @@ class _WalletCardHomeState extends ConsumerState<WalletCardHome> {
 
     return walletsAsync.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error:
+          (_, __) =>
+              _WalletLoadError(onRetry: () => ref.invalidate(walletsProvider)),
       data: (wallets) {
         // Chưa có wallet → CTA đơn giản
         if (wallets.isEmpty) {
@@ -196,6 +198,39 @@ class _WalletChip extends ConsumerWidget {
               );
             },
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WalletLoadError extends StatelessWidget {
+  const _WalletLoadError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('wallets-error'),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: cs.outlineVariant, width: 0.8),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(LucideIcons.circleAlert, size: 18, color: cs.error),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Không thể tải nguồn tiền',
+              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Thử lại')),
         ],
       ),
     );

@@ -117,3 +117,9 @@
 - Final wrapper exit 1 do analyzer debt còn lại nhưng giảm đúng một warning cũ trong file đã chạm: 138 diagnostics = 0 error, 19 warning, 119 info; scoped analyzer cho 4 file STATE-001 báo `No issues found`.
 - Final format check exit 1: 63/123 file sẽ đổi format; `--output=none` không ghi file và `git diff --check` pass. Không format hàng loạt ngoài scope.
 - Full test pass 12/12. Chưa có Android/iOS device run, query-plan benchmark hoặc runtime metric cho 1/20/100 Ví.
+
+## [Phase 4] - 2026-07-15 16:55
+- Baseline sandbox `dart format --output=none --set-exit-if-changed .` treo sau 60 giây; chạy ngoài sandbox hoàn tất. Final check vẫn fail baseline với 63/124 file cần format, không ghi file vì dùng `--output=none`.
+- `scripts/analyze_codex.bat` hoàn tất ngoài sandbox nhưng exit 1 do 138 diagnostic tồn tại (0 error, 19 warning, 119 info); scoped analyzer cho 4 file UI-001 báo `No issues found`.
+- Full `flutter test --no-pub` chạy ngoài sandbox pass 14/14. Không có Android/iOS device hoặc emulator nên không xác nhận được visual layout, retry với DB thật hay navigation trên thiết bị.
+- WalletCardHome vẫn nằm trong danh sách formatter baseline; đã tránh broad format và chỉ giữ thay đổi UI-001 cần thiết trong file đó.

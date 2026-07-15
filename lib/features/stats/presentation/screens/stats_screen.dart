@@ -56,6 +56,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
             summary: summary,
             isLoading:
                 transactionsAsync.isLoading && !transactionsAsync.hasValue,
+            hasInitialError:
+                transactionsAsync.hasError && !transactionsAsync.hasValue,
+            onRetry: () => ref.invalidate(statsTransactionsProvider),
           ),
           const Divider(height: 1),
           Expanded(
@@ -71,10 +74,17 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
 }
 
 class _StatsSummaryRow extends StatelessWidget {
-  const _StatsSummaryRow({required this.summary, required this.isLoading});
+  const _StatsSummaryRow({
+    required this.summary,
+    required this.isLoading,
+    required this.hasInitialError,
+    required this.onRetry,
+  });
 
   final ({int income, int expense, int balance}) summary;
   final bool isLoading;
+  final bool hasInitialError;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +114,8 @@ class _StatsSummaryRow extends StatelessWidget {
                     ],
                   ),
                 )
+                : hasInitialError
+                ? _StatsSummaryError(onRetry: onRetry)
                 : Padding(
                   key: const ValueKey('stats-summary-values'),
                   padding: const EdgeInsets.symmetric(
@@ -144,6 +156,34 @@ class _StatsSummaryRow extends StatelessWidget {
                     ],
                   ),
                 ),
+      ),
+    );
+  }
+}
+
+class _StatsSummaryError extends StatelessWidget {
+  const _StatsSummaryError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      key: const ValueKey('stats-summary-error'),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Icon(LucideIcons.circleAlert, size: 18, color: cs.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Không thể tải thống kê',
+              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Thử lại')),
+        ],
       ),
     );
   }
@@ -232,6 +272,19 @@ class _CategoryTabState extends ConsumerState<_CategoryTab> {
       return const _StatsStateTransition(
         stateKey: 'category-loading',
         child: _StatsChartLoading(),
+      );
+    }
+
+    if ((transactionsAsync.hasError && !transactionsAsync.hasValue) ||
+        (categoriesAsync.hasError && !categoriesAsync.hasValue)) {
+      return _StatsStateTransition(
+        stateKey: 'category-error',
+        child: _StatsError(
+          onRetry: () {
+            ref.invalidate(statsTransactionsProvider);
+            ref.invalidate(categoriesProvider);
+          },
+        ),
       );
     }
 
@@ -440,6 +493,15 @@ class _DailyTab extends ConsumerWidget {
       return const _StatsStateTransition(
         stateKey: 'daily-loading',
         child: _StatsChartLoading(),
+      );
+    }
+
+    if (transactionsAsync.hasError && !transactionsAsync.hasValue) {
+      return _StatsStateTransition(
+        stateKey: 'daily-error',
+        child: _StatsError(
+          onRetry: () => ref.invalidate(statsTransactionsProvider),
+        ),
       );
     }
 
@@ -869,6 +931,32 @@ class _EmptyStats extends StatelessWidget {
             'Thêm giao dịch để xem thống kê',
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsError extends StatelessWidget {
+  const _StatsError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(LucideIcons.circleAlert, size: 48, color: cs.error),
+          const SizedBox(height: 12),
+          Text(
+            'Không thể tải thống kê',
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(onPressed: onRetry, child: const Text('Thử lại')),
         ],
       ),
     );

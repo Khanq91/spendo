@@ -126,3 +126,8 @@
 - Cho phép inject `PowerSyncDatabase` vào repository nhưng giữ constructor mặc định dùng global `db`; seam này bổ sung testability mà không buộc các caller hiện tại thay đổi.
 - Ghim `sqlite3 2.4.5` và `sqlite_async 0.8.3` dưới dev_dependencies đúng các phiên bản đã có trong lock để test factory có thể nạp PowerSync/SQLite native binary; không upgrade hoặc thay package production.
 - Giữ các one-shot repository method hiện có để tránh đổi API ngoài nhu cầu; provider mới chỉ dùng các watch method bổ sung.
+
+## [Phase 4] - 2026-07-15 16:55
+- Xử lý UI-001 theo lát cắt Stats + WalletCardHome trước thay vì sửa đồng thời toàn bộ Transactions/Home. Hai bề mặt này có regression dễ dựng bằng `Stream.error`, phạm vi rollback nhỏ và đúng quick win của audit.
+- Chỉ hiển thị error state khi `AsyncValue.hasError && !hasValue`; nếu refresh thất bại sau khi đã có dữ liệu, giữ dữ liệu cũ để tránh thay số liệu tài chính đang xem bằng màn lỗi.
+- Retry dùng `ref.invalidate()` đúng provider nguồn, không thêm state manager, repository API hoặc package. Đây là retry một lần theo cơ chế StreamProvider hiện có, không tạo vòng lặp tự động.
