@@ -7,7 +7,10 @@ import 'schema.dart';
 
 late final PowerSyncDatabase db;
 
-Future<void> openDatabase({String databaseName = 'spendo.db'}) async {
+Future<void> openDatabase({
+  String databaseName = 'spendo.db',
+  bool setupSync = true,
+}) async {
   final dir = await getApplicationDocumentsDirectory();
   final dbPath = p.join(dir.path, databaseName);
 
@@ -20,7 +23,9 @@ Future<void> openDatabase({String databaseName = 'spendo.db'}) async {
   await _migrateSource();
 
   await _deduplicateCategories();
-  await _setupSync();
+  if (setupSync) {
+    await _setupSync();
+  }
   await _seedDefaultCategoriesIfNeeded();
 }
 

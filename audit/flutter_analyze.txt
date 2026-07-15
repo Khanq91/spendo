@@ -1,13 +1,13 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : 479871d7-d657-4bda-9e0f-85f18e811a69
-Generated At : 2026-07-15 23:14:52
+Run ID       : e5e9dce9-8941-4018-a67a-cf80ac4a63b3
+Generated At : 2026-07-15 23:27:54
 Computer     : LAPTOP-J44MMRC9
 User         : chikh
 Working Dir  : D:\program\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : 61597c7
+Git Commit   : 5d086a1
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
@@ -159,7 +159,7 @@ warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try r
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:327:42 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:389:36 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:392:38 - deprecated_member_use
-   info - 'isInDebugMode' is deprecated and shouldn't be used. Use WorkmanagerDebug handlers instead. This parameter has no effect. Try replacing the use of the deprecated member with the replacement - lib\main.dart:65:48 - deprecated_member_use
+   info - 'isInDebugMode' is deprecated and shouldn't be used. Use WorkmanagerDebug handlers instead. This parameter has no effect. Try replacing the use of the deprecated member with the replacement - lib\main.dart:36:48 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\category_icon.dart:26:22 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:428:15 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:433:44 - deprecated_member_use
@@ -171,13 +171,13 @@ warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try r
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:568:39 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:587:50 - deprecated_member_use
 
-138 issues found. (ran in 3.1s)
+138 issues found. (ran in 3.3s)
 
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-15 23:15:00
-Duration    : 8.61s
+Finished At : 2026-07-15 23:28:03
+Duration    : 9.57s
 Exit Code   : 1
 Status      : FAILED
 ------------------------------------------------------------

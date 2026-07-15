@@ -118,3 +118,13 @@
 - [x] Baseline và final full test đều pass 17/17. Không thêm source-inspection test vì test đó không kiểm chứng runtime; xác minh scoped bằng diff và `rg` cho thấy không còn `_cleanupOldData`, retention notice hay câu SQL xóa theo cutoff trong `lib`.
 - [ ] Final format check vẫn fail baseline: 60/127 file sẽ đổi format; `--output=none` không ghi file. Chưa chạy app trên device/emulator, chưa đo tăng trưởng DB và chưa có thiết kế retention thay thế với preview/snapshot verification.
 - Bước tiếp theo: xây backup manifest/row counts và retention preview trong một session Phase 2 riêng; chỉ cho phép xóa row sau khi chứng minh row đó nằm trong snapshot có thể restore.
+
+## [Phase 2] - 2026-07-15 23:28
+- [x] Chỉ xử lý STAB-002: tác vụ Google Drive nền mở PowerSync trước khi Supabase được khởi tạo trong background isolate; không mở rộng sang backup schema, restore atomicity, iOS config hoặc retention.
+- [x] Root cause: callbackDispatcher gọi openDatabase(), trong khi hàm này luôn chạy _setupSync() và truy cập Supabase.instance; Supabase chỉ được khởi tạo trong UI isolate.
+- [x] Thêm tùy chọn setupSync mặc định true cho openDatabase; handler backup nền dùng setupSync: false, vẫn mở/migrate DB local nhưng không tạo PowerSync connector hoặc auth listener trong background isolate.
+- [x] Tách runGDriveBackgroundTask để giữ orchestration có thể test và giữ nguyên contract WorkManager: task lạ trả success, chưa Google sign-in thì dừng an toàn, exception trả failure, timestamp chỉ ghi sau upload thành công.
+- [x] Thêm 4 regression test cho thứ tự thành công, silent sign-in thất bại, upload throw và task không liên quan; tăng version 1.7.13+18 lên 1.7.14+19.
+- [x] Baseline: analyzer wrapper 138 = 0 error / 19 warning / 119 info; full test 17/17 pass. Final: focused test 4/4, full test 21/21 pass; analyzer giữ nguyên 138 = 0/19/119; scoped analyzer không có diagnostic mới.
+- [ ] Final format check vẫn fail baseline: 60/129 file sẽ đổi format; --output=none không ghi file. Chưa chạy WorkManager task thật trên Android/iOS và chưa xác nhận cạnh tranh truy cập cùng file DB giữa UI/background isolate.
+- Bước tiếp theo: chạy periodic task trên thiết bị với app foreground/background/terminated, kiểm gdrive_last_backup_time và file Drive; nếu có lock hoặc isolate được tái sử dụng, xử lý lifecycle/idempotent open trong issue riêng.

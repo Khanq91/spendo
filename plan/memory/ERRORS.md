@@ -144,3 +144,10 @@
 - Analyzer wrapper baseline/final đều exit 1 do cùng 138 diagnostic tồn tại (0 error / 19 warning / 119 info). Scoped analyzer chỉ báo deprecated `Workmanager.isInDebugMode` có sẵn, ngoài STAB-006.
 - Full test baseline/final đều pass 17/17. Không có Android/iOS device hoặc emulator runtime check; chưa xác nhận startup thực tế và ảnh hưởng dung lượng DB sau khi dừng retention.
 - Preference `shown_retention_policy_notice` có thể còn trong SharedPreferences của người dùng cũ nhưng không còn reader/writer; đây là dữ liệu inert, không cần migration xóa trong issue bảo toàn dữ liệu này.
+
+## [Phase 2] - 2026-07-15 23:28
+- Helper apply_patch tích hợp tiếp tục fail với windows sandbox: helper_unknown_error; hai lần gọi wrapper .bat ngoài sandbox cũng fail do truyền patch UTF-8/newline. Patch scoped cuối cùng được áp dụng bằng Codex apply-patch executable ngoài sandbox, không ghi file trực tiếp.
+- Lần chạy focused test và scoped analyzer song song làm mất output test khi analyzer exit 1 vì info baseline; focused test được chạy lại độc lập và pass 4/4.
+- Analyzer wrapper baseline/final đều exit 1 với cùng 138 diagnostic tồn tại (0 error / 19 warning / 119 info). Scoped analyzer chỉ còn deprecated Workmanager.isInDebugMode đã có sẵn trong main.dart.
+- Final format check exit 1 với 60/129 file lệch format baseline; --output=none không ghi file. Bốn file Dart trong scope đã được format trực tiếp.
+- Full test tăng từ baseline 17/17 lên final 21/21 pass. Chưa có Android/iOS runtime check cho WorkManager, Google silent sign-in, upload Drive hoặc concurrent PowerSync DB access; không tuyên bố backup nền đã được xác nhận end-to-end.

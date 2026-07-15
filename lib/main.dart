@@ -12,8 +12,7 @@ import 'core/config.dart';
 import 'core/db/powersync_db.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/reminder_notification_service.dart';
-import 'core/services/gdrive_auth_service.dart';
-import 'core/services/gdrive_backup_service.dart';
+import 'core/services/gdrive_background_backup.dart';
 import 'core/theme/app_glass_policy.dart';
 import 'core/utils/widget_sync.dart';
 import 'features/onboarding/presentation/startup_gate.dart';
@@ -22,37 +21,9 @@ import 'shared/widgets/splash_screen.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
-  Workmanager().executeTask((taskName, inputData) async {
-    try {
-      if (taskName == 'autoGDriveBackup') {
-        debugPrint('[WorkManager] Starting autoGDriveBackup task');
-
-        // Cần init database trong background isolate
-        await openDatabase();
-
-        // Thử sign in silently, nếu fail thì không làm gì thêm
-        final signedIn = await GDriveAuthService.instance.signInSilently();
-        if (!signedIn) {
-          debugPrint('[WorkManager] Not signed in, aborting backup');
-          return Future.value(true);
-        }
-
-        await GDriveBackupService.instance.uploadBackup();
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt(
-          'gdrive_last_backup_time',
-          DateTime.now().millisecondsSinceEpoch,
-        );
-
-        debugPrint('[WorkManager] autoGDriveBackup completed successfully');
-      }
-      return Future.value(true);
-    } catch (e) {
-      debugPrint('[WorkManager] Task failed: $e');
-      return Future.value(false);
-    }
-  });
+  Workmanager().executeTask(
+    (taskName, inputData) => runGDriveBackgroundTask(taskName),
+  );
 }
 
 void main() async {

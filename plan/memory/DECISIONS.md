@@ -149,3 +149,9 @@
 - Xóa đường cleanup thay vì giữ code destructive sau một constant/flag trong lát cắt này. Rollback vẫn nhỏ qua hai file, còn production không giữ một nhánh xóa nguy hiểm có thể vô tình được bật lại.
 - Bỏ dialog retention thay vì sửa copy thành một policy chưa được triển khai. Google Drive backup UI hiện có vẫn giữ nguyên; chỉ loại bỏ tuyên bố xóa/ẩn không còn đúng với behavior.
 - Chấp nhận DB có thể tăng dung lượng trong ngắn hạn; ưu tiên bảo toàn dữ liệu cho đến khi có manifest, preview, xác nhận người dùng và rollback rõ ràng.
+
+## [Phase 2] - 2026-07-15 23:28
+- Mở PowerSync ở chế độ local-only cho backup nền thay vì khởi tạo Supabase trong isolate: export chỉ đọc DB local, nên tạo connector/auth listener là công việc thừa và tăng rủi ro double initialization hoặc sync cạnh tranh.
+- Giữ setupSync = true làm mặc định để mọi caller hiện tại không đổi behavior; chỉ callback backup truyền false, giúp diff nhỏ và rollback độc lập.
+- Tách handler nền với dependency injection bằng callback thay vì mock plugin WorkManager/Google Drive/SharedPreferences; test kiểm chứng orchestration và failure contract mà không đổi public API của service Drive.
+- Chỉ ghi gdrive_last_backup_time sau khi upload thành công; silent sign-in không có session vẫn trả success để WorkManager không retry một trạng thái cần người dùng đăng nhập.
