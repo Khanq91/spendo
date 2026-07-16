@@ -83,6 +83,12 @@ class RestoreResult {
 const _kBackupVersion = 4;
 const _kBackupAppTag = 'spendo';
 
+typedef _SqlExecutor = Future<void> Function(
+  String sql,
+  List<Object?> parameters,
+);
+typedef _RowReader = Future<Iterable<Map<String, Object?>>> Function(String sql);
+
 class BackupService {
   // ── Export ──────────────────────────────────────────────────────────────────
 
@@ -247,6 +253,8 @@ class BackupService {
   static Future<RestoreResult> _processRestore(
     String filePath, {
     required bool dryRun,
+    _SqlExecutor? execute,
+    _RowReader? readRows,
   }) async {
     final file = File(filePath);
     if (!await file.exists()) {
@@ -273,49 +281,50 @@ class BackupService {
       );
     }
 
-    final validationError = _validate(data);
-    if (validationError != null) {
+    final _RestorePayload payload;
+    try {
+      payload = _RestorePayload.fromJson(data);
+    } on FormatException catch (error) {
       return RestoreResult(
         categoriesAdded: 0,
         transactionsAdded: 0,
         categoriesSkipped: 0,
         transactionsSkipped: 0,
-        errors: [validationError],
+        errors: [error.message],
       );
     }
 
-    final rawWallets = data['wallets'] is List
-        ? (data['wallets'] as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
-    final rawCats =
-        (data['categories'] as List).cast<Map<String, dynamic>>();
-    final rawLoans = data['loans'] is List
-        ? (data['loans'] as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
-    final rawLoanPayments = data['loan_payments'] is List
-        ? (data['loan_payments'] as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
-    final rawTxs =
-        (data['transactions'] as List).cast<Map<String, dynamic>>();
-    final rawReminders = data['recurring_reminders'] is List
-        ? (data['recurring_reminders'] as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
-    final rawBudgets = data['category_budgets'] is List
-        ? (data['category_budgets'] as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
-    final rawMonthlyBudgets = data['budgets'] is List
-        ? (data['budgets'] as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
+    if (!dryRun && execute == null) {
+      return db.writeTransaction((transaction) {
+        return _processRestore(
+          filePath,
+          dryRun: false,
+          execute: (sql, parameters) async {
+            await transaction.execute(sql, parameters);
+          },
+          readRows: transaction.getAll,
+        );
+      });
+    }
 
-    final existingCatIds = await _getExistingCategoryIds();
-    final existingTxIds = await _getExistingTransactionIds();
-    final existingReminderIds = await _getExistingReminderIds();
-    final existingBudgetCatIds = await _getExistingBudgetCategoryIds();
-    final existingWalletIds = await _getExistingWalletIds();
-    final existingLoanIds = await _getExistingLoanIds();
-    final existingLoanPaymentIds = await _getExistingLoanPaymentIds();
-    final existingMonthlyBudgetIds = await _getExistingMonthlyBudgetIds();
-    final existingMonthlyBudgetMonths = await _getExistingMonthlyBudgetMonths();
+    final rawWallets = payload.wallets;
+    final rawCats = payload.categories;
+    final rawLoans = payload.loans;
+    final rawLoanPayments = payload.loanPayments;
+    final rawTxs = payload.transactions;
+    final rawReminders = payload.reminders;
+    final rawBudgets = payload.categoryBudgets;
+    final rawMonthlyBudgets = payload.monthlyBudgets;
+
+    final existingCatIds = await _getExistingCategoryIds(readRows);
+    final existingTxIds = await _getExistingTransactionIds(readRows);
+    final existingReminderIds = await _getExistingReminderIds(readRows);
+    final existingBudgetCatIds = await _getExistingBudgetCategoryIds(readRows);
+    final existingWalletIds = await _getExistingWalletIds(readRows);
+    final existingLoanIds = await _getExistingLoanIds(readRows);
+    final existingLoanPaymentIds = await _getExistingLoanPaymentIds(readRows);
+    final existingMonthlyBudgetIds = await _getExistingMonthlyBudgetIds(readRows);
+    final existingMonthlyBudgetMonths = await _getExistingMonthlyBudgetMonths(readRows);
 
     int catsAdded = 0, catsSkipped = 0;
     int txsAdded = 0, txsSkipped = 0;
@@ -339,7 +348,7 @@ class BackupService {
       }
       loansAdded++;
       if (!dryRun) {
-        await _insertLoan(l);
+        await _insertLoan(l, execute!);
         existingLoanIds.add(id);
       }
     }
@@ -368,7 +377,7 @@ class BackupService {
       }
       loanPaymentsAdded++;
       if (!dryRun) {
-        await _insertLoanPayment(payment);
+        await _insertLoanPayment(payment, execute!);
         existingLoanPaymentIds.add(id);
       }
     }
@@ -387,7 +396,7 @@ class BackupService {
       } else {
         walletsAdded++;
         if (!dryRun) {
-          await _insertWallet(w);
+          await _insertWallet(w, execute!);
           existingWalletIds.add(id);
         }
       }
@@ -405,7 +414,7 @@ class BackupService {
       } else {
         catsAdded++;
         if (!dryRun) {
-          await _insertCategory(cat);
+          await _insertCategory(cat, execute!);
           existingCatIds.add(id);
         }
       }
@@ -448,7 +457,7 @@ class BackupService {
       } else {
         txsAdded++;
         if (!dryRun) {
-          await _insertTransaction(tx);
+          await _insertTransaction(tx, execute!);
           existingTxIds.add(id);
         }
       }
@@ -472,7 +481,7 @@ class BackupService {
       } else {
         remindersAdded++;
         if (!dryRun) {
-          await _insertReminder(rem);
+          await _insertReminder(rem, execute!);
           existingReminderIds.add(id);
         }
       }
@@ -491,7 +500,7 @@ class BackupService {
       } else {
         budgetsAdded++;
         if (!dryRun) {
-          await _insertBudget(bud);
+          await _insertBudget(bud, execute!);
           existingBudgetCatIds.add(catId);
         }
       }
@@ -512,7 +521,7 @@ class BackupService {
       }
       monthlyBudgetsAdded++;
       if (!dryRun) {
-        await _insertMonthlyBudget(budget);
+        await _insertMonthlyBudget(budget, execute!);
         existingMonthlyBudgetIds.add(id);
         existingMonthlyBudgetMonths.add(month);
       }
@@ -541,57 +550,62 @@ class BackupService {
 
   // ── Validation ──────────────────────────────────────────────────────────────
 
-  static String? _validate(Map<String, dynamic> data) {
-    if (data['app'] != _kBackupAppTag) return 'File không phải backup Spendo';
-    if (data['version'] == null) return 'File thiếu trường version';
-    final version = data['version'] as int;
-    if (version > _kBackupVersion) {
-      return 'File được tạo từ phiên bản Spendo mới hơn (v$version), vui lòng cập nhật app';
-    }
-    if (data['categories'] is! List) return 'File hỏng — thiếu danh sách categories';
-    if (data['transactions'] is! List) return 'File hỏng — thiếu danh sách transactions';
-    return null;
-  }
-
   // ── DB helpers ──────────────────────────────────────────────────────────────
 
-  static Future<Set<String>> _getExistingCategoryIds() async {
-    final rows = await db.getAll('SELECT id FROM categories');
+  static Future<Set<String>> _getExistingCategoryIds([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT id FROM categories')
+        : await readRows('SELECT id FROM categories');
     return rows.map((r) => r['id'] as String).toSet();
   }
 
-  static Future<Set<String>> _getExistingTransactionIds() async {
-    final rows = await db.getAll('SELECT id FROM transactions');
+  static Future<Set<String>> _getExistingTransactionIds([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT id FROM transactions')
+        : await readRows('SELECT id FROM transactions');
     return rows.map((r) => r['id'] as String).toSet();
   }
 
-  static Future<Set<String>> _getExistingReminderIds() async {
-    final rows = await db.getAll('SELECT id FROM recurring_reminders');
+  static Future<Set<String>> _getExistingReminderIds([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT id FROM recurring_reminders')
+        : await readRows('SELECT id FROM recurring_reminders');
     return rows.map((r) => r['id'] as String).toSet();
   }
 
-  static Future<Set<String>> _getExistingBudgetCategoryIds() async {
-    final rows = await db.getAll('SELECT category_id FROM category_budgets');
+  static Future<Set<String>> _getExistingBudgetCategoryIds([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT category_id FROM category_budgets')
+        : await readRows('SELECT category_id FROM category_budgets');
     return rows.map((r) => r['category_id'] as String).toSet();
   }
 
-  static Future<Set<String>> _getExistingWalletIds() async {
-    final rows = await db.getAll('SELECT id FROM wallets');
+  static Future<Set<String>> _getExistingWalletIds([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT id FROM wallets')
+        : await readRows('SELECT id FROM wallets');
     return rows.map((r) => r['id'] as String).toSet();
   }
 
-  static Future<Set<String>> _getExistingMonthlyBudgetIds() async {
-    final rows = await db.getAll('SELECT id FROM budgets');
+  static Future<Set<String>> _getExistingMonthlyBudgetIds([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT id FROM budgets')
+        : await readRows('SELECT id FROM budgets');
     return rows.map((r) => r['id'] as String).toSet();
   }
 
-  static Future<Set<String>> _getExistingMonthlyBudgetMonths() async {
-    final rows = await db.getAll('SELECT month FROM budgets');
+  static Future<Set<String>> _getExistingMonthlyBudgetMonths([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT month FROM budgets')
+        : await readRows('SELECT month FROM budgets');
     return rows.map((r) => r['month'] as String).toSet();
   }
 
-  static Future<void> _insertWallet(Map<String, dynamic> w) async {
-    await db.execute(
+  static Future<void> _insertWallet(
+    Map<String, dynamic> w,
+    _SqlExecutor execute,
+  ) async {
+    await execute(
       '''INSERT INTO wallets(id, name, type, initial_balance, note, color_hex, sort_order, is_archived)
          VALUES(?, ?, ?, ?, ?, ?, ?, ?)''',
       [
@@ -607,8 +621,11 @@ class BackupService {
     );
   }
 
-  static Future<void> _insertCategory(Map<String, dynamic> cat) async {
-    await db.execute(
+  static Future<void> _insertCategory(
+    Map<String, dynamic> cat,
+    _SqlExecutor execute,
+  ) async {
+    await execute(
       '''INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order)
          VALUES(?, ?, ?, ?, 0, ?, ?)''',
       [
@@ -622,8 +639,11 @@ class BackupService {
     );
   }
 
-  static Future<void> _insertTransaction(Map<String, dynamic> tx) async {
-    await db.execute(
+  static Future<void> _insertTransaction(
+    Map<String, dynamic> tx,
+    _SqlExecutor execute,
+  ) async {
+    await execute(
       '''INSERT INTO transactions(id, amount, type, category_id, note, created_at, wallet_id, source)
          VALUES(?, ?, ?, ?, ?, ?, ?, ?)''',
       [
@@ -639,8 +659,11 @@ class BackupService {
     );
   }
 
-  static Future<void> _insertReminder(Map<String, dynamic> rem) async {
-    await db.execute(
+  static Future<void> _insertReminder(
+    Map<String, dynamic> rem,
+    _SqlExecutor execute,
+  ) async {
+    await execute(
       '''INSERT INTO recurring_reminders(
           id, title, category_id, amount_hint, frequency,
           day_of_week, day_of_month, hour, minute,
@@ -663,8 +686,11 @@ class BackupService {
     );
   }
 
-  static Future<void> _insertBudget(Map<String, dynamic> bud) async {
-    await db.execute(
+  static Future<void> _insertBudget(
+    Map<String, dynamic> bud,
+    _SqlExecutor execute,
+  ) async {
+    await execute(
       '''INSERT INTO category_budgets(id, category_id, amount)
          VALUES(?, ?, ?)''',
       [
@@ -675,8 +701,11 @@ class BackupService {
     );
   }
 
-  static Future<void> _insertMonthlyBudget(Map<String, dynamic> budget) async {
-    await db.execute('INSERT INTO budgets(id, amount, month) VALUES(?, ?, ?)', [
+  static Future<void> _insertMonthlyBudget(
+    Map<String, dynamic> budget,
+    _SqlExecutor execute,
+  ) async {
+    await execute('INSERT INTO budgets(id, amount, month) VALUES(?, ?, ?)', [
       budget['id'] as String,
       (budget['amount'] as int).toString(),
       budget['month'] as String,
@@ -693,18 +722,25 @@ class BackupService {
     return result?.files.single.path;
   }
 
-  static Future<Set<String>> _getExistingLoanIds() async {
-    final rows = await db.getAll('SELECT id FROM loans');
+  static Future<Set<String>> _getExistingLoanIds([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT id FROM loans')
+        : await readRows('SELECT id FROM loans');
     return rows.map((r) => r['id'] as String).toSet();
   }
 
-  static Future<Set<String>> _getExistingLoanPaymentIds() async {
-    final rows = await db.getAll('SELECT id FROM loan_payments');
+  static Future<Set<String>> _getExistingLoanPaymentIds([_RowReader? readRows]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT id FROM loan_payments')
+        : await readRows('SELECT id FROM loan_payments');
     return rows.map((r) => r['id'] as String).toSet();
   }
 
-  static Future<void> _insertLoan(Map<String, dynamic> l) async {
-    await db.execute(
+  static Future<void> _insertLoan(
+    Map<String, dynamic> l,
+    _SqlExecutor execute,
+  ) async {
+    await execute(
       '''INSERT INTO loans(id, title, type, principal, contact_name,
            start_date, due_date, note, color_hex, is_closed)
          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
@@ -718,8 +754,11 @@ class BackupService {
     );
   }
 
-  static Future<void> _insertLoanPayment(Map<String, dynamic> payment) async {
-    await db.execute(
+  static Future<void> _insertLoanPayment(
+    Map<String, dynamic> payment,
+    _SqlExecutor execute,
+  ) async {
+    await execute(
       '''INSERT INTO loan_payments(id, loan_id, amount, paid_at, note)
          VALUES(?, ?, ?, ?, ?)''',
       [
@@ -730,5 +769,216 @@ class BackupService {
         payment['note'] as String?,
       ],
     );
+  }
+}
+
+class _RestorePayload {
+  const _RestorePayload({
+    required this.wallets,
+    required this.categories,
+    required this.loans,
+    required this.loanPayments,
+    required this.transactions,
+    required this.reminders,
+    required this.categoryBudgets,
+    required this.monthlyBudgets,
+  });
+
+  factory _RestorePayload.fromJson(Map<String, dynamic> data) {
+    if (data['app'] != _kBackupAppTag) {
+      throw const FormatException('File không phải backup Spendo');
+    }
+    final version = data['version'];
+    if (version is! int) {
+      throw const FormatException('File thiếu hoặc sai trường version');
+    }
+    if (version > _kBackupVersion) {
+      throw FormatException(
+        'File được tạo từ phiên bản Spendo mới hơn (v$version), vui lòng cập nhật app',
+      );
+    }
+
+    final wallets = _rows(data, 'wallets');
+    final categories = _rows(data, 'categories', required: true);
+    final loans = _rows(data, 'loans');
+    final loanPayments = _rows(data, 'loan_payments');
+    final transactions = _rows(data, 'transactions', required: true);
+    final reminders = _rows(data, 'recurring_reminders');
+    final categoryBudgets = _rows(data, 'category_budgets');
+    final monthlyBudgets = _rows(data, 'budgets');
+
+    _validateRows(wallets, 'wallets', {
+      'id': String,
+      'name': String,
+      'type': String,
+      'initial_balance': int,
+      'color_hex': String,
+      'sort_order': int,
+      'is_archived': bool,
+    });
+    _validateNullableRows(wallets, 'wallets', {'note': String});
+    _validateRows(categories, 'categories', {
+      'id': String,
+      'name': String,
+      'color_hex': String,
+      'icon_name': String,
+      'is_income': bool,
+      'sort_order': int,
+    });
+    _validateRows(loans, 'loans', {
+      'id': String,
+      'title': String,
+      'type': String,
+      'principal': int,
+      'start_date': String,
+      'color_hex': String,
+      'is_closed': bool,
+    });
+    _validateNullableRows(loans, 'loans', {
+      'contact_name': String,
+      'due_date': String,
+      'note': String,
+    });
+    _validateDates(loans, 'loans', 'start_date');
+    _validateDates(loans, 'loans', 'due_date', nullable: true);
+    _validateRows(loanPayments, 'loan_payments', {
+      'id': String,
+      'loan_id': String,
+      'amount': int,
+      'paid_at': String,
+    });
+    _validateNullableRows(loanPayments, 'loan_payments', {'note': String});
+    _validateDates(loanPayments, 'loan_payments', 'paid_at');
+    _validateRows(transactions, 'transactions', {
+      'id': String,
+      'amount': int,
+      'type': String,
+      'category_id': String,
+      'created_at': int,
+    });
+    _validateNullableRows(transactions, 'transactions', {
+      'note': String,
+      'wallet_id': String,
+      'source': String,
+    });
+    _validateRows(reminders, 'recurring_reminders', {
+      'id': String,
+      'title': String,
+      'category_id': String,
+      'frequency': String,
+      'hour': int,
+      'minute': int,
+      'is_active': bool,
+      'next_trigger': String,
+    });
+    _validateNullableRows(reminders, 'recurring_reminders', {
+      'amount_hint': int,
+      'day_of_week': int,
+      'day_of_month': int,
+      'warn_before_hours': int,
+    });
+    _validateDates(reminders, 'recurring_reminders', 'next_trigger');
+    _validateRows(categoryBudgets, 'category_budgets', {
+      'id': String,
+      'category_id': String,
+      'amount': int,
+    });
+    _validateRows(monthlyBudgets, 'budgets', {
+      'id': String,
+      'amount': int,
+      'month': String,
+    });
+
+    return _RestorePayload(
+      wallets: wallets,
+      categories: categories,
+      loans: loans,
+      loanPayments: loanPayments,
+      transactions: transactions,
+      reminders: reminders,
+      categoryBudgets: categoryBudgets,
+      monthlyBudgets: monthlyBudgets,
+    );
+  }
+
+  final List<Map<String, dynamic>> wallets;
+  final List<Map<String, dynamic>> categories;
+  final List<Map<String, dynamic>> loans;
+  final List<Map<String, dynamic>> loanPayments;
+  final List<Map<String, dynamic>> transactions;
+  final List<Map<String, dynamic>> reminders;
+  final List<Map<String, dynamic>> categoryBudgets;
+  final List<Map<String, dynamic>> monthlyBudgets;
+
+  static List<Map<String, dynamic>> _rows(
+    Map<String, dynamic> data,
+    String key, {
+    bool required = false,
+  }) {
+    final value = data[key];
+    if (value == null && !required) return <Map<String, dynamic>>[];
+    if (value is! List) {
+      throw FormatException('File hỏng — trường $key phải là danh sách');
+    }
+    return List<Map<String, dynamic>>.generate(value.length, (index) {
+      final row = value[index];
+      if (row is! Map<String, dynamic>) {
+        throw FormatException('File hỏng — $key[$index] không phải object');
+      }
+      return Map<String, dynamic>.from(row);
+    });
+  }
+
+  static void _validateRows(
+    List<Map<String, dynamic>> rows,
+    String listName,
+    Map<String, Type> fields,
+  ) {
+    for (var index = 0; index < rows.length; index++) {
+      final row = rows[index];
+      for (final field in fields.entries) {
+        final value = row[field.key];
+        if (value == null || value.runtimeType != field.value) {
+          throw FormatException(
+            'File hỏng — $listName[$index].${field.key} sai kiểu hoặc bị thiếu',
+          );
+        }
+      }
+    }
+  }
+
+  static void _validateNullableRows(
+    List<Map<String, dynamic>> rows,
+    String listName,
+    Map<String, Type> fields,
+  ) {
+    for (var index = 0; index < rows.length; index++) {
+      final row = rows[index];
+      for (final field in fields.entries) {
+        final value = row[field.key];
+        if (value != null && value.runtimeType != field.value) {
+          throw FormatException(
+            'File hỏng — $listName[$index].${field.key} sai kiểu',
+          );
+        }
+      }
+    }
+  }
+
+  static void _validateDates(
+    List<Map<String, dynamic>> rows,
+    String listName,
+    String field, {
+    bool nullable = false,
+  }) {
+    for (var index = 0; index < rows.length; index++) {
+      final value = rows[index][field];
+      if (value == null && nullable) continue;
+      if (value is! String || DateTime.tryParse(value) == null) {
+        throw FormatException(
+          'File hỏng — $listName[$index].$field không phải ngày hợp lệ',
+        );
+      }
+    }
   }
 }

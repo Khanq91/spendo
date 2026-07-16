@@ -158,3 +158,11 @@
 - Repo-wide format check exit 1 với 62/130 file lệch format baseline; `--output=none` không ghi file. Formatter scoped ban đầu làm lộ formatting-only diff trong hai repository và backup service; các hunk ngoài STAB-003 đã được loại trước handoff nên ba file này vẫn được formatter liệt kê.
 - Test PowerSync dùng `initializeDatabaseForTesting` một lần trong isolate và native loader đã có workaround `powersync_x64.dll` + `winsqlite3.dll`; không copy binary vào repo.
 - Full test pass 23/23 và focused backup test pass 2/2. Chưa xác nhận share/file picker/Drive restore end-to-end trên thiết bị; STAB-004 partial write khi payload lỗi vẫn còn nguyên và không được coi là đã sửa.
+
+## [Phase 2] - 2026-07-16 08:39
+- Baseline analyzer wrapper và full test trong sandbox đều timeout sau 120 giây không output; chạy ngoài sandbox với Flutter 3.44.5/Dart 3.12.2 hoàn tất. Không coi timeout sandbox là code failure.
+- Formatter scoped Dart 3.12 ban đầu tạo nhiều formatting-only hunk trong `backup_service.dart`; các hunk ngoài STAB-004 đã được loại và implementation transaction được thu gọn để giữ thân restore cũ. Tránh format toàn file này trong issue hẹp khi repo còn baseline format debt.
+- Final analyzer wrapper exit 1 do cùng 136 diagnostic baseline (0 error / 17 warning / 119 info); scoped analyzer cho production + test STAB-004 báo `No issues found`.
+- Final format check exit 1 với 62/130 file lệch format; `--output=none` không ghi file. Focused test pass 4/4 và full suite pass 25/25.
+- Test atomicity dùng SQLite trigger chỉ trong temp PowerSync DB để ép lỗi sau một insert và xác nhận rollback; trigger được drop trong `finally`, không chạm production schema.
+- Chưa xác nhận restore local/Google Drive end-to-end trên Android/iOS, file rất lớn, hoặc file bị thay đổi đồng thời trong lúc restore; manifest/checksum vẫn ngoài scope.

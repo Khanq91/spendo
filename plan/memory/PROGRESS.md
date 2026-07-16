@@ -138,3 +138,13 @@
 - [x] Baseline: analyzer `138 = 0 error / 19 warning / 119 info`, full test `21/21` pass. Final: focused test `2/2`, full test `23/23` pass; analyzer `136 = 0/17/119`, không có diagnostic mới.
 - [ ] Repo-wide format check vẫn fail baseline: 62/130 file sẽ đổi, `--output=none` không ghi file. Ba file trong scope giữ style hiện tại để tránh formatting-only diff. Chưa smoke test backup/restore qua file picker, share sheet hoặc Google Drive thật trên Android/iOS.
 - Bước tiếp theo: xử lý STAB-004 trong session riêng bằng typed validation + database transaction; sau đó mới thêm manifest/checksum và kiểm chứng restore failure không ghi partial rows.
+
+## [Phase 2] - 2026-07-16 08:39
+- [x] Chỉ xử lý STAB-004: restore có thể ghi một phần rồi fail; không gộp manifest/checksum, backup schema mới, auth/sync, retention hoặc UI refactor.
+- [x] Parse và validate toàn bộ 8 nhóm payload thành `_RestorePayload` trước mọi DB read/write; kiểm tra list/object, kiểu field bắt buộc/nullable và chuỗi ngày ISO, đồng thời giữ backup v1-v3 đọc được khi các list mới không tồn tại.
+- [x] Chạy toàn bộ existence check và insert thật trong một `PowerSyncDatabase.writeTransaction`; dry-run vẫn không ghi DB và public API `previewRestore`/`restore` giữ nguyên.
+- [x] Thêm 2 regression test: payload sai kiểu ở phần sau ghi 0 row; lỗi SQLite sau insert đầu tiên rollback toàn bộ transaction.
+- [x] Tăng version từ `1.7.15+20` lên `1.7.16+21`.
+- [x] Baseline analyzer `136 = 0 error / 17 warning / 119 info`, full test `23/23` pass. Final focused test `4/4`, full test `25/25`, scoped analyzer `No issues found`, wrapper giữ nguyên `136 = 0/17/119`.
+- [ ] Repo-wide format check vẫn fail baseline: 62/130 file sẽ đổi, `--output=none` không ghi file. Chưa smoke test file picker/share/Google Drive restore trên Android/iOS và chưa kiểm manifest/checksum.
+- Bước tiếp theo: thêm manifest row counts/checksum như một issue Phase 2 riêng, rồi smoke test restore local/Drive trên thiết bị; không mở rộng STAB-004 thêm trong session này.

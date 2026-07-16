@@ -115,6 +115,113 @@ void main() {
     expect(result.loansAdded, 0);
     expect(result.loanPaymentsAdded, 0);
   });
+
+  test('malformed payload is rejected before any row is written', () async {
+    final backupFile = File(
+      p.join(tempDirectory.path, 'backup-malformed.json'),
+    );
+    await backupFile.writeAsString(
+      jsonEncode({
+        'version': 4,
+        'app': 'spendo',
+        'wallets': [
+          {
+            'id': 'wallet-before-invalid-row',
+            'name': 'Ví không được ghi',
+            'type': 'cash',
+            'initial_balance': 0,
+            'note': null,
+            'color_hex': '#000000',
+            'sort_order': 0,
+            'is_archived': false,
+          },
+        ],
+        'categories': [
+          {
+            'id': 'invalid-category',
+            'name': 123,
+            'color_hex': '#000000',
+            'icon_name': 'more_horiz',
+            'is_income': false,
+            'sort_order': 0,
+          },
+        ],
+        'transactions': <Object>[],
+      }),
+      encoding: utf8,
+    );
+
+    final result = await BackupService.restore(backupFile.path);
+
+    expect(result.errors, isNotEmpty);
+    expect(
+      await database.getOptional('SELECT id FROM wallets WHERE id = ?', [
+        'wallet-before-invalid-row',
+      ]),
+      isNull,
+    );
+  });
+
+  test('database failure rolls back rows written earlier in restore', () async {
+    const triggerName = 'fail_stab_004_category_restore';
+    await database.execute('''
+      CREATE TRIGGER $triggerName
+      INSTEAD OF INSERT ON categories
+      WHEN NEW.id = 'category-that-fails'
+      BEGIN
+        SELECT RAISE(ABORT, 'forced restore failure');
+      END
+    ''');
+
+    final backupFile = File(
+      p.join(tempDirectory.path, 'backup-db-failure.json'),
+    );
+    await backupFile.writeAsString(
+      jsonEncode({
+        'version': 4,
+        'app': 'spendo',
+        'wallets': [
+          {
+            'id': 'wallet-before-db-failure',
+            'name': 'Ví phải rollback',
+            'type': 'cash',
+            'initial_balance': 0,
+            'note': null,
+            'color_hex': '#000000',
+            'sort_order': 0,
+            'is_archived': false,
+          },
+        ],
+        'categories': [
+          {
+            'id': 'category-that-fails',
+            'name': 'Danh mục gây lỗi',
+            'color_hex': '#000000',
+            'icon_name': 'more_horiz',
+            'is_income': false,
+            'sort_order': 0,
+          },
+        ],
+        'transactions': <Object>[],
+      }),
+      encoding: utf8,
+    );
+
+    try {
+      await expectLater(
+        BackupService.restore(backupFile.path),
+        throwsA(anything),
+      );
+      expect(
+        await database.getOptional('SELECT id FROM wallets WHERE id = ?', [
+          'wallet-before-db-failure',
+        ]),
+        isNull,
+      );
+    } finally {
+      await database.execute('DROP TRIGGER IF EXISTS $triggerName');
+    }
+  });
 }
 
 class _TestPowerSyncOpenFactory extends PowerSyncOpenFactory {

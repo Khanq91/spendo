@@ -162,3 +162,10 @@
 - Khi restore ngân sách tháng, coi trùng `id` hoặc trùng `month` là đã tồn tại để không tạo hai ngân sách cho cùng tháng dù backup đến từ thiết bị khác.
 - Không backup `detected_habits` trong lát cắt này vì đây là dữ liệu suy diễn có thể tái tạo, không phải dữ liệu tài chính nguồn mà STAB-003 xác nhận bị mất.
 - Hoãn atomic restore, typed validation và manifest/checksum sang bước Phase 2 độc lập; gộp chúng vào diff bổ sung bảng sẽ làm rollback và failure diagnosis khó hơn.
+
+## [Phase 2] - 2026-07-16 08:39
+- Giữ nguyên `RestoreResult`, `previewRestore` và `restore`; parser private `_RestorePayload` là boundary mới để file sai cấu trúc bị từ chối trước khi code chạm DB, không đẩy DTO mới vào public API/UI.
+- Dùng `PowerSyncDatabase.writeTransaction` và chuyển read/execute context xuống các helper hiện có thay vì thêm package hoặc viết `BEGIN/COMMIT` thủ công; cách này dùng đúng connection transaction và rollback tự động khi SQLite throw.
+- Giữ policy referential hiện tại: category/loan reference sai vẫn được báo và skip, wallet reference sai vẫn được gỡ liên kết. STAB-004 chỉ bảo đảm type validation + atomic write, không thay semantics restore đã có.
+- Các list được thêm ở backup v4 vẫn optional khi đọc để tương thích v1-v3; khi list tồn tại, mọi row phải đúng type trước khi restore bắt đầu.
+- Lỗi DB tiếp tục throw lên caller để Settings/Drive dùng catch hiện có; không biến lỗi transaction thành kết quả thành công có `errors`, vì caller không được invalidate provider hoặc báo restore hoàn tất sau rollback.
