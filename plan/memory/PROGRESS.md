@@ -128,3 +128,13 @@
 - [x] Baseline: analyzer wrapper 138 = 0 error / 19 warning / 119 info; full test 17/17 pass. Final: focused test 4/4, full test 21/21 pass; analyzer giữ nguyên 138 = 0/19/119; scoped analyzer không có diagnostic mới.
 - [ ] Final format check vẫn fail baseline: 60/129 file sẽ đổi format; --output=none không ghi file. Chưa chạy WorkManager task thật trên Android/iOS và chưa xác nhận cạnh tranh truy cập cùng file DB giữa UI/background isolate.
 - Bước tiếp theo: chạy periodic task trên thiết bị với app foreground/background/terminated, kiểm gdrive_last_backup_time và file Drive; nếu có lock hoặc isolate được tái sử dụng, xử lý lifecycle/idempotent open trong issue riêng.
+
+## [Phase 2] - 2026-07-16 08:13
+- [x] Chỉ xử lý STAB-003: backup “toàn bộ” bỏ sót ví archived, ngân sách tháng và lịch sử thanh toán khoản vay; không gộp STAB-004 atomic restore, auth/sync hoặc migration schema DB.
+- [x] Nâng backup schema từ v3 lên v4, export/restore thêm `budgets`, `loan_payments` và toàn bộ wallets; reader vẫn chấp nhận backup v1-v3 thiếu các list mới.
+- [x] Trả số lượng monthly budgets, loans và loan payments qua `BackupResult`/`RestoreResult`; cập nhật preview/kết quả backup local và Google Drive để không còn báo cáo thiếu các nhóm dữ liệu này.
+- [x] Thêm regression test dùng temp PowerSync DB: round-trip bảo toàn archived wallet, monthly budget, loan/payment relation; test riêng xác nhận backup v3 vẫn đọc được.
+- [x] Tăng version từ `1.7.14+19` lên `1.7.15+20`.
+- [x] Baseline: analyzer `138 = 0 error / 19 warning / 119 info`, full test `21/21` pass. Final: focused test `2/2`, full test `23/23` pass; analyzer `136 = 0/17/119`, không có diagnostic mới.
+- [ ] Repo-wide format check vẫn fail baseline: 62/130 file sẽ đổi, `--output=none` không ghi file. Ba file trong scope giữ style hiện tại để tránh formatting-only diff. Chưa smoke test backup/restore qua file picker, share sheet hoặc Google Drive thật trên Android/iOS.
+- Bước tiếp theo: xử lý STAB-004 trong session riêng bằng typed validation + database transaction; sau đó mới thêm manifest/checksum và kiểm chứng restore failure không ghi partial rows.

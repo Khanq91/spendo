@@ -155,3 +155,10 @@
 - Giữ setupSync = true làm mặc định để mọi caller hiện tại không đổi behavior; chỉ callback backup truyền false, giúp diff nhỏ và rollback độc lập.
 - Tách handler nền với dependency injection bằng callback thay vì mock plugin WorkManager/Google Drive/SharedPreferences; test kiểm chứng orchestration và failure contract mà không đổi public API của service Drive.
 - Chỉ ghi gdrive_last_backup_time sau khi upload thành công; silent sign-in không có session vẫn trả success để WorkManager không retry một trạng thái cần người dùng đăng nhập.
+
+## [Phase 2] - 2026-07-16 08:13
+- Dùng backup schema v4 và giữ các field mới optional khi đọc để backup v1-v3 tiếp tục restore được; không ép migration file cũ hoặc thay DB schema.
+- Thêm các method đọc toàn bộ cục bộ ở repository (`getAllIncludingArchived`, `getAllPayments`, `BudgetRepository.getAll`) thay vì viết query đặc thù rải trong UI; public API hiện tại giữ nguyên và caller cũ không đổi.
+- Khi restore ngân sách tháng, coi trùng `id` hoặc trùng `month` là đã tồn tại để không tạo hai ngân sách cho cùng tháng dù backup đến từ thiết bị khác.
+- Không backup `detected_habits` trong lát cắt này vì đây là dữ liệu suy diễn có thể tái tạo, không phải dữ liệu tài chính nguồn mà STAB-003 xác nhận bị mất.
+- Hoãn atomic restore, typed validation và manifest/checksum sang bước Phase 2 độc lập; gộp chúng vào diff bổ sung bảng sẽ làm rollback và failure diagnosis khó hơn.

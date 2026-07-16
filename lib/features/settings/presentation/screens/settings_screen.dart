@@ -577,6 +577,11 @@ class SettingsScreen extends ConsumerWidget {
         '${result.categories} danh mục',
         if (result.reminders > 0) '${result.reminders} nhắc nhở',
         if (result.categoryBudgets > 0) '${result.categoryBudgets} hạn mức',
+        if (result.monthlyBudgets > 0)
+          '${result.monthlyBudgets} ngân sách tháng',
+        if (result.wallets > 0) '${result.wallets} nguồn tiền',
+        if (result.loans > 0) '${result.loans} khoản vay',
+        if (result.loanPayments > 0) '${result.loanPayments} lần thanh toán',
       ];
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -630,6 +635,10 @@ class SettingsScreen extends ConsumerWidget {
           preview.transactionsAdded == 0 &&
           preview.remindersAdded == 0 &&
           preview.budgetsAdded == 0 &&
+          preview.monthlyBudgetsAdded == 0 &&
+          preview.walletsAdded == 0 &&
+          preview.loansAdded == 0 &&
+          preview.loanPaymentsAdded == 0 &&
           preview.errors.isNotEmpty) {
         _showError(context, preview.errors.first);
         return;
@@ -669,13 +678,21 @@ class SettingsScreen extends ConsumerWidget {
         if (result.remindersAdded > 0) '${result.remindersAdded} nhắc nhở',
         if (result.budgetsAdded > 0) '${result.budgetsAdded} hạn mức',
         if (result.walletsAdded > 0) '${result.walletsAdded} nguồn tiền',
+        if (result.monthlyBudgetsAdded > 0)
+          '${result.monthlyBudgetsAdded} ngân sách tháng',
+        if (result.loansAdded > 0) '${result.loansAdded} khoản vay',
+        if (result.loanPaymentsAdded > 0)
+          '${result.loanPaymentsAdded} lần thanh toán',
       ];
       final skipped =
           result.transactionsSkipped +
           result.categoriesSkipped +
           result.remindersSkipped +
           result.budgetsSkipped +
-          result.walletsSkipped;
+          result.walletsSkipped +
+          result.monthlyBudgetsSkipped +
+          result.loansSkipped +
+          result.loanPaymentsSkipped;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -795,7 +812,11 @@ class _RestorePreviewDialog extends StatelessWidget {
         preview.categoriesAdded > 0 ||
         preview.transactionsAdded > 0 ||
         preview.remindersAdded > 0 ||
-        preview.budgetsAdded > 0;
+        preview.budgetsAdded > 0 ||
+        preview.walletsAdded > 0 ||
+        preview.monthlyBudgetsAdded > 0 ||
+        preview.loansAdded > 0 ||
+        preview.loanPaymentsAdded > 0;
 
     return AlertDialog(
       title: Row(
@@ -846,6 +867,26 @@ class _RestorePreviewDialog extends StatelessWidget {
               icon: LucideIcons.wallet,
               color: const Color(0xFF4ECDC4),
               text: '${preview.walletsAdded} nguồn tiền sẽ được khôi phục',
+            ),
+          if (preview.monthlyBudgetsAdded > 0)
+            _PreviewRow(
+              icon: LucideIcons.calendarDays,
+              color: AppTheme.incomeColor,
+              text:
+                  '${preview.monthlyBudgetsAdded} ngân sách tháng sẽ được khôi phục',
+            ),
+          if (preview.loansAdded > 0)
+            _PreviewRow(
+              icon: LucideIcons.handCoins,
+              color: const Color(0xFF6C63FF),
+              text: '${preview.loansAdded} khoản vay sẽ được khôi phục',
+            ),
+          if (preview.loanPaymentsAdded > 0)
+            _PreviewRow(
+              icon: LucideIcons.receiptText,
+              color: const Color(0xFF4ECDC4),
+              text:
+                  '${preview.loanPaymentsAdded} lần thanh toán sẽ được khôi phục',
             ),
           if (preview.walletsSkipped > 0)
             _PreviewRow(

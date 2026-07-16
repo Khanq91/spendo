@@ -33,6 +33,14 @@ class WalletRepository {
     return rows.map(Wallet.fromMap).toList();
   }
 
+  /// Lấy cả ví active và archived cho backup đầy đủ.
+  Future<List<Wallet>> getAllIncludingArchived() async {
+    final rows = await _database.getAll(
+      'SELECT * FROM wallets ORDER BY sort_order ASC',
+    );
+    return rows.map(Wallet.fromMap).toList();
+  }
+
   Future<Wallet?> getById(String id) async {
     final row = await _database.getOptional(
       'SELECT * FROM wallets WHERE id = ?',

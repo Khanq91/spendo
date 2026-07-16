@@ -320,7 +320,13 @@ class GDriveBackupSection extends ConsumerWidget {
       if (!context.mounted) return;
       Navigator.pop(context); // close loading
 
-      if (result.errors.isNotEmpty && result.transactionsAdded == 0) {
+      if (result.errors.isNotEmpty &&
+          result.transactionsAdded == 0 &&
+          result.categoriesAdded == 0 &&
+          result.walletsAdded == 0 &&
+          result.monthlyBudgetsAdded == 0 &&
+          result.loansAdded == 0 &&
+          result.loanPaymentsAdded == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Lỗi: ${result.errors.first}'),
@@ -339,7 +345,11 @@ class GDriveBackupSection extends ConsumerWidget {
                 'Bạn sắp khôi phục dữ liệu ngày ${DateFormat('dd/MM/yyyy HH:mm').format(backup.createdTime!)}.\n\n'
                 'Sẽ thêm:\n'
                 '• ${result.transactionsAdded} giao dịch\n'
-                '• ${result.categoriesAdded} danh mục\n\n'
+                '• ${result.categoriesAdded} danh mục\n'
+                '• ${result.walletsAdded} nguồn tiền\n'
+                '• ${result.monthlyBudgetsAdded} ngân sách tháng\n'
+                '• ${result.loansAdded} khoản vay\n'
+                '• ${result.loanPaymentsAdded} lần thanh toán\n\n'
                 'Dữ liệu trùng lặp sẽ tự động bị bỏ qua.',
               ),
               actions: [
@@ -377,7 +387,12 @@ class GDriveBackupSection extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '✅ Khôi phục thành công ${finalResult.transactionsAdded} giao dịch.',
+            '✅ Khôi phục thành công '
+            '${finalResult.transactionsAdded} giao dịch, '
+            '${finalResult.walletsAdded} nguồn tiền, '
+            '${finalResult.monthlyBudgetsAdded} ngân sách tháng, '
+            '${finalResult.loansAdded} khoản vay và '
+            '${finalResult.loanPaymentsAdded} lần thanh toán.',
           ),
         ),
       );

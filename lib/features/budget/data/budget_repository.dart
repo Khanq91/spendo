@@ -5,6 +5,11 @@ import '../domain/budget.dart';
 const _uuid = Uuid();
 
 class BudgetRepository {
+  Future<List<Budget>> getAll() async {
+    final rows = await db.getAll('SELECT * FROM budgets ORDER BY month ASC');
+    return rows.map(Budget.fromMap).toList();
+  }
+
   Stream<Budget?> watchMonth(String monthKey) {
     return db
         .watch(

@@ -151,3 +151,10 @@
 - Analyzer wrapper baseline/final đều exit 1 với cùng 138 diagnostic tồn tại (0 error / 19 warning / 119 info). Scoped analyzer chỉ còn deprecated Workmanager.isInDebugMode đã có sẵn trong main.dart.
 - Final format check exit 1 với 60/129 file lệch format baseline; --output=none không ghi file. Bốn file Dart trong scope đã được format trực tiếp.
 - Full test tăng từ baseline 17/17 lên final 21/21 pass. Chưa có Android/iOS runtime check cho WorkManager, Google silent sign-in, upload Drive hoặc concurrent PowerSync DB access; không tuyên bố backup nền đã được xác nhận end-to-end.
+
+## [Phase 2] - 2026-07-16 08:13
+- Analyzer wrapper, formatter và Flutter test tiếp tục treo không output trong sandbox; các lệnh tương ứng chạy ngoài sandbox hoàn tất với Flutter 3.44.5/Dart 3.12.2.
+- Final analyzer wrapper exit 1 do debt còn lại nhưng không có error; tổng giảm từ baseline 138 (0/19/119) xuống 136 (0/17/119) vì `loansAdded`/`loansSkipped` không còn unused.
+- Repo-wide format check exit 1 với 62/130 file lệch format baseline; `--output=none` không ghi file. Formatter scoped ban đầu làm lộ formatting-only diff trong hai repository và backup service; các hunk ngoài STAB-003 đã được loại trước handoff nên ba file này vẫn được formatter liệt kê.
+- Test PowerSync dùng `initializeDatabaseForTesting` một lần trong isolate và native loader đã có workaround `powersync_x64.dll` + `winsqlite3.dll`; không copy binary vào repo.
+- Full test pass 23/23 và focused backup test pass 2/2. Chưa xác nhận share/file picker/Drive restore end-to-end trên thiết bị; STAB-004 partial write khi payload lỗi vẫn còn nguyên và không được coi là đã sửa.

@@ -18,6 +18,13 @@ class LoanRepository {
     return rows.map(Loan.fromMap).toList();
   }
 
+  Future<List<LoanPayment>> getAllPayments() async {
+    final rows = await db.getAll(
+      'SELECT * FROM loan_payments ORDER BY paid_at DESC',
+    );
+    return rows.map(LoanPayment.fromMap).toList();
+  }
+
   Future<void> add(Loan loan) async {
     await db.execute(
       '''INSERT INTO loans(id, title, type, principal, contact_name,

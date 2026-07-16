@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../features/budget/data/budget_repository.dart';
 import '../../features/budget/data/category_budget_repository.dart';
 import '../../features/categories/data/category_repository.dart';
 import '../../features/loan/data/loan_repository.dart';
@@ -18,7 +19,10 @@ class BackupResult {
   final int transactions;
   final int reminders;
   final int categoryBudgets;
+  final int monthlyBudgets;
   final int wallets;
+  final int loans;
+  final int loanPayments;
   final List<String> errors;
 
   const BackupResult({
@@ -26,7 +30,10 @@ class BackupResult {
     required this.transactions,
     this.reminders = 0,
     this.categoryBudgets = 0,
+    this.monthlyBudgets = 0,
     this.wallets = 0,
+    this.loans = 0,
+    this.loanPayments = 0,
     this.errors = const [],
   });
 }
@@ -42,6 +49,12 @@ class RestoreResult {
   final int budgetsSkipped;
   final int walletsAdded;
   final int walletsSkipped;
+  final int monthlyBudgetsAdded;
+  final int monthlyBudgetsSkipped;
+  final int loansAdded;
+  final int loansSkipped;
+  final int loanPaymentsAdded;
+  final int loanPaymentsSkipped;
   final List<String> errors;
 
   const RestoreResult({
@@ -55,13 +68,19 @@ class RestoreResult {
     this.budgetsSkipped = 0,
     this.walletsAdded = 0,
     this.walletsSkipped = 0,
+    this.monthlyBudgetsAdded = 0,
+    this.monthlyBudgetsSkipped = 0,
+    this.loansAdded = 0,
+    this.loansSkipped = 0,
+    this.loanPaymentsAdded = 0,
+    this.loanPaymentsSkipped = 0,
     this.errors = const [],
   });
 }
 
 // ── Version ───────────────────────────────────────────────────────────────────
 
-const _kBackupVersion = 3;
+const _kBackupVersion = 4;
 const _kBackupAppTag = 'spendo';
 
 class BackupService {
@@ -86,14 +105,19 @@ class BackupService {
     final txRepo = TransactionRepository();
     final reminderRepo = ReminderRepository();
     final budgetRepo = CategoryBudgetRepository();
+    final monthlyBudgetRepo = BudgetRepository();
     final walletRepo = WalletRepository();
+    final loanRepo = LoanRepository();
 
     return BackupResult(
       categories: (await catRepo.getAll()).length,
       transactions: (await txRepo.getAll()).length,
       reminders: (await reminderRepo.getAll()).length,
       categoryBudgets: (await budgetRepo.getAll()).length,
-      wallets: (await walletRepo.getAll()).length,
+      monthlyBudgets: (await monthlyBudgetRepo.getAll()).length,
+      wallets: (await walletRepo.getAllIncludingArchived()).length,
+      loans: (await loanRepo.getAll()).length,
+      loanPayments: (await loanRepo.getAllPayments()).length,
     );
   }
 
@@ -102,15 +126,18 @@ class BackupService {
     final txRepo = TransactionRepository();
     final reminderRepo = ReminderRepository();
     final budgetRepo = CategoryBudgetRepository();
+    final monthlyBudgetRepo = BudgetRepository();
     final walletRepo = WalletRepository();
     final loanRepo = LoanRepository();
 
     final loans = await loanRepo.getAll();
+    final loanPayments = await loanRepo.getAllPayments();
     final categories = await catRepo.getAll();
     final transactions = await txRepo.getAll();
     final reminders = await reminderRepo.getAll();
     final budgets = await budgetRepo.getAll();
-    final wallets = await walletRepo.getAll();
+    final monthlyBudgets = await monthlyBudgetRepo.getAll();
+    final wallets = await walletRepo.getAllIncludingArchived();
 
     final payload = {
       'version': _kBackupVersion,
@@ -173,6 +200,13 @@ class BackupService {
                 'amount': b.amount,
               })
           .toList(),
+      'budgets': monthlyBudgets
+          .map((b) => {
+                'id': b.id,
+                'amount': b.amount,
+                'month': b.month,
+              })
+          .toList(),
       'loans': loans
           .map((l) => {
             'id': l.id,
@@ -186,6 +220,15 @@ class BackupService {
             'color_hex': l.colorHex,
             'is_closed': l.isClosed,
           }).toList(),
+      'loan_payments': loanPayments
+          .map((p) => {
+                'id': p.id,
+                'loan_id': p.loanId,
+                'amount': p.amount,
+                'paid_at': p.paidAt.toIso8601String(),
+                'note': p.note,
+              })
+          .toList(),
     };
 
     return const JsonEncoder.withIndent('  ').convert(payload);
@@ -249,6 +292,9 @@ class BackupService {
     final rawLoans = data['loans'] is List
         ? (data['loans'] as List).cast<Map<String, dynamic>>()
         : <Map<String, dynamic>>[];
+    final rawLoanPayments = data['loan_payments'] is List
+        ? (data['loan_payments'] as List).cast<Map<String, dynamic>>()
+        : <Map<String, dynamic>>[];
     final rawTxs =
         (data['transactions'] as List).cast<Map<String, dynamic>>();
     final rawReminders = data['recurring_reminders'] is List
@@ -257,6 +303,9 @@ class BackupService {
     final rawBudgets = data['category_budgets'] is List
         ? (data['category_budgets'] as List).cast<Map<String, dynamic>>()
         : <Map<String, dynamic>>[];
+    final rawMonthlyBudgets = data['budgets'] is List
+        ? (data['budgets'] as List).cast<Map<String, dynamic>>()
+        : <Map<String, dynamic>>[];
 
     final existingCatIds = await _getExistingCategoryIds();
     final existingTxIds = await _getExistingTransactionIds();
@@ -264,6 +313,9 @@ class BackupService {
     final existingBudgetCatIds = await _getExistingBudgetCategoryIds();
     final existingWalletIds = await _getExistingWalletIds();
     final existingLoanIds = await _getExistingLoanIds();
+    final existingLoanPaymentIds = await _getExistingLoanPaymentIds();
+    final existingMonthlyBudgetIds = await _getExistingMonthlyBudgetIds();
+    final existingMonthlyBudgetMonths = await _getExistingMonthlyBudgetMonths();
 
     int catsAdded = 0, catsSkipped = 0;
     int txsAdded = 0, txsSkipped = 0;
@@ -271,14 +323,54 @@ class BackupService {
     int budgetsAdded = 0, budgetsSkipped = 0;
     int walletsAdded = 0, walletsSkipped = 0;
     int loansAdded = 0, loansSkipped = 0;
+    int loanPaymentsAdded = 0, loanPaymentsSkipped = 0;
+    int monthlyBudgetsAdded = 0, monthlyBudgetsSkipped = 0;
     final errors = <String>[];
 
     for (final l in rawLoans) {
       final id = l['id'] as String?;
-      if (id == null) continue;
-      if (existingLoanIds.contains(id)) { loansSkipped++; continue; }
+      if (id == null || id.isEmpty) {
+        errors.add('Khoản vay thiếu id: ${l['title']}');
+        continue;
+      }
+      if (existingLoanIds.contains(id)) {
+        loansSkipped++;
+        continue;
+      }
       loansAdded++;
-      if (!dryRun) await _insertLoan(l);
+      if (!dryRun) {
+        await _insertLoan(l);
+        existingLoanIds.add(id);
+      }
+    }
+
+    final backupLoanIds = rawLoans
+        .map((loan) => loan['id'])
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final validLoanIds = {...existingLoanIds, ...backupLoanIds};
+    for (final payment in rawLoanPayments) {
+      final id = payment['id'] as String?;
+      final loanId = payment['loan_id'] as String?;
+      if (id == null || id.isEmpty) {
+        errors.add('Lần trả nợ thiếu id');
+        continue;
+      }
+      if (loanId == null || !validLoanIds.contains(loanId)) {
+        errors.add('Lần trả nợ có khoản vay không hợp lệ — bỏ qua');
+        loanPaymentsSkipped++;
+        continue;
+      }
+      if (existingLoanPaymentIds.contains(id)) {
+        loanPaymentsSkipped++;
+        continue;
+      }
+      loanPaymentsAdded++;
+      if (!dryRun) {
+        await _insertLoanPayment(payment);
+        existingLoanPaymentIds.add(id);
+      }
     }
 
     // ── Wallets (restore trước để tx có thể ref) ────────────────────────────
@@ -405,6 +497,27 @@ class BackupService {
       }
     }
 
+    // ── Monthly budgets ────────────────────────────────────────────────────
+    for (final budget in rawMonthlyBudgets) {
+      final id = budget['id'] as String?;
+      final month = budget['month'] as String?;
+      if (id == null || id.isEmpty || month == null || month.isEmpty) {
+        errors.add('Ngân sách tháng thiếu id hoặc month — bỏ qua');
+        continue;
+      }
+      if (existingMonthlyBudgetIds.contains(id) ||
+          existingMonthlyBudgetMonths.contains(month)) {
+        monthlyBudgetsSkipped++;
+        continue;
+      }
+      monthlyBudgetsAdded++;
+      if (!dryRun) {
+        await _insertMonthlyBudget(budget);
+        existingMonthlyBudgetIds.add(id);
+        existingMonthlyBudgetMonths.add(month);
+      }
+    }
+
     return RestoreResult(
       categoriesAdded: catsAdded,
       transactionsAdded: txsAdded,
@@ -416,6 +529,12 @@ class BackupService {
       budgetsSkipped: budgetsSkipped,
       walletsAdded: walletsAdded,
       walletsSkipped: walletsSkipped,
+      monthlyBudgetsAdded: monthlyBudgetsAdded,
+      monthlyBudgetsSkipped: monthlyBudgetsSkipped,
+      loansAdded: loansAdded,
+      loansSkipped: loansSkipped,
+      loanPaymentsAdded: loanPaymentsAdded,
+      loanPaymentsSkipped: loanPaymentsSkipped,
       errors: errors,
     );
   }
@@ -459,6 +578,16 @@ class BackupService {
   static Future<Set<String>> _getExistingWalletIds() async {
     final rows = await db.getAll('SELECT id FROM wallets');
     return rows.map((r) => r['id'] as String).toSet();
+  }
+
+  static Future<Set<String>> _getExistingMonthlyBudgetIds() async {
+    final rows = await db.getAll('SELECT id FROM budgets');
+    return rows.map((r) => r['id'] as String).toSet();
+  }
+
+  static Future<Set<String>> _getExistingMonthlyBudgetMonths() async {
+    final rows = await db.getAll('SELECT month FROM budgets');
+    return rows.map((r) => r['month'] as String).toSet();
   }
 
   static Future<void> _insertWallet(Map<String, dynamic> w) async {
@@ -546,6 +675,14 @@ class BackupService {
     );
   }
 
+  static Future<void> _insertMonthlyBudget(Map<String, dynamic> budget) async {
+    await db.execute('INSERT INTO budgets(id, amount, month) VALUES(?, ?, ?)', [
+      budget['id'] as String,
+      (budget['amount'] as int).toString(),
+      budget['month'] as String,
+    ]);
+  }
+
   static String _pad(int n) => n.toString().padLeft(2, '0');
 
   static Future<String?> pickBackupFile() async {
@@ -561,6 +698,11 @@ class BackupService {
     return rows.map((r) => r['id'] as String).toSet();
   }
 
+  static Future<Set<String>> _getExistingLoanPaymentIds() async {
+    final rows = await db.getAll('SELECT id FROM loan_payments');
+    return rows.map((r) => r['id'] as String).toSet();
+  }
+
   static Future<void> _insertLoan(Map<String, dynamic> l) async {
     await db.execute(
       '''INSERT INTO loans(id, title, type, principal, contact_name,
@@ -572,6 +714,20 @@ class BackupService {
         l['contact_name'] ?? '',
         l['start_date'], l['due_date'], l['note'],
         l['color_hex'], (l['is_closed'] as bool) ? 1 : 0,
+      ],
+    );
+  }
+
+  static Future<void> _insertLoanPayment(Map<String, dynamic> payment) async {
+    await db.execute(
+      '''INSERT INTO loan_payments(id, loan_id, amount, paid_at, note)
+         VALUES(?, ?, ?, ?, ?)''',
+      [
+        payment['id'] as String,
+        payment['loan_id'] as String,
+        (payment['amount'] as int).toString(),
+        payment['paid_at'] as String,
+        payment['note'] as String?,
       ],
     );
   }

@@ -2,10 +2,16 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:powersync/powersync.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'powersync_connector.dart';
 import 'schema.dart';
 
 late final PowerSyncDatabase db;
+
+@visibleForTesting
+void initializeDatabaseForTesting(PowerSyncDatabase database) {
+  db = database;
+}
 
 Future<void> openDatabase({
   String databaseName = 'spendo.db',
