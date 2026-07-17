@@ -166,3 +166,11 @@
 - Final format check exit 1 với 62/130 file lệch format; `--output=none` không ghi file. Focused test pass 4/4 và full suite pass 25/25.
 - Test atomicity dùng SQLite trigger chỉ trong temp PowerSync DB để ép lỗi sau một insert và xác nhận rollback; trigger được drop trong `finally`, không chạm production schema.
 - Chưa xác nhận restore local/Google Drive end-to-end trên Android/iOS, file rất lớn, hoặc file bị thay đổi đồng thời trong lúc restore; manifest/checksum vẫn ngoài scope.
+
+## [Phase 2] - 2026-07-17 08:20
+- Analyzer wrapper lần đầu treo trong sandbox và để `audit/flutter_analyze.txt` chỉ còn header; chạy lại ngoài sandbox hoàn tất, khôi phục artifact với baseline `136 = 0/17/119`.
+- Focused test lần đầu fail compile vì `SqliteWriteContext` không phải type được PowerSync export; bỏ type nội bộ và dùng callback read/execute rõ ràng, sau đó focused tests pass.
+- Scoped analyzer bắt `invalid_use_of_visible_for_testing_member` khi restore gọi helper repair; bỏ annotation test-only và đưa repair vào chính transaction restore, tránh commit restore rồi mới fail repair.
+- Final scoped analyzer chỉ còn 2 info `withOpacity` có sẵn trong `category_form_sheet.dart`; final wrapper còn 135 diagnostics baseline và 0 error. Không dọn deprecated API ngoài STAB-005.
+- Repo-wide `dart format --output=none --set-exit-if-changed .` bị policy runner từ chối vì đánh giá nguy cơ broad formatting dù `output=none`; không lách policy. Scoped format/check và `git diff --check` pass cho phần mới, nhưng repo-wide format chưa được xác nhận lại session này.
+- Chưa có device/runtime smoke test. Nếu nhiều category duplicate đều có budget, repair bảo toàn row bằng cách cùng remap sang canonical nên có thể còn nhiều budget cho một category; không được tự xóa/merge amount khi chưa có policy sản phẩm.

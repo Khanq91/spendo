@@ -148,3 +148,13 @@
 - [x] Baseline analyzer `136 = 0 error / 17 warning / 119 info`, full test `23/23` pass. Final focused test `4/4`, full test `25/25`, scoped analyzer `No issues found`, wrapper giữ nguyên `136 = 0/17/119`.
 - [ ] Repo-wide format check vẫn fail baseline: 62/130 file sẽ đổi, `--output=none` không ghi file. Chưa smoke test file picker/share/Google Drive restore trên Android/iOS và chưa kiểm manifest/checksum.
 - Bước tiếp theo: thêm manifest row counts/checksum như một issue Phase 2 riêng, rồi smoke test restore local/Drive trên thiết bị; không mở rộng STAB-004 thêm trong session này.
+
+## [Phase 2] - 2026-07-17 08:20
+- [x] Chỉ xử lý STAB-005: startup xóa category trùng mà không remap reference; không chạm auth, wallet sync boundary, manifest/checksum hoặc schema DB.
+- [x] Thay câu `DELETE ... MIN(id)` bằng repair atomic: ưu tiên category default, rồi sort order/ID; remap `transactions`, `recurring_reminders`, `category_budgets`, `detected_habits` trước khi xóa duplicate.
+- [x] Chặn add/rename trùng tên trong cùng loại tại `CategoryRepository`; form giữ mở và báo SnackBar thay vì tạo duplicate mới.
+- [x] Backup v4 lưu/đọc `is_default` dạng optional; restore chạy repair trong cùng transaction nên không làm hồi quy atomicity của STAB-004 và backup cũ vẫn đọc được.
+- [x] Thêm 3 regression paths: repair mọi reference, reject add/rename duplicate, restore remap duplicate trước khi trả kết quả; tăng version `1.7.16+21` lên `1.7.17+22`.
+- [x] Baseline analyzer `136 = 0 error / 17 warning / 119 info`, full test `25/25` pass. Final focused test `7/7`, full test `28/28`; analyzer `135 = 0/16/119`, giảm một warning unused UUID trong file đã chạm; `git diff --check` pass.
+- [ ] Repo-wide format check `output=none` bị policy runner từ chối; scoped check xác nhận `powersync_db.dart`, `category_repository.dart` và test mới đã format, còn `backup_service.dart`, form và backup test vẫn thuộc format debt có sẵn. Chưa smoke test startup/restore trên device hoặc dữ liệu thật có nhiều budget trùng.
+- Bước tiếp theo: smoke test DB có duplicate category trên device và quyết định policy merge khi cả canonical lẫn duplicate đều có `category_budgets`; không tự chọn amount để tránh mất dữ liệu ngầm.

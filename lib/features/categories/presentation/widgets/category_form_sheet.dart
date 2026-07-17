@@ -87,6 +87,12 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
         );
       }
       if (mounted) Navigator.of(context).pop();
+    } on DuplicateCategoryException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

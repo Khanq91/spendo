@@ -37,6 +37,11 @@ void main() {
   });
 
   test('backup v4 round-trip preserves local financial data', () async {
+    await database.execute('''INSERT INTO categories(
+      id, name, color_hex, icon_name, is_default, is_income, sort_order
+    ) VALUES(
+      'default-food', 'Ăn uống', '#FF6B6B', 'restaurant', 1, 0, 0
+    )''');
     await database.execute(
       '''INSERT INTO wallets(
            id, name, type, initial_balance, note, color_hex, sort_order, is_archived
@@ -65,6 +70,7 @@ void main() {
 
     expect(payload['version'], 4);
     expect((payload['wallets'] as List).single['is_archived'], isTrue);
+    expect((payload['categories'] as List).single['is_default'], isTrue);
     expect((payload['budgets'] as List).single['month'], '2026-07');
     expect((payload['loan_payments'] as List).single['loan_id'], 'loan-1');
 
@@ -72,6 +78,7 @@ void main() {
     await database.execute('DELETE FROM loans');
     await database.execute('DELETE FROM budgets');
     await database.execute('DELETE FROM wallets');
+    await database.execute('DELETE FROM categories');
 
     final backupFile = File(p.join(tempDirectory.path, 'backup.json'));
     await backupFile.writeAsString(jsonString, encoding: utf8);
@@ -94,6 +101,10 @@ void main() {
       (await database.get('SELECT loan_id FROM loan_payments'))['loan_id'],
       'loan-1',
     );
+    expect(
+      (await database.get('SELECT is_default FROM categories'))['is_default'],
+      1,
+    );
   });
 
   test('backup versions before v4 remain readable without new lists', () async {
@@ -114,6 +125,57 @@ void main() {
     expect(result.monthlyBudgetsAdded, 0);
     expect(result.loansAdded, 0);
     expect(result.loanPaymentsAdded, 0);
+  });
+
+  test('restore repairs duplicate category references before returning', () async {
+    final backupFile = File(
+      p.join(tempDirectory.path, 'backup-duplicate-category.json'),
+    );
+    await backupFile.writeAsString(
+      jsonEncode({
+        'version': 4,
+        'app': 'spendo',
+        'categories': [
+          {
+            'id': 'custom-food',
+            'name': 'Ăn uống',
+            'color_hex': '#000000',
+            'icon_name': 'more_horiz',
+            'is_default': false,
+            'is_income': false,
+            'sort_order': 1,
+          },
+        ],
+        'transactions': [
+          {
+            'id': 'transaction-from-duplicate-category',
+            'amount': 1000,
+            'type': 'expense',
+            'category_id': 'custom-food',
+            'note': null,
+            'created_at': 1,
+            'wallet_id': null,
+            'source': 'manual',
+          },
+        ],
+      }),
+      encoding: utf8,
+    );
+
+    await BackupService.restore(backupFile.path);
+
+    expect(
+      await database.getAll(
+        "SELECT id FROM categories WHERE name = 'Ăn uống' AND is_income = 0",
+      ),
+      hasLength(1),
+    );
+    expect(
+      (await database.get(
+        "SELECT category_id FROM transactions WHERE id = 'transaction-from-duplicate-category'",
+      ))['category_id'],
+      'default-food',
+    );
   });
 
   test('malformed payload is rejected before any row is written', () async {

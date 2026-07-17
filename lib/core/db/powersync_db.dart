@@ -28,7 +28,7 @@ Future<void> openDatabase({
   await _migrateWalletId();
   await _migrateSource();
 
-  await _deduplicateCategories();
+  await repairDuplicateCategories();
   if (setupSync) {
     await _setupSync();
   }
@@ -56,15 +56,57 @@ Future<void> _migrateSource() async {
   }
 }
 
-Future<void> _deduplicateCategories() async {
-  await db.execute('''
-    DELETE FROM categories
-    WHERE id NOT IN (
-      SELECT MIN(id)
+Future<void> repairDuplicateCategories([PowerSyncDatabase? database]) async {
+  final target = database ?? db;
+  await target.writeTransaction((transaction) async {
+    await repairDuplicateCategoriesInTransaction(
+      readRows: (sql, parameters) => transaction.getAll(sql, parameters),
+      execute: (sql, parameters) => transaction.execute(sql, parameters),
+    );
+  });
+}
+
+Future<void> repairDuplicateCategoriesInTransaction({
+  required Future<List<Map<String, dynamic>>> Function(
+    String sql,
+    List<Object?> parameters,
+  )
+  readRows,
+  required Future<void> Function(String sql, List<Object?> parameters) execute,
+}) async {
+  final groups = await readRows('''
+      SELECT name, is_income
       FROM categories
       GROUP BY name, is_income
-    )
-  ''');
+      HAVING COUNT(*) > 1
+    ''', const []);
+
+  for (final group in groups) {
+    final categories = await readRows(
+      '''SELECT id
+           FROM categories
+           WHERE name = ? AND is_income = ?
+           ORDER BY is_default DESC, sort_order ASC, id ASC''',
+      [group['name'], group['is_income']],
+    );
+    final canonicalId = categories.first['id'] as String;
+
+    for (final duplicate in categories.skip(1)) {
+      final duplicateId = duplicate['id'] as String;
+      for (final table in const [
+        'transactions',
+        'recurring_reminders',
+        'category_budgets',
+        'detected_habits',
+      ]) {
+        await execute(
+          'UPDATE $table SET category_id = ? WHERE category_id = ?',
+          [canonicalId, duplicateId],
+        );
+      }
+      await execute('DELETE FROM categories WHERE id = ?', [duplicateId]);
+    }
+  }
 }
 
 Future<void> _setupSync() async {

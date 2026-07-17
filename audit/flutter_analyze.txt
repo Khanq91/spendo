@@ -1,21 +1,21 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : 704ca727-8286-43db-86d9-c0c3c4680e09
-Generated At : 2026-07-16 08:39:06
+Run ID       : 151eaa56-0b64-4401-9215-33321e65e373
+Generated At : 2026-07-17 08:19:54
 Computer     : DESKTOP-VR5416E
 User         : HUIT
 Working Dir  : D:\khang\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : a9f10df
+Git Commit   : 4c2ae27
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
 
 Flutter SDK:
 Flutter 3.44.5 • channel stable • https://github.com/flutter/flutter.git
-Framework • revision f94f4fc76b (9 days ago) • 2026-07-06 11:19:24 -0700
-Engine • hash d3a3293399556a85388faf8c6f0723a7a5597aa8 (revision 83675ed276) (15 days ago) • 2026-06-30 16:59:03.000Z
+Framework • revision f94f4fc76b (10 days ago) • 2026-07-06 11:19:24 -0700
+Engine • hash d3a3293399556a85388faf8c6f0723a7a5597aa8 (revision 83675ed276) (16 days ago) • 2026-06-30 16:59:03.000Z
 Tools • Dart 3.12.2 • DevTools 2.57.0
 
 Dart SDK:
@@ -48,9 +48,8 @@ warning - The declaration '_uuid' isn't referenced. Try removing the declaration
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\widgets\budget_card.dart:334:39 - deprecated_member_use
 warning - Unused import: '../../../../core/theme/app_theme.dart'. Try removing the import directive - lib\features\budget\presentation\widgets\budget_type_sheet.dart:3:8 - unused_import
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\widgets\budget_type_sheet.dart:119:34 - deprecated_member_use
-warning - The declaration '_uuid' isn't referenced. Try removing the declaration of '_uuid' - lib\features\categories\data\category_repository.dart:6:7 - unused_element
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\categories\presentation\widgets\category_form_sheet.dart:182:50 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\categories\presentation\widgets\category_form_sheet.dart:228:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\categories\presentation\widgets\category_form_sheet.dart:188:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\categories\presentation\widgets\category_form_sheet.dart:234:41 - deprecated_member_use
 warning - Unused import: '../../../../core/theme/app_theme.dart'. Try removing the import directive - lib\features\home\presentation\widgets\month_picker_sheet.dart:2:8 - unused_import
 warning - The declaration '_isSelected' isn't referenced. Try removing the declaration of '_isSelected' - lib\features\home\presentation\widgets\month_picker_sheet.dart:37:8 - unused_element
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\month_picker_sheet.dart:134:65 - deprecated_member_use
@@ -169,18 +168,18 @@ warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try r
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:568:39 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:587:50 - deprecated_member_use
 
-136 issues found. (ran in 8.0s)
+135 issues found. (ran in 7.4s)
 
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-16 08:39:17
-Duration    : 11.21s
+Finished At : 2026-07-17 08:20:05
+Duration    : 10.6s
 Exit Code   : 1
 Status      : FAILED
 ------------------------------------------------------------
 Analyzer Summary:
 Errors      : 0
-Warnings    : 17
+Warnings    : 16
 Infos       : 119
 ============================================================

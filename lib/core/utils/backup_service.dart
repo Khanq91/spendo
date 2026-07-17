@@ -167,6 +167,7 @@ class BackupService {
                 'name': c.name,
                 'color_hex': c.colorHex,
                 'icon_name': c.iconName,
+                'is_default': c.isDefault,
                 'is_income': c.isIncome,
                 'sort_order': c.sortOrder,
               })
@@ -295,8 +296,8 @@ class BackupService {
     }
 
     if (!dryRun && execute == null) {
-      return db.writeTransaction((transaction) {
-        return _processRestore(
+      return db.writeTransaction((transaction) async {
+        final result = await _processRestore(
           filePath,
           dryRun: false,
           execute: (sql, parameters) async {
@@ -304,6 +305,11 @@ class BackupService {
           },
           readRows: transaction.getAll,
         );
+        await repairDuplicateCategoriesInTransaction(
+          readRows: (sql, parameters) => transaction.getAll(sql, parameters),
+          execute: (sql, parameters) => transaction.execute(sql, parameters),
+        );
+        return result;
       });
     }
 
@@ -627,12 +633,13 @@ class BackupService {
   ) async {
     await execute(
       '''INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order)
-         VALUES(?, ?, ?, ?, 0, ?, ?)''',
+         VALUES(?, ?, ?, ?, ?, ?, ?)''',
       [
         cat['id'] as String,
         cat['name'] as String,
         cat['color_hex'] as String,
         cat['icon_name'] as String,
+        (cat['is_default'] as bool? ?? false) ? 1 : 0,
         (cat['is_income'] as bool) ? 1 : 0,
         cat['sort_order'] as int,
       ],
@@ -825,6 +832,7 @@ class _RestorePayload {
       'is_income': bool,
       'sort_order': int,
     });
+    _validateNullableRows(categories, 'categories', {'is_default': bool});
     _validateRows(loans, 'loans', {
       'id': String,
       'title': String,

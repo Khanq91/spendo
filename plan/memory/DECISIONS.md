@@ -169,3 +169,10 @@
 - Giữ policy referential hiện tại: category/loan reference sai vẫn được báo và skip, wallet reference sai vẫn được gỡ liên kết. STAB-004 chỉ bảo đảm type validation + atomic write, không thay semantics restore đã có.
 - Các list được thêm ở backup v4 vẫn optional khi đọc để tương thích v1-v3; khi list tồn tại, mọi row phải đúng type trước khi restore bắt đầu.
 - Lỗi DB tiếp tục throw lên caller để Settings/Drive dùng catch hiện có; không biến lỗi transaction thành kết quả thành công có `errors`, vì caller không được invalidate provider hoặc báo restore hoàn tất sau rollback.
+
+## [Phase 2] - 2026-07-17 08:20
+- Chọn category canonical theo `is_default DESC, sort_order ASC, id ASC` thay vì `MIN(id)`: category mặc định giữ metadata/UI semantics, còn thứ tự và ID tạo tie-break deterministic.
+- Remap mọi reference trong một write transaction trước khi xóa category duplicate; restore dùng cùng transaction context để giữ bảo đảm all-or-nothing đã thiết lập ở STAB-004.
+- Chặn duplicate tại `CategoryRepository.add/update` theo cặp exact `name + is_income`; không đổi sang case-insensitive/normalized policy vì đó là thay đổi product semantics chưa có yêu cầu.
+- Giữ mọi `category_budgets` bằng cách remap sang canonical, không tự chọn/xóa amount khi hai category trùng đều có budget. Xử lý conflict amount cần policy riêng có preview thay vì mất dữ liệu ngầm.
+- Thêm `is_default` như field optional của backup v4: file cũ mặc định false, file mới giữ đúng default metadata mà không buộc bump schema hoặc làm reader cũ lỗi vì field dư.
