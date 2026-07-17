@@ -186,3 +186,9 @@
 - Scoped analyzer lần đầu phát hiện `TickerMode.of` deprecated trên Flutter 3.44.5; đổi sang `TickerMode.valuesOf(context).enabled`, rerun báo `No issues found`.
 - Full test ngoài sandbox pass 30/30; focused WalletCardHome pass 3/3. Không có Android/iOS device measurement nên chưa xác nhận wake-up count, CPU, pin hoặc tab restoration thực tế.
 - Repo-wide format check exit 1 và liệt kê 65/131 file baseline sẽ đổi; `--output=none` không ghi file. Test trong scope đã format riêng; production files vẫn giữ style hiện tại để tránh formatting-only diff. Policy runner từ chối lần rerun repo-wide, không lách bằng workaround.
+
+## [Phase 6] - 2026-07-17 10:20
+- Baseline analyzer wrapper và `flutter test --no-pub` tiếp tục treo không output trong sandbox; wrapper timeout còn có thể để log dở. Chạy lại ngoài sandbox đã khôi phục `audit/flutter_analyze.txt` hoàn chỉnh và lấy baseline đáng tin cậy.
+- Regression test ban đầu fail đúng vì `AnimatedCrossFade` vẫn giữ text `Ăn uống` trong tree sau 50 ms collapse; sau khi đổi transition, focused test pass 1/1 và full suite pass 31/31.
+- Scoped analyzer còn 9 warning/info có sẵn trong `settings_screen.dart` (`withOpacity`, `activeColor`, `_import` unused); final wrapper giữ nguyên repo baseline `135 = 0/16/119`, không dọn debt ngoài UI-002.
+- Repo-wide format check exit 1 với 65/132 file baseline sẽ đổi; `--output=none` không ghi file. Chưa có device/golden test cho Fancy/dark, 12+ category, text scale 2 và frame giữa transition.

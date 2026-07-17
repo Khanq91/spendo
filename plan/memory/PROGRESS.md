@@ -176,3 +176,12 @@
 - [x] Focused test pass 3/3; full `flutter test --no-pub` pass 30/30; scoped analyzer `No issues found`; wrapper cuối giữ baseline `135 = 0 error / 16 warning / 119 info`; `git diff --check` pass.
 - [ ] Repo-wide format check vẫn fail baseline: 65/131 file được formatter báo sẽ đổi và `--output=none` không ghi file; lần rerun sau khi format riêng test bị policy runner từ chối. Chưa đo CPU/battery hoặc smoke test tab switching trên Android/iOS.
 - Bước tiếp theo: đo timer/CPU khi đứng lâu ở Settings trên device; lazy-create tab lần đầu là lát cắt PERF-003 riêng vì có rủi ro restoration/scroll/Hero lớn hơn.
+
+## [Phase 6] - 2026-07-17 10:20
+- [x] Chỉ xử lý UI-002: danh sách Danh mục bị ép/chồng trong lúc collapse; không gộp bottom padding, hit target chip, Aurora, auth hoặc các finding dữ liệu.
+- [x] Root cause: `AnimatedCrossFade` đưa `SizedBox.shrink()` lên làm top child khi collapse, làm layout co bề rộng về gần 0 trong khi danh sách cũ vẫn được paint/fade và text bị wrap dọc.
+- [x] Thay riêng transition bằng `ClipRect` + `AnimatedSize`; child đóng giữ full width và danh sách cũ được bỏ ngay, còn chiều cao vẫn dùng duration/curve từ `MotionSpec`.
+- [x] Thêm widget regression test tái hiện đỏ trên code cũ và xác nhận category row không còn được paint giữa collapse; tăng version `1.7.19+24` lên `1.7.20+25`.
+- [x] Baseline analyzer `135 = 0 error / 16 warning / 119 info`, full test `30/30` pass. Final focused test `1/1`, full test `31/31`, wrapper giữ nguyên `135 = 0/16/119`; `git diff --check` pass.
+- [ ] Repo-wide format check vẫn fail baseline: 65/132 file sẽ đổi, `--output=none` không ghi file. Chưa smoke/golden test Fancy + dark với 12+ category ở các mốc 0/50/100% trên Android/iOS.
+- Bước tiếp theo: chạy visual smoke/golden cho collapse trên device/emulator; xử lý UI-007 hoặc UI-010 trong session riêng, không mở rộng tiếp Settings trong diff này.

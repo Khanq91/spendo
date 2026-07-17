@@ -1326,66 +1326,71 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
             ),
           ),
         ),
-        AnimatedCrossFade(
-          firstChild: const SizedBox.shrink(),
-          secondChild: Container(
-            color: cs.surface,
-            child: Column(
-              children: [
-                const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
-                  child: Row(
-                    children: [
-                      _TabChip(
-                        label: 'Chi (${widget.expenseCats.length})',
-                        selected: _tab == 0,
-                        onTap: () => setState(() => _tab = 0),
-                      ),
-                      const SizedBox(width: 8),
-                      _TabChip(
-                        label: 'Thu (${widget.incomeCats.length})',
-                        selected: _tab == 1,
-                        onTap: () => setState(() => _tab = 1),
-                      ),
-                      const Spacer(),
-                      TextButton.icon(
-                        onPressed:
-                            _tab == 0
-                                ? widget.onAddExpense
-                                : widget.onAddIncome,
-                        icon: const Icon(Icons.add, size: 15),
-                        label: const Text(
-                          'Thêm',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ...cats.map(
-                  (cat) => _CategoryTile(
-                    category: cat,
-                    onEdit: () => widget.onEdit(cat),
-                    onDelete: () => widget.onDelete(cat),
-                  ),
-                ),
-                const SizedBox(height: 4),
-              ],
+        ClipRect(
+          child: AnimatedSize(
+            alignment: Alignment.topCenter,
+            duration: appMotion.whenMotionAllowed(
+              context,
+              appMotion.listDuration,
             ),
+            curve: appMotion.curveLayout,
+            child:
+                _expanded
+                    ? Container(
+                      color: cs.surface,
+                      child: Column(
+                        children: [
+                          const Divider(height: 1),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+                            child: Row(
+                              children: [
+                                _TabChip(
+                                  label:
+                                      'Chi (${widget.expenseCats.length})',
+                                  selected: _tab == 0,
+                                  onTap: () => setState(() => _tab = 0),
+                                ),
+                                const SizedBox(width: 8),
+                                _TabChip(
+                                  label:
+                                      'Thu (${widget.incomeCats.length})',
+                                  selected: _tab == 1,
+                                  onTap: () => setState(() => _tab = 1),
+                                ),
+                                const Spacer(),
+                                TextButton.icon(
+                                  onPressed:
+                                      _tab == 0
+                                          ? widget.onAddExpense
+                                          : widget.onAddIncome,
+                                  icon: const Icon(Icons.add, size: 15),
+                                  label: const Text(
+                                    'Thêm',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    foregroundColor:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...cats.map(
+                            (cat) => _CategoryTile(
+                              category: cat,
+                              onEdit: () => widget.onEdit(cat),
+                              onDelete: () => widget.onDelete(cat),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                      ),
+                    )
+                    : const SizedBox(width: double.infinity),
           ),
-          crossFadeState:
-              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: appMotion.whenMotionAllowed(
-            context,
-            appMotion.listDuration,
-          ),
-          sizeCurve: appMotion.curveLayout,
         ),
       ],
     );

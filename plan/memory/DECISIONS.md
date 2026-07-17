@@ -187,3 +187,8 @@
 - `WalletCardHome` phụ thuộc `TickerMode.valuesOf(context).enabled`, nên khi đổi tab widget rebuild theo inherited value và hủy timer ngay; khi quay lại Home, timer được tạo lại qua flow hiện có.
 - Không lazy-create tab trong cùng session: thay đổi đó tác động initialization timing, scroll restoration và Hero/FAB behavior, cần test/rollback riêng.
 - Test kiểm chứng page không đổi khi inactive, nhưng không được dùng làm bằng chứng đã giảm CPU/battery trên runtime; chỉ xác nhận nguyên nhân timer/animation offstage đã bị loại khỏi code path.
+
+## [Phase 6] - 2026-07-17 10:20
+- Chọn `ClipRect` + `AnimatedSize` thay cho `AnimatedCrossFade`: UI-002 xuất phát từ outgoing child vẫn được paint khi top child đã co width, nên bỏ cross-fade là cách nhỏ nhất loại đúng nguyên nhân layout.
+- Khi collapse, bỏ category rows khỏi tree ngay và chỉ animate phần chiều cao trống; khi expand, nội dung vẫn mở theo `appMotion.listDuration`/`curveLayout`, giữ nguyên reduce-motion policy dùng chung.
+- Giữ `_CategoriesExpansionTile`, provider, callback add/edit/delete, tab Chi/Thu và navigation hiện tại; không tách widget/public API hoặc sửa hit target `_TabChip` trong cùng issue.

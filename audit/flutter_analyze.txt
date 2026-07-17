@@ -1,13 +1,13 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : df99c7b2-ad84-4a87-acc6-d9e7cd6feb59
-Generated At : 2026-07-17 09:10:01
+Run ID       : 4a18b475-f2d2-43d8-aefa-cf9d2a47cec1
+Generated At : 2026-07-17 10:20:00
 Computer     : DESKTOP-VR5416E
 User         : HUIT
 Working Dir  : D:\khang\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : 43c7302
+Git Commit   : 3e651da
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
@@ -115,7 +115,7 @@ warning - The declaration '_import' isn't referenced. Try removing the declarati
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1108:56 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1151:33 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1284:43 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1418:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1423:59 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\gdrive_backup_section.dart:52:21 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\gdrive_backup_section.dart:92:50 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\sepay_connection_section.dart:33:48 - deprecated_member_use
@@ -168,13 +168,13 @@ warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try r
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:568:39 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:587:50 - deprecated_member_use
 
-135 issues found. (ran in 5.6s)
+135 issues found. (ran in 5.0s)
 
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-17 09:10:10
-Duration    : 8.92s
+Finished At : 2026-07-17 10:20:08
+Duration    : 8.15s
 Exit Code   : 1
 Status      : FAILED
 ------------------------------------------------------------
