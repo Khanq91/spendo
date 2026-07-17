@@ -199,3 +199,9 @@
 - Xóa flow import CSV private đã bị comment toàn bộ entry point thay vì thêm ignore hoặc tự bật lại UI; flow đó không reachable nên xóa không đổi hành vi hiện tại và tránh agent sau hiểu nhầm code chết là tính năng hoạt động.
 - Thêm analyzer gate trực tiếp vào `AGENTS.md` vì đây là nguồn hướng dẫn bắt buộc cho agent trong repo; không nới `analysis_options.yaml` và không suppress warning/info để đạt số 0 giả.
 - Không format hàng loạt 79 file mà formatter liệt kê; format debt là issue riêng vì broad diff sẽ che analyzer cleanup và tăng conflict risk.
+
+## [Phase 6] - 2026-07-17 16:51
+- Chọn UI-010 thay vì ARCH-001/ARCH-002: overlap đã Confirmed và có rollback boundary nhỏ, còn auth/wallet ownership cần quyết định migration và data boundary rộng hơn.
+- Dùng `MediaQuery.paddingOf(context).bottom` từ `Scaffold.extendBody` thay vì hardcode 96 px theo tham số hiện tại của `GlassTabBar`; cách này theo đúng nav extent/safe inset khi layout thay đổi.
+- Chỉ cộng 16 px content clearance khi `AppVisualMode.fancy`; normal mode tiếp tục để Scaffold trừ bottom navigation theo layout cũ, tránh double padding và khoảng trắng thừa.
+- Test dùng `AppShell` và `GlassTabBar` thật thay vì fake fixed-height overlay, nên assertion bắt đúng contract giữa `extendBody`, Settings scroll extent và package glass hiện tại.

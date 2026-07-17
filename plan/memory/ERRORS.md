@@ -199,3 +199,10 @@
 - `git diff --check` lần đầu bắt trailing whitespace do call `withValues` nhiều dòng trong `quick_actions_bar.dart`; chỉnh lại argument layout rồi check pass.
 - Final `dart format --output=none --set-exit-if-changed .` exit 1 và liệt kê 79/133 file sẽ đổi; đây là format debt có sẵn/mở rộng theo các file analyzer vừa chạm, lệnh không ghi file. Không dùng formatter broad trong session này.
 - Wrapper chính thức chạy ngoài sandbox bằng Flutter 3.44.5/Dart 3.12.2 và ghi `audit/flutter_analyze.txt` sạch `0/0/0`. `flutter devices` chỉ có Windows/Chrome/Edge; không có Android/iOS để smoke test.
+
+## [Phase 6] - 2026-07-17 16:51
+- Baseline analyzer wrapper trong sandbox không có output trong khoảng một phút; lần chạy ngoài sandbox hoàn tất với Flutter 3.44.5/Dart 3.12.2 và `0/0/0`. Không coi thời gian chờ sandbox là code failure.
+- Regression test Fancy lần đầu dùng `pumpAndSettle` và timeout vì Aurora có animation liên tục; đổi sang các `pump` duration hữu hạn, không thay production animation.
+- Test đỏ trên code cũ: final Settings content bottom `505.1939` > glass bar top `504.0`; sau fix focused test pass `2/2` và full suite pass `34/34`.
+- Repo-wide `dart format --output=none --set-exit-if-changed .` exit 1 với `79/133` file baseline sẽ đổi; lệnh không ghi file. Không format broad trong UI-010.
+- Chưa có Android/iOS device hoặc emulator để xác nhận gesture navigation inset, 3-button inset và visual spacing thật; widget geometry test chỉ chứng minh contract layout trong Flutter test surface.

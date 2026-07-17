@@ -32,6 +32,9 @@ class SettingsScreen extends ConsumerWidget {
     final incomeCats = allCats.where((c) => c.isIncome).toList();
     final cs = Theme.of(context).colorScheme;
     final surface = cs.surface;
+    final isFancy = ref.watch(visualModeProvider) == AppVisualMode.fancy;
+    final bottomContentPadding =
+        isFancy ? MediaQuery.paddingOf(context).bottom + 16 : 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -42,6 +45,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
       body: ListView(
+        padding: EdgeInsets.only(bottom: bottomContentPadding),
         children: [
           // ── Export báo cáo ───────────────────────────────────────────────
           _SectionHeader(title: 'Xuất báo cáo'),

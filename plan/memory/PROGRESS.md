@@ -195,3 +195,13 @@
 - [x] Baseline full test `31/31` pass. Final wrapper `SUCCESS`, `No issues found`, summary `0 error / 0 warning / 0 info`; full test `33/33` pass; `git diff --check` pass.
 - [ ] Repo-wide format check vẫn exit 1: 79/133 file sẽ đổi, `--output=none` không ghi file. Chỉ có Windows/Chrome/Edge, không có Android/iOS device nên chưa smoke test UI thật.
 - Bước tiếp theo: giữ analyzer `0/0/0` làm acceptance gate cho mọi session; xử lý format debt theo feature/PR riêng có behavior tests, không chạy broad format lẫn với issue chức năng.
+
+## [Phase 6] - 2026-07-17 16:51
+- [x] Chỉ xử lý UI-010: nội dung cuối Settings bị Fancy glass bottom bar che; không gộp hit target UI-007, Aurora, auth, schema hoặc state management.
+- [x] Baseline analyzer wrapper sạch `0 error / 0 warning / 0 info`; baseline full `flutter test --no-pub` pass `33/33`.
+- [x] Regression test đo rect trên `AppShell` xác nhận code cũ có mép dưới nội dung `505.19` trong khi `GlassTabBar` bắt đầu tại `504.0`.
+- [x] Settings Fancy dùng bottom inset do `Scaffold.extendBody` cung cấp qua `MediaQuery`, cộng 16 px clearance; normal mode, business behavior và navigation giữ nguyên.
+- [x] Thêm widget regression test cuộn tới cuối Settings và assert nội dung không giao với glass bar; tăng version `1.7.21+26` lên `1.7.22+27`.
+- [x] Final focused test `2/2`, full test `34/34`, scoped analyzer `No issues found`, wrapper `0/0/0`, `git diff --check` pass.
+- [ ] Repo-wide format check vẫn fail baseline: `79/133` file sẽ đổi, `--output=none` không ghi file. Chưa smoke test Fancy Settings trên Android/iOS với gesture/3-button safe inset.
+- Bước tiếp: smoke test cuộn Settings trên device/emulator; sau đó xử lý UI-007 trong session riêng hoặc tiếp tục format debt theo feature có behavior test.

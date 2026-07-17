@@ -1,25 +1,25 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : b4e55e50-87d2-4f4d-a720-1121bbdab874
-Generated At : 2026-07-17 10:48:09
+Run ID       : d99974b6-c29f-4770-9b0a-2006339b6d13
+Generated At : 2026-07-17 16:51:26
 Computer     : DESKTOP-VR5416E
 User         : HUIT
 Working Dir  : D:\khang\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : f857649
+Git Commit   : 682d0d8
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
 
 Flutter SDK:
-Flutter 3.38.9 • channel stable • https://github.com/flutter/flutter.git
-Framework • revision 67323de285 (6 months ago) • 2026-01-28 13:43:12 -0800
-Engine • hash 5eb06b7ad5bb8cbc22c5230264c7a00ceac7674b (revision 587c18f873) (5 months ago) • 2026-01-27 23:23:03.000Z
-Tools • Dart 3.10.8 • DevTools 2.51.1
+Flutter 3.44.5 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision f94f4fc76b (11 days ago) • 2026-07-06 11:19:24 -0700
+Engine • hash d3a3293399556a85388faf8c6f0723a7a5597aa8 (revision 83675ed276) (16 days ago) • 2026-06-30 16:59:03.000Z
+Tools • Dart 3.12.2 • DevTools 2.57.0
 
 Dart SDK:
-Dart SDK version: 3.10.8 (stable) (Tue Jan 27 00:02:04 2026 -0800) on "windows_x64"
+Dart SDK version: 3.12.2 (stable) (Tue Jun 9 01:11:39 2026 -0700) on "windows_x64"
 
 ------------------------------------------------------------
 Project Check:
@@ -31,13 +31,13 @@ BEGIN FLUTTER ANALYZE
 ============================================================
 
 Analyzing spendo...                                             
-No issues found! (ran in 1.6s)
+No issues found! (ran in 4.2s)
 
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-17 10:48:13
-Duration    : 4.46s
+Finished At : 2026-07-17 16:51:34
+Duration    : 7.81s
 Exit Code   : 0
 Status      : SUCCESS
 ------------------------------------------------------------
