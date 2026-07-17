@@ -71,7 +71,7 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                               (bounds) => LinearGradient(
                                 colors: [
                                   Colors.white,
-                                  Colors.white.withOpacity(0.75),
+                                  Colors.white.withValues(alpha: 0.75),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -115,8 +115,9 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                 loading: () => const SizedBox(height: 8),
                 error: (_, __) => const SizedBox(height: 8),
                 data: (bd) {
-                  if (bd.x1 == 0 && bd.x2 == 0)
+                  if (bd.x1 == 0 && bd.x2 == 0) {
                     return const SizedBox(height: 8);
+                  }
                   return Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: _WalletProgressBar(
@@ -184,12 +185,11 @@ class _WalletProgressBar extends StatelessWidget {
     final ratio = x1 > 0 ? (x2 / x1).clamp(0.0, 1.0) : (x2 > 0 ? 1.0 : 0.0);
 
     final normalColor = isOnDarkBg ? Colors.white70 : Colors.green.shade400;
-    final warningColor = isOnDarkBg ? Colors.orangeAccent : Colors.orange;
     final overflowColor = isOnDarkBg ? Colors.redAccent : Colors.red;
     final trackColor =
         isOnDarkBg
-            ? Colors.white.withOpacity(0.2)
-            : Colors.grey.withOpacity(0.15);
+            ? Colors.white.withValues(alpha: 0.2)
+            : Colors.grey.withValues(alpha: 0.15);
 
     final barColor = isOverflow ? overflowColor : normalColor;
 
@@ -207,7 +207,7 @@ class _WalletProgressBar extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   color:
-                      isOverflow ? overflowColor.withOpacity(0.3) : trackColor,
+                      isOverflow ? overflowColor.withValues(alpha: 0.3) : trackColor,
                 ),
                 // Bar chính — clamp 100%
                 FractionallySizedBox(
@@ -308,14 +308,14 @@ class _MiniCardState extends State<_MiniCard> {
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: widget.color.withOpacity(0.2), width: 0.5),
+        border: Border.all(color: widget.color.withValues(alpha: 0.2), width: 0.5),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: widget.color.withOpacity(0.15),
+              color: widget.color.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(widget.icon, size: 14, color: widget.color),

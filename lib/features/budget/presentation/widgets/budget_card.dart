@@ -65,10 +65,10 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _resolveMainColor(progress, context).withOpacity(0.2),
+            color: _resolveMainColor(progress, context).withValues(alpha: 0.2),
             width: 0.8,
           ),
-          color: _resolveMainColor(progress, context).withOpacity(0.06),
+          color: _resolveMainColor(progress, context).withValues(alpha: 0.06),
         ),
         child: Column(
           children: [
@@ -232,7 +232,7 @@ class _MonthlyBudgetRow extends StatelessWidget {
           child: AnimatedProgressBar(
             value: progress.percent,
             height: 6,
-            trackColor: color.withOpacity(0.15),
+            trackColor: color.withValues(alpha: 0.15),
             valueColor: color,
           ),
         ),
@@ -331,7 +331,7 @@ class _CategoryAlertList extends ConsumerWidget {
                   child: AnimatedProgressBar(
                     value: item.percent,
                     height: 3,
-                    trackColor: color.withOpacity(0.15),
+                    trackColor: color.withValues(alpha: 0.15),
                     valueColor: color,
                   ),
                 ),

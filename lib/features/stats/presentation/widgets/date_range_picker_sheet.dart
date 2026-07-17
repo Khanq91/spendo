@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../providers/stats_provider.dart';
 
 /// BottomSheet cho phép chọn khoảng thời gian thống kê.
@@ -161,7 +160,7 @@ class DateRangePickerSheet extends StatelessWidget {
               surfaceTintColor: Colors.transparent,
               rangePickerBackgroundColor: theme.scaffoldBackgroundColor,
               rangePickerHeaderBackgroundColor: theme.scaffoldBackgroundColor,
-              rangeSelectionBackgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+              rangeSelectionBackgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
               rangeSelectionOverlayColor: WidgetStateProperty.all(Colors.transparent),
               dayOverlayColor: WidgetStateProperty.all(Colors.transparent),
               headerForegroundColor: cs.onSurface,
@@ -242,7 +241,7 @@ class _PresetTile extends StatelessWidget {
       child: ListTile(
         dense: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        tileColor: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.08) : null,
+        tileColor: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08) : null,
         leading: Icon(
           isSelected ? Icons.check_circle : Icons.circle_outlined,
           color: isSelected ? Theme.of(context).colorScheme.primary : cs.outlineVariant,

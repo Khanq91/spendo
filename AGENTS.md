@@ -20,6 +20,13 @@ for another developer to rebuild Spendo from scratch.
 - Reference real file paths, class names, method names, and line ranges.
 - Prefer reading small focused files first, then synthesize.
 
+## Analyzer Cleanliness Gate
+- Keep `flutter analyze` at zero errors, warnings, and infos for every change.
+- Before handoff, run `scripts/analyze_codex.bat` and inspect `audit/flutter_analyze.txt`; do not rely only on the command exit code.
+- Do not reintroduce deprecated Flutter APIs already removed from this repo: use `withValues(alpha: ...)`, `initialValue`, and `activeThumbColor`; omit Workmanager's no-op `isInDebugMode` argument.
+- Remove unused imports, locals, fields, and dead private code instead of suppressing diagnostics. Use analyzer ignores only for a verified package/API constraint and document the reason inline.
+- After an async gap, guard the exact `BuildContext` being used with `context.mounted`. Always use braces for `if` and `while` bodies.
+
 ## Reading Priority Order
 1. `pubspec.yaml` — dependencies & version constraints
 2. `lib/main.dart` + app entry point — bootstrapping & DI

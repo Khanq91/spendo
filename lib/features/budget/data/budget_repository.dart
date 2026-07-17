@@ -1,8 +1,5 @@
-import 'package:uuid/uuid.dart';
 import '../../../core/db/powersync_db.dart';
 import '../domain/budget.dart';
-
-const _uuid = Uuid();
 
 class BudgetRepository {
   Future<List<Budget>> getAll() async {

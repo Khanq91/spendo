@@ -192,3 +192,10 @@
 - Chọn `ClipRect` + `AnimatedSize` thay cho `AnimatedCrossFade`: UI-002 xuất phát từ outgoing child vẫn được paint khi top child đã co width, nên bỏ cross-fade là cách nhỏ nhất loại đúng nguyên nhân layout.
 - Khi collapse, bỏ category rows khỏi tree ngay và chỉ animate phần chiều cao trống; khi expand, nội dung vẫn mở theo `appMotion.listDuration`/`curveLayout`, giữ nguyên reduce-motion policy dùng chung.
 - Giữ `_CategoriesExpansionTile`, provider, callback add/edit/delete, tab Chi/Thu và navigation hiện tại; không tách widget/public API hoặc sửa hit target `_TabChip` trong cùng issue.
+
+## [Phase 7] - 2026-07-17 10:40
+- Dọn toàn bộ diagnostic đang có nhưng chia theo loại: API deprecated được thay cơ học giữ nguyên tham số; warning về lifecycle/dead code được sửa riêng để dễ review và rollback.
+- Dùng `Color.withValues(alpha: ...)`, `DropdownButtonFormField.initialValue`, `Switch.activeThumbColor` và bỏ `Workmanager.isInDebugMode` no-op theo API SDK/package hiện hành; không đổi dependency để giải quyết lint.
+- Xóa flow import CSV private đã bị comment toàn bộ entry point thay vì thêm ignore hoặc tự bật lại UI; flow đó không reachable nên xóa không đổi hành vi hiện tại và tránh agent sau hiểu nhầm code chết là tính năng hoạt động.
+- Thêm analyzer gate trực tiếp vào `AGENTS.md` vì đây là nguồn hướng dẫn bắt buộc cho agent trong repo; không nới `analysis_options.yaml` và không suppress warning/info để đạt số 0 giả.
+- Không format hàng loạt 79 file mà formatter liệt kê; format debt là issue riêng vì broad diff sẽ che analyzer cleanup và tăng conflict risk.

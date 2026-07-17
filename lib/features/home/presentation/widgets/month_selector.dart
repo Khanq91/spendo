@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_helpers.dart';
 import 'month_picker_sheet.dart';
 
@@ -51,7 +50,7 @@ class MonthSelector extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              color: cs.primary.withOpacity(0.06),
+              color: cs.primary.withValues(alpha: 0.06),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -109,10 +108,10 @@ class MonthSelector extends StatelessWidget {
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                     width: 0.8,
                   ),
                 ),

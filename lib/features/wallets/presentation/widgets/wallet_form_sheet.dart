@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/category_icons.dart';
-import '../../../../core/utils/currency_formatter.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../../transactions/presentation/widgets/numpad.dart';
 import '../../data/wallet_repository.dart';
@@ -139,7 +138,7 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
                           selected
                               ? [
                                 BoxShadow(
-                                  color: color.withOpacity(0.5),
+                                  color: color.withValues(alpha: 0.5),
                                   blurRadius: 4,
                                 ),
                               ]
@@ -263,7 +262,7 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
                         decoration: BoxDecoration(
                           color:
                               selected
-                                  ? accentColor.withOpacity(0.15)
+                                  ? accentColor.withValues(alpha: 0.15)
                                   : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
@@ -324,7 +323,7 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.15),
+                      color: accentColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: accentColor, width: 0.8),
                     ),
@@ -386,10 +385,10 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.08),
+                color: accentColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: accentColor.withOpacity(0.2),
+                  color: accentColor.withValues(alpha: 0.2),
                   width: 0.8,
                 ),
               ),

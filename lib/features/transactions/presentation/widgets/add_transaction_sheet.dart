@@ -461,7 +461,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 final chipSelectedColor =
                     progress != null
                         ? _resolveSelectedColor(progress)
-                        : color.withOpacity(0.15);
+                        : color.withValues(alpha: 0.15);
 
                 return PressableScale(
                   key: _chipKeys[cat.id],
@@ -679,21 +679,21 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     required Color baseColor,
     required ColorScheme cs,
   }) {
-    if (selected) return baseColor.withOpacity(0.15);
+    if (selected) return baseColor.withValues(alpha: 0.15);
     if (progress == null) return Colors.transparent;
-    if (progress.isOver) return Colors.red.withOpacity(0.08);
-    if (progress.percent >= 0.8) return Colors.orange.withOpacity(0.08);
-    if (progress.percent >= 0.5) return Colors.amber.withOpacity(0.06);
-    return Colors.green.withOpacity(0.06);
+    if (progress.isOver) return Colors.red.withValues(alpha: 0.08);
+    if (progress.percent >= 0.8) return Colors.orange.withValues(alpha: 0.08);
+    if (progress.percent >= 0.5) return Colors.amber.withValues(alpha: 0.06);
+    return Colors.green.withValues(alpha: 0.06);
   }
 
   Color _resolveSelectedColor(
     ({int budget, int spent, double percent, bool isOver}) progress,
   ) {
-    if (progress.isOver) return Colors.red.withOpacity(0.12);
-    if (progress.percent >= 0.8) return Colors.orange.withOpacity(0.12);
-    if (progress.percent >= 0.5) return Colors.amber.withOpacity(0.10);
-    return Colors.green.withOpacity(0.10);
+    if (progress.isOver) return Colors.red.withValues(alpha: 0.12);
+    if (progress.percent >= 0.8) return Colors.orange.withValues(alpha: 0.12);
+    if (progress.percent >= 0.5) return Colors.amber.withValues(alpha: 0.10);
+    return Colors.green.withValues(alpha: 0.10);
   }
 
   Color _resolveChipBorderColor({
@@ -704,10 +704,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }) {
     if (selected) return baseColor;
     if (progress == null) return cs.outlineVariant;
-    if (progress.isOver) return Colors.red.withOpacity(0.5);
-    if (progress.percent >= 0.8) return Colors.orange.withOpacity(0.5);
-    if (progress.percent >= 0.5) return Colors.amber.withOpacity(0.4);
-    return Colors.green.withOpacity(0.4);
+    if (progress.isOver) return Colors.red.withValues(alpha: 0.5);
+    if (progress.percent >= 0.8) return Colors.orange.withValues(alpha: 0.5);
+    if (progress.percent >= 0.5) return Colors.amber.withValues(alpha: 0.4);
+    return Colors.green.withValues(alpha: 0.4);
   }
 }
 
@@ -719,16 +719,15 @@ class _SelectedWalletChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     if (wallet == null) return const SizedBox.shrink();
     final color = wallet!.color;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.4), width: 0.8),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -800,7 +799,7 @@ class _WalletPickerSheet extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1039,7 +1038,7 @@ class _TypeToggle extends StatelessWidget {
         duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: active ? color.withOpacity(0.12) : Colors.transparent,
+          color: active ? color.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: active ? color : cs.outlineVariant,

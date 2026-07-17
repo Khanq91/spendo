@@ -30,7 +30,7 @@ class SepayConnectionSection extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E88E5).withOpacity(0.1),
+                color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(LucideIcons.landmark, size: 18,
@@ -169,7 +169,7 @@ class _AccountTile extends StatelessWidget {
           color: (account.isActive
               ? const Color(0xFF43A047)
               : cs.onSurfaceVariant)
-              .withOpacity(0.1),
+              .withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -305,7 +305,7 @@ class _AddMappingSheetState extends ConsumerState<_AddMappingSheet> {
 
           // Ngân hàng
           DropdownButtonFormField<String>(
-            value: _bankCtrl.text.isEmpty ? null : _bankCtrl.text,
+            initialValue: _bankCtrl.text.isEmpty ? null : _bankCtrl.text,
             decoration: InputDecoration(
               labelText: 'Ngân hàng *',
               border: OutlineInputBorder(
@@ -325,7 +325,7 @@ class _AddMappingSheetState extends ConsumerState<_AddMappingSheet> {
 
           // Wallet
           DropdownButtonFormField<String>(
-            value: _selectedWalletId,
+            initialValue: _selectedWalletId,
             decoration: InputDecoration(
               labelText: 'Nguồn tiền trong Spendo *',
               border: OutlineInputBorder(

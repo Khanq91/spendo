@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +8,6 @@ import '../../../../core/theme/visual_mode_provider.dart';
 import '../../../../core/utils/backup_service.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/export_service.dart';
-import '../../../../core/utils/import_service.dart';
 import '../../../../shared/widgets/visual_mode_picker.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../categories/domain/category.dart';
@@ -65,31 +63,6 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 8),
 
-          // ── Import CSV ───────────────────────────────────────────────────
-          // _SectionHeader(title: 'Nhập từ CSV'),
-          // ListTile(
-          //   leading: Container(
-          //     width: 36,
-          //     height: 36,
-          //     decoration: BoxDecoration(
-          //       color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          //       borderRadius: BorderRadius.circular(8),
-          //     ),
-          //     child:
-          //     Icon(LucideIcons.upload, size: 18, color: Theme.of(context).colorScheme.primary),
-          //   ),
-          //   title: const Text('Nhập từ file CSV', style: TextStyle(fontSize: 14)),
-          //   subtitle: Text(
-          //     'Import từ file báo cáo CSV đã xuất trước đó',
-          //     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-          //   ),
-          //   trailing: Icon(LucideIcons.chevronRight,
-          //       size: 18, color: cs.onSurfaceVariant),
-          //   onTap: () => _import(context, ref),
-          // ),
-          //
-          // const SizedBox(height: 8),
-
           // ── Backup & Restore ─────────────────────────────────────────────
           _SectionHeader(title: 'Sao lưu & khôi phục'),
           Material(
@@ -101,7 +74,7 @@ class SettingsScreen extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6C63FF).withOpacity(0.1),
+                      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -131,7 +104,7 @@ class SettingsScreen extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6C63FF).withOpacity(0.1),
+                      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -329,7 +302,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       trailing: Switch(
                         value: enabled,
-                        activeColor: Theme.of(context).colorScheme.primary,
+                        activeThumbColor: Theme.of(context).colorScheme.primary,
                         onChanged: (val) async {
                           if (val) {
                             final granted =
@@ -430,7 +403,7 @@ class SettingsScreen extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -712,83 +685,6 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  // ── Import CSV (giữ nguyên) ───────────────────────────────────────────────
-
-  Future<void> _import(BuildContext context, WidgetRef ref) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-      if (result == null || result.files.single.path == null) return;
-      final filePath = result.files.single.path!;
-
-      if (!context.mounted) return;
-      await Future.delayed(Duration.zero);
-      if (!context.mounted) return;
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        useRootNavigator: true,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-
-      final preview = await ImportService.previewCSV(filePath);
-
-      if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-
-      if (preview.added == 0 &&
-          preview.skipped == 0 &&
-          preview.errors.isNotEmpty) {
-        _showError(context, preview.errors.first);
-        return;
-      }
-
-      final confirmed = await showDialog<bool>(
-        context: context,
-        useRootNavigator: true,
-        builder: (ctx) => _ImportPreviewDialog(preview: preview),
-      );
-
-      if (confirmed != true || !context.mounted) return;
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        useRootNavigator: true,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-
-      final result2 = await ImportService.importCSV(filePath);
-
-      if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-
-      ref.invalidate(transactionsProvider);
-      ref.invalidate(categoriesProvider);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '✅ Đã nhập ${result2.added} giao dịch'
-            '${result2.skipped > 0 ? ', bỏ qua ${result2.skipped} trùng' : ''}'
-            '${result2.newCategories > 0 ? ', tạo ${result2.newCategories} danh mục mới' : ''}',
-          ),
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    } catch (e) {
-      if (context.mounted) {
-        try {
-          Navigator.of(context, rootNavigator: true).pop();
-        } catch (_) {}
-        _showError(context, e.toString());
-      }
-    }
-  }
-
   void _showError(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -941,101 +837,6 @@ class _RestorePreviewDialog extends StatelessWidget {
   }
 }
 
-// ── Import CSV preview dialog (giữ nguyên) ────────────────────────────────────
-
-class _ImportPreviewDialog extends StatelessWidget {
-  final ImportResult preview;
-  const _ImportPreviewDialog({required this.preview});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(
-            LucideIcons.fileUp,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Xác nhận nhập dữ liệu',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _PreviewRow(
-            icon: LucideIcons.circlePlus,
-            color: Theme.of(context).colorScheme.primary,
-            text: '${preview.added} giao dịch mới sẽ được thêm',
-          ),
-          if (preview.skipped > 0)
-            _PreviewRow(
-              icon: LucideIcons.circleArrowRight,
-              color: cs.onSurfaceVariant,
-              text: '${preview.skipped} giao dịch trùng → bỏ qua',
-            ),
-          if (preview.newCategories > 0) ...[
-            _PreviewRow(
-              icon: LucideIcons.tag,
-              color: Colors.orange,
-              text: '${preview.newCategories} danh mục mới sẽ được tạo:',
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children:
-                    preview.newCategoryNames
-                        .map(
-                          (name) => Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              '• $name',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-              ),
-            ),
-          ],
-          if (preview.errors.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _PreviewRow(
-              icon: LucideIcons.triangleAlert,
-              color: AppTheme.expenseAltColor,
-              text: '${preview.errors.length} dòng bị lỗi (sẽ bỏ qua)',
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text('Huỷ', style: TextStyle(color: cs.onSurfaceVariant)),
-        ),
-        FilledButton(
-          onPressed:
-              preview.added > 0 ? () => Navigator.pop(context, true) : null,
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-          child: const Text('Nhập ngay'),
-        ),
-      ],
-    );
-  }
-}
-
 class _PreviewRow extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -1105,7 +906,7 @@ class _ExportTile extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -1148,7 +949,7 @@ class _CategoryTile extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: category.color.withOpacity(0.15),
+          color: category.color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -1281,7 +1082,7 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.1),
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -1420,7 +1221,7 @@ class _TabChip extends StatelessWidget {
         decoration: BoxDecoration(
           color:
               selected
-                  ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
                   : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(

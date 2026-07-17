@@ -425,12 +425,12 @@ class _LogoMark extends StatelessWidget {
           BoxShadow(
             color: const Color(
               0xFFF06292,
-            ).withOpacity(0.25 + 0.25 * glowIntensity),
+            ).withValues(alpha: 0.25 + 0.25 * glowIntensity),
             blurRadius: 24 + 20 * glowIntensity,
             spreadRadius: 2 + 4 * glowIntensity,
           ),
           BoxShadow(
-            color: const Color(0xFFF06292).withOpacity(0.1 * glowIntensity),
+            color: const Color(0xFFF06292).withValues(alpha: 0.1 * glowIntensity),
             blurRadius: 60,
             spreadRadius: 10,
           ),
@@ -485,7 +485,7 @@ class _ProgressBar extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFF06292).withOpacity(0.6),
+                      color: const Color(0xFFF06292).withValues(alpha: 0.6),
                       blurRadius: 6,
                       spreadRadius: 1,
                     ),
@@ -504,9 +504,9 @@ class _ProgressBar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(2),
                       gradient: LinearGradient(
                         colors: [
-                          Colors.white.withOpacity(0.0),
-                          Colors.white.withOpacity(isDark ? 0.5 : 0.8),
-                          Colors.white.withOpacity(0.0),
+                          Colors.white.withValues(alpha: 0.0),
+                          Colors.white.withValues(alpha: isDark ? 0.5 : 0.8),
+                          Colors.white.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -546,7 +546,7 @@ class _MeshPainter extends CustomPainter {
         Paint()
           ..shader = RadialGradient(
             colors: [
-              const Color(0xFF7B1FA2).withOpacity(topOrbOpacity),
+              const Color(0xFF7B1FA2).withValues(alpha: topOrbOpacity),
               Colors.transparent,
             ],
           ).createShader(
@@ -565,7 +565,7 @@ class _MeshPainter extends CustomPainter {
         Paint()
           ..shader = RadialGradient(
             colors: [
-              const Color(0xFFF06292).withOpacity(bottomOrbOpacity),
+              const Color(0xFFF06292).withValues(alpha: bottomOrbOpacity),
               Colors.transparent,
             ],
           ).createShader(
@@ -584,7 +584,7 @@ class _MeshPainter extends CustomPainter {
     final vignette =
         Paint()
           ..shader = RadialGradient(
-            colors: [Colors.transparent, bgColor.withOpacity(vignetteOpacity)],
+            colors: [Colors.transparent, bgColor.withValues(alpha: vignetteOpacity)],
             radius: 0.85,
           ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), vignette);

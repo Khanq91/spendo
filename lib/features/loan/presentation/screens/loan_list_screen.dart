@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../data/loan_repository.dart';
 import '../../domain/loan.dart';
 import '../providers/loan_provider.dart';
 import '../widgets/loan_form_sheet.dart';
@@ -17,7 +16,6 @@ class LoanListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final loansAsync = ref.watch(loansProvider);
-    final cs = Theme.of(context).colorScheme;
 
     // Title theo filter
     final title = switch (filterType) {
@@ -166,7 +164,7 @@ class _LoanTile extends ConsumerWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
+          color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(

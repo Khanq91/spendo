@@ -174,11 +174,11 @@ class _HabitSuggestionTile extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.25),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
           width: 0.8,
         ),
         borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.04),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -189,7 +189,7 @@ class _HabitSuggestionTile extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Icon(
@@ -397,9 +397,9 @@ class _DebugPanelState extends State<_DebugPanel> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.orange.withOpacity(0.5), width: 1),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.5), width: 1),
         borderRadius: BorderRadius.circular(12),
-        color: Colors.orange.withOpacity(0.06),
+        color: Colors.orange.withValues(alpha: 0.06),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,7 +434,7 @@ class _DebugPanelState extends State<_DebugPanel> {
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<RecurringReminder>(
-                  value: _selected,
+                  initialValue: _selected,
                   isExpanded: true,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
@@ -484,7 +484,7 @@ class _DebugPanelState extends State<_DebugPanel> {
                               decoration: BoxDecoration(
                                 color:
                                     selected
-                                        ? Colors.orange.withOpacity(0.2)
+                                        ? Colors.orange.withValues(alpha: 0.2)
                                         : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
@@ -578,7 +578,7 @@ class _DebugPanelState extends State<_DebugPanel> {
                 FilledButton.icon(
                   onPressed: () async {
                     await _seedHabitTestData();
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('✅ Đã seed test data')),
                       );
@@ -750,7 +750,7 @@ class _ReminderTile extends ConsumerWidget {
         children: [
           Switch(
             value: reminder.isActive,
-            activeColor: Theme.of(context).colorScheme.primary,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
             onChanged: (_) => actions.toggleActive(reminder),
           ),
           PopupMenuButton<String>(

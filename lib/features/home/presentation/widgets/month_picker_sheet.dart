@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 
 /// Bottom sheet chọn tháng/năm cụ thể.
 /// Trả về DateTime (ngày 1 của tháng được chọn) qua Navigator.pop.
@@ -14,7 +13,6 @@ class MonthPickerSheet extends StatefulWidget {
 
 class _MonthPickerSheetState extends State<MonthPickerSheet> {
   late int _year;
-  late int _month;
 
   static const _months = [
     'Th.1', 'Th.2', 'Th.3', 'Th.4',
@@ -26,17 +24,12 @@ class _MonthPickerSheetState extends State<MonthPickerSheet> {
   void initState() {
     super.initState();
     _year = widget.selected.year;
-    _month = widget.selected.month;
   }
 
   bool _isFuture(int year, int month) {
     final now = DateTime.now();
     return year > now.year || (year == now.year && month > now.month);
   }
-
-  bool _isSelected(int month) => month == _month && _year == widget.selected.year
-      ? false // so sánh dưới
-      : false;
 
   @override
   Widget build(BuildContext context) {
@@ -131,9 +124,9 @@ class _MonthPickerSheetState extends State<MonthPickerSheet> {
                 textColor = Colors.white;
                 borderColor = Theme.of(context).colorScheme.primary;
               } else if (isToday) {
-                bgColor = Theme.of(context).colorScheme.primary.withOpacity(0.1);
+                bgColor = Theme.of(context).colorScheme.primary.withValues(alpha: 0.1);
                 textColor = Theme.of(context).colorScheme.primary;
-                borderColor = Theme.of(context).colorScheme.primary.withOpacity(0.4);
+                borderColor = Theme.of(context).colorScheme.primary.withValues(alpha: 0.4);
               }
 
               return GestureDetector(

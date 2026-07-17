@@ -207,7 +207,7 @@ class _CategoryBudgetTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -270,7 +270,7 @@ class _CategoryBudgetTile extends StatelessWidget {
               child: AnimatedProgressBar(
                 value: p.percent,
                 height: 4,
-                trackColor: barColor.withOpacity(0.15),
+                trackColor: barColor.withValues(alpha: 0.15),
                 valueColor: barColor,
               ),
             ),
@@ -301,13 +301,13 @@ class _CategoryNobudgetTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.10),
+              color: color.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               categoryIcon(category.iconName),
               size: 20,
-              color: color.withOpacity(0.6),
+              color: color.withValues(alpha: 0.6),
             ),
           ),
           title: Text(
@@ -405,7 +405,7 @@ class _SetCategoryBudgetSheetState extends State<_SetCategoryBudgetSheet> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(

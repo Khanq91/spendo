@@ -185,7 +185,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                             selected
                                 ? [
                                   BoxShadow(
-                                    color: color.withOpacity(0.5),
+                                    color: color.withValues(alpha: 0.5),
                                     blurRadius: 6,
                                   ),
                                 ]
@@ -231,7 +231,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                       decoration: BoxDecoration(
                         color:
                             selected
-                                ? color.withOpacity(0.15)
+                                ? color.withValues(alpha: 0.15)
                                 : cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                         border:

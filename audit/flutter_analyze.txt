@@ -1,25 +1,25 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : 4a18b475-f2d2-43d8-aefa-cf9d2a47cec1
-Generated At : 2026-07-17 10:20:00
+Run ID       : b4e55e50-87d2-4f4d-a720-1121bbdab874
+Generated At : 2026-07-17 10:48:09
 Computer     : DESKTOP-VR5416E
 User         : HUIT
 Working Dir  : D:\khang\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : 3e651da
+Git Commit   : f857649
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
 
 Flutter SDK:
-Flutter 3.44.5 • channel stable • https://github.com/flutter/flutter.git
-Framework • revision f94f4fc76b (10 days ago) • 2026-07-06 11:19:24 -0700
-Engine • hash d3a3293399556a85388faf8c6f0723a7a5597aa8 (revision 83675ed276) (16 days ago) • 2026-06-30 16:59:03.000Z
-Tools • Dart 3.12.2 • DevTools 2.57.0
+Flutter 3.38.9 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision 67323de285 (6 months ago) • 2026-01-28 13:43:12 -0800
+Engine • hash 5eb06b7ad5bb8cbc22c5230264c7a00ceac7674b (revision 587c18f873) (5 months ago) • 2026-01-27 23:23:03.000Z
+Tools • Dart 3.10.8 • DevTools 2.51.1
 
 Dart SDK:
-Dart SDK version: 3.12.2 (stable) (Tue Jun 9 01:11:39 2026 -0700) on "windows_x64"
+Dart SDK version: 3.10.8 (stable) (Tue Jan 27 00:02:04 2026 -0800) on "windows_x64"
 
 ------------------------------------------------------------
 Project Check:
@@ -31,155 +31,18 @@ BEGIN FLUTTER ANALYZE
 ============================================================
 
 Analyzing spendo...                                             
-
-warning - Unused import: 'core/theme/app_theme.dart'. Try removing the import directive - lib\app.dart:5:8 - unused_import
-warning - This function has a nullable return type of 'FutureOr<bool?>', but ends without returning a value. Try adding a return statement, or if no value is ever returned, try changing the return type to 'void' - lib\core\notifications\notification_service.dart:38:62 - body_might_complete_normally_nullable
-   info - 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion. Try replacing the use of the deprecated member with the replacement - lib\core\theme\app_colors.dart:31:22 - deprecated_member_use
-   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - lib\core\utils\currency_formatter.dart:2:10 - prefer_interpolation_to_compose_strings
-warning - The declaration '_uuid' isn't referenced. Try removing the declaration of '_uuid' - lib\features\budget\data\budget_repository.dart:5:7 - unused_element
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\screens\category_budget_screen.dart:210:28 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\screens\category_budget_screen.dart:273:38 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\screens\category_budget_screen.dart:304:28 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\screens\category_budget_screen.dart:310:28 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\screens\category_budget_screen.dart:408:34 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\widgets\budget_card.dart:68:57 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\widgets\budget_card.dart:71:55 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\widgets\budget_card.dart:235:31 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\widgets\budget_card.dart:334:39 - deprecated_member_use
-warning - Unused import: '../../../../core/theme/app_theme.dart'. Try removing the import directive - lib\features\budget\presentation\widgets\budget_type_sheet.dart:3:8 - unused_import
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\budget\presentation\widgets\budget_type_sheet.dart:119:34 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\categories\presentation\widgets\category_form_sheet.dart:188:50 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\categories\presentation\widgets\category_form_sheet.dart:234:41 - deprecated_member_use
-warning - Unused import: '../../../../core/theme/app_theme.dart'. Try removing the import directive - lib\features\home\presentation\widgets\month_picker_sheet.dart:2:8 - unused_import
-warning - The declaration '_isSelected' isn't referenced. Try removing the declaration of '_isSelected' - lib\features\home\presentation\widgets\month_picker_sheet.dart:37:8 - unused_element
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\month_picker_sheet.dart:134:65 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\month_picker_sheet.dart:136:69 - deprecated_member_use
-warning - Unused import: '../../../../core/theme/app_theme.dart'. Try removing the import directive - lib\features\home\presentation\widgets\month_selector.dart:2:8 - unused_import
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\month_selector.dart:54:33 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\month_selector.dart:112:64 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\month_selector.dart:115:66 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\summary_card.dart:74:48 - deprecated_member_use
-   info - Statements in an if should be enclosed in a block. Try wrapping the statement in a block - lib\features\home\presentation\widgets\summary_card.dart:119:21 - curly_braces_in_flow_control_structures
-warning - The value of the local variable 'warningColor' isn't used. Try removing the variable or using it - lib\features\home\presentation\widgets\summary_card.dart:187:11 - unused_local_variable
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\summary_card.dart:191:28 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\summary_card.dart:192:27 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\summary_card.dart:210:50 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\summary_card.dart:311:48 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\home\presentation\widgets\summary_card.dart:318:35 - deprecated_member_use
-   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext - lib\features\loan\presentation\screens\loan_detail_screen.dart:218:35 - use_build_context_synchronously
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:287:41 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:289:22 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:302:36 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:305:38 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:326:39 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:346:42 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:423:33 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:486:37 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_detail_screen.dart:518:28 - deprecated_member_use
-warning - Unused import: '../../data/loan_repository.dart'. Try removing the import directive - lib\features\loan\presentation\screens\loan_list_screen.dart:5:8 - unused_import
-warning - The value of the local variable 'cs' isn't used. Try removing the variable or using it - lib\features\loan\presentation\screens\loan_list_screen.dart:20:11 - unused_local_variable
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\screens\loan_list_screen.dart:169:24 - deprecated_member_use
-warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try removing the import directive - lib\features\loan\presentation\widgets\loan_form_sheet.dart:3:8 - unused_import
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\loan_form_sheet.dart:186:39 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\loan_mini_card.dart:51:34 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\loan_mini_card.dart:53:37 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\loan_mini_card.dart:63:35 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\loan_mini_card.dart:98:37 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\loan_settings_tile.dart:28:31 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\loan_settings_tile.dart:45:34 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\quick_actions_bar.dart:225:50 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\quick_actions_bar.dart:226:48 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\quick_actions_bar.dart:231:35 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\quick_actions_bar.dart:287:48 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\loan\presentation\widgets\quick_actions_bar.dart:312:46 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\screens\reminders_screen.dart:177:56 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\screens\reminders_screen.dart:181:54 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\screens\reminders_screen.dart:192:62 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\screens\reminders_screen.dart:400:49 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\screens\reminders_screen.dart:402:30 - deprecated_member_use
-   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\screens\reminders_screen.dart:437:19 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\screens\reminders_screen.dart:487:57 - deprecated_member_use
-   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext - lib\features\reminders\presentation\screens\reminders_screen.dart:582:44 - use_build_context_synchronously
-   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\screens\reminders_screen.dart:753:13 - deprecated_member_use
-warning - Unused import: '../../../categories/domain/category.dart'. Try removing the import directive - lib\features\reminders\presentation\widgets\reminder_form_sheet.dart:4:8 - unused_import
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\widgets\reminder_form_sheet.dart:231:45 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\widgets\reminder_form_sheet.dart:309:52 - deprecated_member_use
-   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\reminders\presentation\widgets\reminder_form_sheet.dart:399:17 - deprecated_member_use
-   info - Statements in a while should be enclosed in a block. Try wrapping the statement in a block - lib\features\settings\presentation\providers\widget_pin_provider.dart:28:29 - curly_braces_in_flow_control_structures
-   info - Statements in a while should be enclosed in a block. Try wrapping the statement in a block - lib\features\settings\presentation\providers\widget_pin_provider.dart:37:29 - curly_braces_in_flow_control_structures
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:104:54 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:134:54 - deprecated_member_use
-   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:332:25 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:433:62 - deprecated_member_use
-warning - The declaration '_import' isn't referenced. Try removing the declaration of '_import' - lib\features\settings\presentation\screens\settings_screen.dart:717:16 - unused_element
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1108:56 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1151:33 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1284:43 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\screens\settings_screen.dart:1423:59 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\gdrive_backup_section.dart:52:21 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\gdrive_backup_section.dart:92:50 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\sepay_connection_section.dart:33:48 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\sepay_connection_section.dart:172:16 - deprecated_member_use
-   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\sepay_connection_section.dart:308:13 - deprecated_member_use
-   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\sepay_connection_section.dart:328:13 - deprecated_member_use
-   info - Statements in a while should be enclosed in a block. Try wrapping the statement in a block - lib\features\settings\presentation\widgets\widget_pin_section.dart:20:30 - curly_braces_in_flow_control_structures
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\widget_pin_section.dart:114:23 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\widget_pin_section.dart:119:25 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\settings\presentation\widgets\widget_pin_section.dart:235:38 - deprecated_member_use
-warning - Unused import: '../../../../core/theme/app_theme.dart'. Try removing the import directive - lib\features\stats\presentation\widgets\date_range_picker_sheet.dart:2:8 - unused_import
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\stats\presentation\widgets\date_range_picker_sheet.dart:164:84 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\stats\presentation\widgets\date_range_picker_sheet.dart:245:71 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\screens\note_picker_screen.dart:316:35 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:464:33 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:682:36 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:684:44 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:685:55 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:686:54 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:687:25 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:693:44 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:694:55 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:695:54 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:696:25 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:707:44 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:708:55 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:709:54 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:710:25 - deprecated_member_use
-warning - The value of the local variable 'cs' isn't used. Try removing the variable or using it - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:722:11 - unused_local_variable
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:729:22 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:731:41 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:803:30 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\add_transaction_sheet.dart:1042:33 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\transactions\presentation\widgets\numpad.dart:31:53 - deprecated_member_use
-warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try removing the import directive - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:5:8 - unused_import
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:142:48 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:266:49 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:327:42 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:389:36 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\features\wallets\presentation\widgets\wallet_form_sheet.dart:392:38 - deprecated_member_use
-   info - 'isInDebugMode' is deprecated and shouldn't be used. Use WorkmanagerDebug handlers instead. This parameter has no effect. Try replacing the use of the deprecated member with the replacement - lib\main.dart:36:48 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\category_icon.dart:26:22 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:428:15 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:433:44 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:488:54 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:507:40 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:508:40 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:509:40 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:549:39 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:568:39 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:587:50 - deprecated_member_use
-
-135 issues found. (ran in 5.0s)
+No issues found! (ran in 1.6s)
 
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-17 10:20:08
-Duration    : 8.15s
-Exit Code   : 1
-Status      : FAILED
+Finished At : 2026-07-17 10:48:13
+Duration    : 4.46s
+Exit Code   : 0
+Status      : SUCCESS
 ------------------------------------------------------------
 Analyzer Summary:
 Errors      : 0
-Warnings    : 16
-Infos       : 119
+Warnings    : 0
+Infos       : 0
 ============================================================

@@ -192,3 +192,10 @@
 - Regression test ban đầu fail đúng vì `AnimatedCrossFade` vẫn giữ text `Ăn uống` trong tree sau 50 ms collapse; sau khi đổi transition, focused test pass 1/1 và full suite pass 31/31.
 - Scoped analyzer còn 9 warning/info có sẵn trong `settings_screen.dart` (`withOpacity`, `activeColor`, `_import` unused); final wrapper giữ nguyên repo baseline `135 = 0/16/119`, không dọn debt ngoài UI-002.
 - Repo-wide format check exit 1 với 65/132 file baseline sẽ đổi; `--output=none` không ghi file. Chưa có device/golden test cho Fancy/dark, 12+ category, text scale 2 và frame giữa transition.
+
+## [Phase 7] - 2026-07-17 10:40
+- Baseline `flutter test --no-pub` trong sandbox treo 180 giây không output; Dart formatter scoped cũng treo 30 giây. Chạy ngoài sandbox hoàn tất: baseline test `31/31`, final test `33/33`.
+- Analyzer trung gian sau cleanup còn một warning `_month` unused do helper `_isSelected` dead đã bị xóa; bỏ field/assignment không được đọc rồi rerun đạt `No issues found`.
+- `git diff --check` lần đầu bắt trailing whitespace do call `withValues` nhiều dòng trong `quick_actions_bar.dart`; chỉnh lại argument layout rồi check pass.
+- Final `dart format --output=none --set-exit-if-changed .` exit 1 và liệt kê 79/133 file sẽ đổi; đây là format debt có sẵn/mở rộng theo các file analyzer vừa chạm, lệnh không ghi file. Không dùng formatter broad trong session này.
+- Wrapper chính thức chạy ngoài sandbox bằng Flutter 3.44.5/Dart 3.12.2 và ghi `audit/flutter_analyze.txt` sạch `0/0/0`. `flutter devices` chỉ có Windows/Chrome/Edge; không có Android/iOS để smoke test.

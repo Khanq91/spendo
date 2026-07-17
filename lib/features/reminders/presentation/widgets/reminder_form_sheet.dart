@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/category_icons.dart';
-import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../domain/recurring_reminder.dart';
 import '../providers/reminder_provider.dart';
@@ -228,7 +227,7 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
                       decoration: BoxDecoration(
                         color:
                             selected
-                                ? cat.color.withOpacity(0.15)
+                                ? cat.color.withValues(alpha: 0.15)
                                 : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
@@ -306,7 +305,7 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
                             decoration: BoxDecoration(
                               color:
                                   selected
-                                      ? cs.primary.withOpacity(0.12)
+                                      ? cs.primary.withValues(alpha: 0.12)
                                       : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
@@ -396,7 +395,7 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
-                value: _dayOfMonth,
+                initialValue: _dayOfMonth,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),

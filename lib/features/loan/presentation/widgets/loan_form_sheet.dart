@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../../transactions/presentation/widgets/numpad.dart';
 import '../../data/loan_repository.dart';
@@ -183,7 +182,7 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
                           color: selected
-                              ? color.withOpacity(0.12)
+                              ? color.withValues(alpha: 0.12)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(

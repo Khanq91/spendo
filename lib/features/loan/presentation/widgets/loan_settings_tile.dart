@@ -25,7 +25,7 @@ class LoanSettingsTile extends ConsumerWidget {
         trailing = Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.12),
+            color: Colors.red.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Text(
@@ -42,7 +42,7 @@ class LoanSettingsTile extends ConsumerWidget {
         trailing = Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.12),
+            color: Colors.orange.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Text(

@@ -28,7 +28,7 @@ class Numpad extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.15),
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
               width: 0.5,
             ),
           ),

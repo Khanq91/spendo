@@ -48,9 +48,9 @@ class LoanMiniCard extends ConsumerWidget {
           border: Border.all(
             color:
                 worst == LoanStatus.overdue
-                    ? Colors.red.withOpacity(0.4)
+                    ? Colors.red.withValues(alpha: 0.4)
                     : worst == LoanStatus.upcoming
-                    ? Colors.orange.withOpacity(0.4)
+                    ? Colors.orange.withValues(alpha: 0.4)
                     : cs.outlineVariant,
             width: worst == LoanStatus.active ? 0.5 : 1.0,
           ),
@@ -60,7 +60,7 @@ class LoanMiniCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: badgeColor.withOpacity(0.12),
+                color: badgeColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(badgeIcon, size: 14, color: badgeColor),
@@ -95,7 +95,7 @@ class LoanMiniCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: badgeColor.withOpacity(0.12),
+                  color: badgeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(

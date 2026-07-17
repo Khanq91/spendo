@@ -213,9 +213,11 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
               ],
             ),
       );
-      if (confirm == true && mounted) {
+      if (confirm == true && context.mounted) {
         await repo.delete(loan.id);
-        if (mounted) Navigator.of(context).pop();
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
       }
     }
   }
@@ -284,9 +286,9 @@ class _InfoCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: color.withOpacity(0.3), width: 0.8),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
         borderRadius: BorderRadius.circular(16),
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,10 +301,10 @@ class _InfoCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: typeColor.withOpacity(0.12),
+                  color: typeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: typeColor.withOpacity(0.4),
+                    color: typeColor.withValues(alpha: 0.4),
                     width: 0.8,
                   ),
                 ),
@@ -323,7 +325,7 @@ class _InfoCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.12),
+                    color: Colors.red.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
@@ -343,7 +345,7 @@ class _InfoCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.12),
+                    color: Colors.orange.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -420,7 +422,7 @@ class _MetaChip extends StatelessWidget {
       decoration: BoxDecoration(
         color:
             warning
-                ? Colors.orange.withOpacity(0.1)
+                ? Colors.orange.withValues(alpha: 0.1)
                 : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
       ),
@@ -483,7 +485,7 @@ class _PaidSummaryRow extends StatelessWidget {
             child: AnimatedProgressBar(
               value: ratio,
               height: 6,
-              trackColor: typeColor.withOpacity(0.15),
+              trackColor: typeColor.withValues(alpha: 0.15),
               valueColor: remaining <= 0 ? Colors.green : typeColor,
             ),
           ),
@@ -515,7 +517,7 @@ class _PaymentTile extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: typeColor.withOpacity(0.12),
+          color: typeColor.withValues(alpha: 0.12),
           shape: BoxShape.circle,
         ),
         child: Icon(LucideIcons.check, size: 16, color: typeColor),

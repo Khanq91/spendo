@@ -25,7 +25,9 @@ class WidgetPinnedNotifier extends StateNotifier<List<String>> {
   Future<void> setSlot(int slot, String categoryId) async {
     final next = List<String>.from(state);
     // Đảm bảo list có đủ 4 phần tử
-    while (next.length < 4) next.add('');
+    while (next.length < 4) {
+      next.add('');
+    }
     next[slot] = categoryId;
     state = next;
     final prefs = await SharedPreferences.getInstance();
@@ -34,7 +36,9 @@ class WidgetPinnedNotifier extends StateNotifier<List<String>> {
 
   Future<void> clearSlot(int slot) async {
     final next = List<String>.from(state);
-    while (next.length < 4) next.add('');
+    while (next.length < 4) {
+      next.add('');
+    }
     next[slot] = '';
     state = next;
     final prefs = await SharedPreferences.getInstance();

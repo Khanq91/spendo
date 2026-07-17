@@ -172,9 +172,9 @@ class _WalletChip extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 2),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
       // decoration: BoxDecoration(
-      //   border: Border.all(color: color.withOpacity(0.3), width: 0.8),
+      //   border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
       //   borderRadius: BorderRadius.circular(8),
-      //   color: color.withOpacity(0.08),
+      //   color: color.withValues(alpha: 0.08),
       // ),
       child: Row(
         children: [

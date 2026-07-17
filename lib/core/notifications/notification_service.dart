@@ -35,7 +35,7 @@ class NotificationService {
         onDidReceiveNotificationResponse: _onResponse,
         onDidReceiveBackgroundNotificationResponse: _onBackgroundResponse,
       )
-          .timeout(const Duration(seconds: 5), onTimeout: () {});
+          .timeout(const Duration(seconds: 5), onTimeout: () => null);
 
       _initialized = true;
     } catch (e) {

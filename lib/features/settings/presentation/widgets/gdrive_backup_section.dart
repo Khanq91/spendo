@@ -49,7 +49,7 @@ class GDriveBackupSection extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: const Color(
                     0xFF4285F4,
-                  ).withOpacity(0.1), // Google Blue
+                  ).withValues(alpha: 0.1), // Google Blue
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -89,7 +89,7 @@ class GDriveBackupSection extends ConsumerWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4285F4).withOpacity(0.1),
+                  color: const Color(0xFF4285F4).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(

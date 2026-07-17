@@ -185,3 +185,13 @@
 - [x] Baseline analyzer `135 = 0 error / 16 warning / 119 info`, full test `30/30` pass. Final focused test `1/1`, full test `31/31`, wrapper giữ nguyên `135 = 0/16/119`; `git diff --check` pass.
 - [ ] Repo-wide format check vẫn fail baseline: 65/132 file sẽ đổi, `--output=none` không ghi file. Chưa smoke/golden test Fancy + dark với 12+ category ở các mốc 0/50/100% trên Android/iOS.
 - Bước tiếp theo: chạy visual smoke/golden cho collapse trên device/emulator; xử lý UI-007 hoặc UI-010 trong session riêng, không mở rộng tiếp Settings trong diff này.
+
+## [Phase 7] - 2026-07-17 10:40
+- [x] Chỉ xử lý ARCH-005/analyzer debt theo `audit/flutter_analyze.txt` mới: baseline `135 = 0 error / 16 warning / 119 info`; không chạm schema, state management, navigation hoặc package versions.
+- [x] Root cause: 104 call `withOpacity` và 8 API Flutter/Workmanager đã deprecated sau SDK upgrade, cộng unused/dead code, thiếu braces, nullable timeout callback và hai guard `BuildContext` dùng `mounted` không đúng context.
+- [x] Đổi API deprecated sang contract hiện hành, xóa import/local/field/private CSV flow không reachable, thêm braces và dùng `context.mounted`; giữ nguyên public API và business behavior đang reachable.
+- [x] Thêm `AGENTS.md` analyzer cleanliness gate để agent sau phải chạy wrapper, giữ `0/0/0`, không reintroduce các API cũ hoặc dùng ignore để che debt.
+- [x] Thêm 2 regression test cho `AppColors.toHex` và `formatVND`; tăng version `1.7.20+25` lên `1.7.21+26`.
+- [x] Baseline full test `31/31` pass. Final wrapper `SUCCESS`, `No issues found`, summary `0 error / 0 warning / 0 info`; full test `33/33` pass; `git diff --check` pass.
+- [ ] Repo-wide format check vẫn exit 1: 79/133 file sẽ đổi, `--output=none` không ghi file. Chỉ có Windows/Chrome/Edge, không có Android/iOS device nên chưa smoke test UI thật.
+- Bước tiếp theo: giữ analyzer `0/0/0` làm acceptance gate cho mọi session; xử lý format debt theo feature/PR riêng có behavior tests, không chạy broad format lẫn với issue chức năng.

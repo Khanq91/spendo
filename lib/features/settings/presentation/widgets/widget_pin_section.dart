@@ -17,7 +17,9 @@ class WidgetPinSection extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
 
     final slots = List<String>.from(pinnedIds);
-    while (slots.length < 4) slots.add('');
+    while (slots.length < 4) {
+      slots.add('');
+    }
 
     final catMap = {for (final c in allCats) c.id: c};
 
@@ -111,12 +113,12 @@ class _SlotCard extends StatelessWidget {
         height: 72,
         decoration: BoxDecoration(
           color: category != null
-              ? color.withOpacity(0.1)
+              ? color.withValues(alpha: 0.1)
               : cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: category != null
-                ? color.withOpacity(0.4)
+                ? color.withValues(alpha: 0.4)
                 : cs.outlineVariant,
             width: 1,
           ),
@@ -232,7 +234,7 @@ class _CategoryPickerSheet extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: cat.color.withOpacity(0.15),
+                    color: cat.color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(categoryIcon(cat.iconName),

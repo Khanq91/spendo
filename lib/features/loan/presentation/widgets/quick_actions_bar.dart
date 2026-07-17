@@ -222,13 +222,13 @@ class _ActionChipState extends State<_ActionChip>
         decoration: BoxDecoration(
           color:
               isEnabled
-                  ? (badge != null ? badge.color.withOpacity(0.08) : cs.surface)
-                  : cs.surfaceContainerHighest.withOpacity(0.5),
+                  ? (badge != null ? badge.color.withValues(alpha: 0.08) : cs.surface)
+                  : cs.surfaceContainerHighest.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color:
                 badge != null
-                    ? badge.color.withOpacity(0.25)
+                    ? badge.color.withValues(alpha: 0.25)
                     : cs.outlineVariant,
             width: 0.8,
           ),
@@ -284,8 +284,8 @@ class _PulseBadge extends StatelessWidget {
                     badge.pulse
                         ? [
                           BoxShadow(
-                            color: badge.color.withOpacity(
-                              0.5 * pulseAnim.value,
+                            color: badge.color.withValues(
+                              alpha: 0.5 * pulseAnim.value,
                             ),
                             blurRadius: 4,
                             spreadRadius: 1,
@@ -309,7 +309,7 @@ class _PulseBadge extends StatelessWidget {
                   badge.pulse
                       ? [
                         BoxShadow(
-                          color: badge.color.withOpacity(0.5 * pulseAnim.value),
+                          color: badge.color.withValues(alpha: 0.5 * pulseAnim.value),
                           blurRadius: 4,
                           spreadRadius: 1,
                         ),
