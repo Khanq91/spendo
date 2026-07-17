@@ -1,13 +1,13 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : 67d3ac67-0fea-4d8d-8f15-1d917ddfa125
-Generated At : 2026-07-17 08:43:51
+Run ID       : df99c7b2-ad84-4a87-acc6-d9e7cd6feb59
+Generated At : 2026-07-17 09:10:01
 Computer     : DESKTOP-VR5416E
 User         : HUIT
 Working Dir  : D:\khang\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : bda875f
+Git Commit   : 43c7302
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
@@ -168,13 +168,13 @@ warning - Unused import: '../../../../core/utils/currency_formatter.dart'. Try r
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:568:39 - deprecated_member_use
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement - lib\shared\widgets\splash_screen.dart:587:50 - deprecated_member_use
 
-135 issues found. (ran in 9.9s)
+135 issues found. (ran in 5.6s)
 
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-17 08:44:04
-Duration    : 12.9s
+Finished At : 2026-07-17 09:10:10
+Duration    : 8.92s
 Exit Code   : 1
 Status      : FAILED
 ------------------------------------------------------------

@@ -180,3 +180,9 @@
 - Final analyzer wrapper exit 1 do đúng baseline debt `135 diagnostics = 0 error / 16 warning / 119 info`; scoped analyzer cho production/test UI-003 báo `No issues found`.
 - Repo-wide format check exit 1 với 62/131 file lệch format; `--output=none` không ghi file. Hai file Dart trong scope đã được format trực tiếp và `git diff --check` pass.
 - Automated test xác nhận timer không đổi page khi Reduce Motion bật nhưng chưa chứng minh behavior trên setting hệ điều hành thật, carousel khi Home offstage hoặc chi phí CPU/battery; không tuyên bố đã tối ưu performance runtime.
+
+## [Phase 6] - 2026-07-17 09:10
+- Baseline analyzer wrapper và `flutter test --no-pub` treo không output trong sandbox; analyzer bị dừng đã để `audit/flutter_analyze.txt` chỉ có header. Chạy wrapper ngoài sandbox sau patch đã phục hồi log đầy đủ với baseline `135 = 0/16/119`.
+- Scoped analyzer lần đầu phát hiện `TickerMode.of` deprecated trên Flutter 3.44.5; đổi sang `TickerMode.valuesOf(context).enabled`, rerun báo `No issues found`.
+- Full test ngoài sandbox pass 30/30; focused WalletCardHome pass 3/3. Không có Android/iOS device measurement nên chưa xác nhận wake-up count, CPU, pin hoặc tab restoration thực tế.
+- Repo-wide format check exit 1 và liệt kê 65/131 file baseline sẽ đổi; `--output=none` không ghi file. Test trong scope đã format riêng; production files vẫn giữ style hiện tại để tránh formatting-only diff. Policy runner từ chối lần rerun repo-wide, không lách bằng workaround.

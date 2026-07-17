@@ -181,3 +181,9 @@
 - Tái sử dụng `MotionSpec.shouldReduceMotion(context)` thay vì đọc riêng một cờ hoặc hardcode policy, để carousel tuân theo cả `disableAnimations` và `accessibleNavigation` giống các motion widget hiện có.
 - Khi reduce motion bật, hủy timer và giữ `PageView` để người dùng vẫn có thể vuốt chọn Ví thủ công; không thay carousel bằng nội dung tĩnh hoặc đổi navigation/business behavior.
 - Chỉ sửa auto-carousel Ví trong session này. Aurora, splash, bottom-nav và pause theo tab visibility có lifecycle/test contract khác nên không gộp vào cùng diff UI-003.
+
+## [Phase 6] - 2026-07-17 09:10
+- Dùng `TickerMode` tại boundary `AppShell` để biểu diễn tab active thay vì thêm cờ xuyên qua `HomeScreen` và đổi public constructor của `WalletCardHome`; `IndexedStack` vẫn giữ nguyên state của ba tab.
+- `WalletCardHome` phụ thuộc `TickerMode.valuesOf(context).enabled`, nên khi đổi tab widget rebuild theo inherited value và hủy timer ngay; khi quay lại Home, timer được tạo lại qua flow hiện có.
+- Không lazy-create tab trong cùng session: thay đổi đó tác động initialization timing, scroll restoration và Hero/FAB behavior, cần test/rollback riêng.
+- Test kiểm chứng page không đổi khi inactive, nhưng không được dùng làm bằng chứng đã giảm CPU/battery trên runtime; chỉ xác nhận nguyên nhân timer/animation offstage đã bị loại khỏi code path.

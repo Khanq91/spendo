@@ -48,7 +48,16 @@ class _AppShellState extends ConsumerState<AppShell> {
                       canvasColor: Colors.transparent,
                     )
                     : Theme.of(context),
-            child: IndexedStack(index: _index, children: _screens),
+            child: IndexedStack(
+              index: _index,
+              children: List.generate(
+                _screens.length,
+                (i) => TickerMode(
+                  enabled: _index == i,
+                  child: _screens[i],
+                ),
+              ),
+            ),
           ),
         ],
       ),

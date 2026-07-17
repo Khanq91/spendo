@@ -75,4 +75,65 @@ void main() {
 
     expect(pageView.controller?.page, 0);
   });
+
+  testWidgets('pauses auto-advance while the Home tab is inactive', (
+    tester,
+  ) async {
+    const wallets = [
+      Wallet(
+        id: 'cash',
+        name: 'Tiền mặt',
+        type: WalletType.cash,
+        initialBalance: 0,
+        colorHex: '#1565C0',
+        sortOrder: 0,
+        isArchived: false,
+      ),
+      Wallet(
+        id: 'bank',
+        name: 'Ngân hàng',
+        type: WalletType.bank,
+        initialBalance: 0,
+        colorHex: '#2E7D32',
+        sortOrder: 1,
+        isArchived: false,
+      ),
+    ];
+    var isHomeActive = true;
+    late StateSetter setHarnessState;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          walletsProvider.overrideWith((ref) => Stream.value(wallets)),
+          walletBalanceProvider.overrideWith((ref, _) => Stream.value(0)),
+        ],
+        child: MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              setHarnessState = setState;
+              return TickerMode(
+                enabled: isHomeActive,
+                child: const Scaffold(body: WalletCardHome()),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final pageController =
+        tester.widget<PageView>(find.byType(PageView)).controller!;
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(pageController.page, 1);
+
+    setHarnessState(() => isHomeActive = false);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(pageController.page, 1);
+  });
 }

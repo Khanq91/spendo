@@ -167,3 +167,12 @@
 - [x] Focused test pass 2/2; full `flutter test --no-pub` pass 29/29; scoped analyzer báo `No issues found`; final wrapper giữ baseline `135 = 0 error / 16 warning / 119 info`; `git diff --check` pass.
 - [ ] Repo-wide format check vẫn fail baseline: 62/131 file sẽ đổi format, `--output=none` không ghi file. Chưa smoke test Reduce Motion trên Android/iOS thật và chưa đo callback/ticker khi Home offstage.
 - Bước tiếp theo: xử lý pause carousel khi tab Home không active như một lát cắt PERF-003 riêng có callback-count test; các animation Aurora/splash/bottom-nav của UI-003 tiếp tục tách riêng để giữ rollback nhỏ.
+
+## [Phase 6] - 2026-07-17 09:10
+- [x] Chỉ xử lý lát cắt PERF-003 cho timer auto-carousel Ví khi tab Home không active; lazy-create ba tab, Aurora, splash, auth và các finding dữ liệu nằm ngoài scope.
+- [x] Root cause: `IndexedStack` giữ `HomeScreen` sống nhưng không truyền trạng thái active xuống subtree, nên `WalletCardHome` chỉ hủy `Timer.periodic` khi dispose hoặc Reduce Motion bật.
+- [x] Bọc từng tab bằng `TickerMode` theo `_index`; `WalletCardHome` đọc `TickerMode.valuesOf(context).enabled` và hủy/không tạo timer khi Home inactive, vẫn giữ state, vuốt tay, provider API và navigation hiện tại.
+- [x] Thêm widget regression test xác nhận carousel chuyển page khi active rồi giữ nguyên page sau khi Home inactive; tăng version `1.7.18+23` lên `1.7.19+24`.
+- [x] Focused test pass 3/3; full `flutter test --no-pub` pass 30/30; scoped analyzer `No issues found`; wrapper cuối giữ baseline `135 = 0 error / 16 warning / 119 info`; `git diff --check` pass.
+- [ ] Repo-wide format check vẫn fail baseline: 65/131 file được formatter báo sẽ đổi và `--output=none` không ghi file; lần rerun sau khi format riêng test bị policy runner từ chối. Chưa đo CPU/battery hoặc smoke test tab switching trên Android/iOS.
+- Bước tiếp theo: đo timer/CPU khi đứng lâu ở Settings trên device; lazy-create tab lần đầu là lát cắt PERF-003 riêng vì có rủi ro restoration/scroll/Hero lớn hơn.

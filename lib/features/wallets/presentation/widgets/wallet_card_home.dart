@@ -42,8 +42,12 @@ class _WalletCardHomeState extends ConsumerState<WalletCardHome> {
     });
   }
 
-  void _syncAutoPlay(int count, {required bool reduceMotion}) {
-    if (reduceMotion) {
+  void _syncAutoPlay(
+    int count, {
+    required bool reduceMotion,
+    required bool isActive,
+  }) {
+    if (reduceMotion || !isActive) {
       _timer?.cancel();
       _timer = null;
       return;
@@ -63,6 +67,7 @@ class _WalletCardHomeState extends ConsumerState<WalletCardHome> {
     final walletsAsync = ref.watch(walletsProvider);
     final cs = Theme.of(context).colorScheme;
     final reduceMotion = MotionSpec.shouldReduceMotion(context);
+    final isActive = TickerMode.valuesOf(context).enabled;
 
     return walletsAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -105,7 +110,11 @@ class _WalletCardHomeState extends ConsumerState<WalletCardHome> {
         // Khởi động auto-play mỗi khi danh sách wallet thay đổi
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          _syncAutoPlay(wallets.length, reduceMotion: reduceMotion);
+          _syncAutoPlay(
+            wallets.length,
+            reduceMotion: reduceMotion,
+            isActive: isActive,
+          );
         });
 
         // Có wallet → row với carousel ở giữa
