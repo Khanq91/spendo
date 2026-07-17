@@ -158,3 +158,12 @@
 - [x] Baseline analyzer `136 = 0 error / 17 warning / 119 info`, full test `25/25` pass. Final focused test `7/7`, full test `28/28`; analyzer `135 = 0/16/119`, giảm một warning unused UUID trong file đã chạm; `git diff --check` pass.
 - [ ] Repo-wide format check `output=none` bị policy runner từ chối; scoped check xác nhận `powersync_db.dart`, `category_repository.dart` và test mới đã format, còn `backup_service.dart`, form và backup test vẫn thuộc format debt có sẵn. Chưa smoke test startup/restore trên device hoặc dữ liệu thật có nhiều budget trùng.
 - Bước tiếp theo: smoke test DB có duplicate category trên device và quyết định policy merge khi cả canonical lẫn duplicate đều có `category_budgets`; không tự chọn amount để tránh mất dữ liệu ngầm.
+
+## [Phase 6] - 2026-07-17 08:44
+- [x] Chỉ xử lý lát cắt UI-003 cho auto-carousel Ví trên Home khi Reduce Motion bật; Aurora, splash, bottom-nav và việc pause theo tab visibility nằm ngoài scope session này.
+- [x] Root cause: `WalletCardHome` luôn tạo `Timer.periodic` và gọi `animateToPage`, không đọc `MediaQuery.disableAnimations` hoặc `accessibleNavigation` dù repo đã có `MotionSpec.shouldReduceMotion`.
+- [x] Dùng policy motion dùng chung để không khởi động và hủy timer carousel khi Reduce Motion bật; giữ nguyên thao tác vuốt tay, dữ liệu, provider API và navigation.
+- [x] Thêm widget regression test xác nhận carousel vẫn ở page 0 sau chu kỳ 3 giây và 400 ms animation khi `disableAnimations = true`; tăng version `1.7.17+22` lên `1.7.18+23`.
+- [x] Focused test pass 2/2; full `flutter test --no-pub` pass 29/29; scoped analyzer báo `No issues found`; final wrapper giữ baseline `135 = 0 error / 16 warning / 119 info`; `git diff --check` pass.
+- [ ] Repo-wide format check vẫn fail baseline: 62/131 file sẽ đổi format, `--output=none` không ghi file. Chưa smoke test Reduce Motion trên Android/iOS thật và chưa đo callback/ticker khi Home offstage.
+- Bước tiếp theo: xử lý pause carousel khi tab Home không active như một lát cắt PERF-003 riêng có callback-count test; các animation Aurora/splash/bottom-nav của UI-003 tiếp tục tách riêng để giữ rollback nhỏ.

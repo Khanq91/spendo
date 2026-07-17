@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/motion/motion_spec.dart';
 import '../../domain/wallet.dart';
 import '../providers/wallet_provider.dart';
 import '../widgets/wallet_form_sheet.dart';
@@ -41,6 +42,15 @@ class _WalletCardHomeState extends ConsumerState<WalletCardHome> {
     });
   }
 
+  void _syncAutoPlay(int count, {required bool reduceMotion}) {
+    if (reduceMotion) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
+    _startAutoPlay(count);
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -52,6 +62,7 @@ class _WalletCardHomeState extends ConsumerState<WalletCardHome> {
   Widget build(BuildContext context) {
     final walletsAsync = ref.watch(walletsProvider);
     final cs = Theme.of(context).colorScheme;
+    final reduceMotion = MotionSpec.shouldReduceMotion(context);
 
     return walletsAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -93,7 +104,8 @@ class _WalletCardHomeState extends ConsumerState<WalletCardHome> {
 
         // Khởi động auto-play mỗi khi danh sách wallet thay đổi
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _startAutoPlay(wallets.length);
+          if (!mounted) return;
+          _syncAutoPlay(wallets.length, reduceMotion: reduceMotion);
         });
 
         // Có wallet → row với carousel ở giữa

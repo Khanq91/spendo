@@ -176,3 +176,8 @@
 - Chặn duplicate tại `CategoryRepository.add/update` theo cặp exact `name + is_income`; không đổi sang case-insensitive/normalized policy vì đó là thay đổi product semantics chưa có yêu cầu.
 - Giữ mọi `category_budgets` bằng cách remap sang canonical, không tự chọn/xóa amount khi hai category trùng đều có budget. Xử lý conflict amount cần policy riêng có preview thay vì mất dữ liệu ngầm.
 - Thêm `is_default` như field optional của backup v4: file cũ mặc định false, file mới giữ đúng default metadata mà không buộc bump schema hoặc làm reader cũ lỗi vì field dư.
+
+## [Phase 6] - 2026-07-17 08:44
+- Tái sử dụng `MotionSpec.shouldReduceMotion(context)` thay vì đọc riêng một cờ hoặc hardcode policy, để carousel tuân theo cả `disableAnimations` và `accessibleNavigation` giống các motion widget hiện có.
+- Khi reduce motion bật, hủy timer và giữ `PageView` để người dùng vẫn có thể vuốt chọn Ví thủ công; không thay carousel bằng nội dung tĩnh hoặc đổi navigation/business behavior.
+- Chỉ sửa auto-carousel Ví trong session này. Aurora, splash, bottom-nav và pause theo tab visibility có lifecycle/test contract khác nên không gộp vào cùng diff UI-003.

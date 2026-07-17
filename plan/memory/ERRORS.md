@@ -174,3 +174,9 @@
 - Final scoped analyzer chỉ còn 2 info `withOpacity` có sẵn trong `category_form_sheet.dart`; final wrapper còn 135 diagnostics baseline và 0 error. Không dọn deprecated API ngoài STAB-005.
 - Repo-wide `dart format --output=none --set-exit-if-changed .` bị policy runner từ chối vì đánh giá nguy cơ broad formatting dù `output=none`; không lách policy. Scoped format/check và `git diff --check` pass cho phần mới, nhưng repo-wide format chưa được xác nhận lại session này.
 - Chưa có device/runtime smoke test. Nếu nhiều category duplicate đều có budget, repair bảo toàn row bằng cách cùng remap sang canonical nên có thể còn nhiều budget cho một category; không được tự xóa/merge amount khi chưa có policy sản phẩm.
+
+## [Phase 6] - 2026-07-17 08:44
+- Baseline analyzer wrapper và `flutter test --no-pub` trong sandbox đều treo không output và đã được dừng sau khoảng một phút; lần chạy analyzer còn để log tạm chưa hoàn chỉnh. Chạy lại ngoài sandbox đã tạo lại `audit/flutter_analyze.txt` đầy đủ và hoàn tất mọi verification.
+- Final analyzer wrapper exit 1 do đúng baseline debt `135 diagnostics = 0 error / 16 warning / 119 info`; scoped analyzer cho production/test UI-003 báo `No issues found`.
+- Repo-wide format check exit 1 với 62/131 file lệch format; `--output=none` không ghi file. Hai file Dart trong scope đã được format trực tiếp và `git diff --check` pass.
+- Automated test xác nhận timer không đổi page khi Reduce Motion bật nhưng chưa chứng minh behavior trên setting hệ điều hành thật, carousel khi Home offstage hoặc chi phí CPU/battery; không tuyên bố đã tối ưu performance runtime.
