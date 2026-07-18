@@ -1,13 +1,13 @@
 ============================================================
 Flutter Analyze Report
 ============================================================
-Run ID       : d8b587e9-8940-4e3e-9053-96b453ce865f
-Generated At : 2026-07-18 14:45:44
+Run ID       : b49de760-c5ec-4709-805f-07334866a4f8
+Generated At : 2026-07-18 15:40:39
 Computer     : LAPTOP-J44MMRC9
 User         : chikh
 Working Dir  : D:\program\data\flutterDev\project\spendo
 Git Branch   : main
-Git Commit   : bbfa4c9
+Git Commit   : b5818e1
 Log File     : audit\flutter_analyze.txt
 Command      : flutter analyze --no-pub
 ------------------------------------------------------------
@@ -36,8 +36,8 @@ No issues found! (ran in 2.8s)
 ============================================================
 END FLUTTER ANALYZE
 ============================================================
-Finished At : 2026-07-18 14:45:52
-Duration    : 7.31s
+Finished At : 2026-07-18 15:40:47
+Duration    : 7.47s
 Exit Code   : 0
 Status      : SUCCESS
 ------------------------------------------------------------

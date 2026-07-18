@@ -224,3 +224,9 @@
 - Ẩn custom numpad khi `MediaQuery.viewInsets.bottom > 0` thay vì biến toàn sheet thành scrollable/refactor layout; keyboard hệ thống đã cung cấp input và thay đổi này giữ nguyên trải nghiệm nhập nhanh khi keyboard đóng.
 - Giữ CTA cùng phần dữ liệu chính trong layout thay vì chỉ clip overflow; regression test khóa contract CTA phải còn hit-test được trên viewport thấp.
 - Dùng `MediaQuery.viewInsetsOf(context)` để rebuild theo keyboard inset của chính sheet, không thêm FocusNode/listener hoặc state mới cần dispose.
+
+## [Phase 6] - 2026-07-18 15:42
+- Chọn UI-005 vì route `/reminders` và `RemindersScreen` đã tồn tại, nên intent của icon chuông đủ rõ để sửa control chết bằng một thay đổi nhỏ, có regression test và rollback độc lập.
+- Dùng `context.push('/reminders')` thay vì `go`: người dùng có thể quay lại Home bằng back stack, phù hợp với một destination chi tiết mở từ action trên app bar.
+- Thêm tooltip `Nhắc nhở` để control có nhãn rõ hơn cho hover/long-press và semantics; không thay icon, route contract hoặc notification settings.
+- Không chọn ARCH-001/ARCH-002 trong session này: auth entry và wallet cloud migration phụ thuộc policy ownership của dữ liệu anonymous/user, cần quyết định Phase 1/3 và two-user test thay vì suy đoán trong diff UI cục bộ.

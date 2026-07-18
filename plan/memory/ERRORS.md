@@ -225,3 +225,10 @@
 - Regression test đỏ đúng trên code cũ với `RenderFlex overflowed by 235 pixels on the bottom` tại `add_transaction_sheet.dart:367`; test đồng thời xác nhận custom numpad vẫn tồn tại khi keyboard inset là 300 px.
 - Repo-wide `dart format --output=none --set-exit-if-changed .` exit 1 với `69/135` file baseline sẽ đổi; lệnh không ghi file. Test mới format sạch, production sheet vẫn nằm trong format debt có sẵn nên không format toàn file.
 - Baseline/final analyzer wrapper đều sạch `0/0/0`; full test tăng từ `36/36` lên `37/37`. `flutter devices` chỉ có Windows và Edge, chưa xác nhận keyboard animation, IME thực hoặc split-screen trên Android/iOS.
+
+## [Phase 6] - 2026-07-18 15:42
+- Helper `apply_patch` tích hợp tiếp tục fail với `windows sandbox: helper_unknown_error`; wrapper batch `apply_patch.bat` còn làm mất multiline argument. Patch scoped được áp bằng Codex apply-patch executable trực tiếp ngoài sandbox, không dùng shell để ghi file.
+- Regression test lần đầu có thêm `RenderFlex overflow` do viewport mặc định 800×600 không đủ cho toàn Home; đặt test viewport 800×1000 như test Home hiện có để failure chỉ còn đúng việc route Reminders không mở. Test sau đó đỏ đúng trên code cũ và xanh sau fix.
+- Lần chạy song song focused test/analyzer/format chỉ trả output nhánh format exit 1; rerun test và analyzer độc lập xác nhận Home test `2/2` và scoped analyzer `No issues found`.
+- Repo-wide format check exit 1 với `70/135` file sẽ đổi; `--output=none` không ghi file. Final analyzer wrapper sạch `0/0/0`, full test pass `38/38`.
+- `flutter devices` chỉ có Windows và Edge; chưa xác nhận navigation/back stack và tooltip trên Android/iOS thật. Không có lỗi runtime hoặc workaround production nào khác được quan sát.

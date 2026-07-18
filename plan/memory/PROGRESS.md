@@ -232,3 +232,12 @@
 - [x] Baseline analyzer `0/0/0`, full test `36/36`; final focused `1/1`, full test `37/37`, scoped analyzer và wrapper cuối đều `0/0/0`.
 - [ ] Repo-wide format check vẫn fail baseline: `69/135` file sẽ đổi, `--output=none` không ghi file. Chỉ có Windows và Edge; chưa smoke test keyboard animation, focus và CTA trên Android/iOS thật.
 - Bước tiếp theo: smoke test AddTransactionSheet ở 320×568, split-screen và text scale 2.0 trên mobile; sau đó chọn một finding độc lập, không nối ARCH-001 trước khi chốt SEC-001 về ownership dữ liệu khi đổi tài khoản.
+
+## [Phase 6] - 2026-07-18 15:42
+- [x] Chỉ xử lý UI-005: nút chuông Home là control chết; không gộp auth, wallet sync boundary, Aurora, performance hoặc format debt.
+- [x] Root cause: `IconButton` hiển thị icon notification nhưng `onPressed` là callback rỗng, dù router đã có route `/reminders` và màn hình Reminders hoàn chỉnh.
+- [x] Nối nút chuông bằng `context.push('/reminders')`, thêm tooltip `Nhắc nhở`; giữ nguyên router, màn hình Reminders, business behavior và public API. Tăng version `1.7.25+30` lên `1.7.26+31`.
+- [x] Thêm widget regression test với `GoRouter` thật: test đỏ trên code cũ vì tap không đổi route, sau fix xác nhận màn hình route Reminders được mở.
+- [x] Baseline analyzer `0/0/0`, full test `37/37`; final focused Home test `2/2`, full test `38/38`, analyzer scoped và wrapper cuối đều `0/0/0`.
+- [ ] Repo-wide format check vẫn fail baseline: `70/135` file sẽ đổi, `--output=none` không ghi file. Chỉ có Windows và Edge; chưa smoke test tap/back stack, tooltip hoặc notification permission trên Android/iOS thật.
+- Bước tiếp theo: smoke test Home → Reminders → Back trên mobile; sau đó ưu tiên một issue Confirmed độc lập. Không nối ARCH-001/ARCH-002 trước khi chốt ownership/migration dữ liệu của SEC-001.

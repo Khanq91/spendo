@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../wallets/presentation/widgets/wallet_card_home.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
@@ -52,7 +53,8 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_outlined),
-            onPressed: () {},
+            tooltip: 'Nhắc nhở',
+            onPressed: () => context.push('/reminders'),
           ),
         ],
       ),
