@@ -205,3 +205,12 @@
 - [x] Final focused test `2/2`, full test `34/34`, scoped analyzer `No issues found`, wrapper `0/0/0`, `git diff --check` pass.
 - [ ] Repo-wide format check vẫn fail baseline: `79/133` file sẽ đổi, `--output=none` không ghi file. Chưa smoke test Fancy Settings trên Android/iOS với gesture/3-button safe inset.
 - Bước tiếp: smoke test cuộn Settings trên device/emulator; sau đó xử lý UI-007 trong session riêng hoặc tiếp tục format debt theo feature có behavior test.
+
+## [Phase 6] - 2026-07-18 13:30
+- [x] Chỉ xử lý UI-007: hit target filter giao dịch và tab Chi/Thu trong Settings nhỏ hơn 48 dp; không gộp auth, schema, Aurora, lazy tab hoặc format debt.
+- [x] Root cause: filter bar cao 44 dp nhưng padding dọc để vùng `PressableScale` chỉ còn 32 dp; `_TabChip` chỉ bọc pill bằng `GestureDetector`, không có minimum size hoặc Material interaction.
+- [x] Giữ pill thị giác hiện tại nhưng mở rộng vùng nhận tap lên đúng 48 dp; Settings dùng `Material` + `InkWell` để có focus/semantics/ripple chuẩn, callback và state tab giữ nguyên.
+- [x] Thêm regression test đo target của `Tất cả`, category và hai tab Settings; test đỏ trên code cũ với target 32 dp/không có `InkWell`, rồi pass sau fix. Tăng version `1.7.22+27` lên `1.7.23+28`.
+- [x] Baseline analyzer `0/0/0`, full test `34/34`; final focused `4/4`, full test `35/35`, analyzer wrapper và `audit/flutter_analyze.txt` đều `0/0/0`.
+- [ ] Repo-wide format check vẫn fail baseline: `68/133` file sẽ đổi, `--output=none` không ghi file. Chưa smoke test tap/spacing trên Android/iOS vì `flutter devices` chỉ có Windows và Edge.
+- Bước tiếp theo: smoke test UI-007 ở 320 dp, text scale 2.0 và accessibility scanner trên mobile; sau đó chọn một issue độc lập, ưu tiên UI-008 hoặc UI-005 nếu product intent đã rõ, không mở rộng session này.

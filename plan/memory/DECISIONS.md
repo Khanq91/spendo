@@ -205,3 +205,10 @@
 - Dùng `MediaQuery.paddingOf(context).bottom` từ `Scaffold.extendBody` thay vì hardcode 96 px theo tham số hiện tại của `GlassTabBar`; cách này theo đúng nav extent/safe inset khi layout thay đổi.
 - Chỉ cộng 16 px content clearance khi `AppVisualMode.fancy`; normal mode tiếp tục để Scaffold trừ bottom navigation theo layout cũ, tránh double padding và khoảng trắng thừa.
 - Test dùng `AppShell` và `GlassTabBar` thật thay vì fake fixed-height overlay, nên assertion bắt đúng contract giữa `extendBody`, Settings scroll extent và package glass hiện tại.
+
+## [Phase 6] - 2026-07-18 13:30
+- Chọn UI-007 vì đây là bước tiếp theo đã ghi trong PROGRESS, Confirmed, có regression geometry test và rollback boundary nhỏ; không mở auth/data-model hoặc performance issue chưa có metric trong cùng session.
+- Giữ pill hiển thị nhỏ và đặt nó giữa vùng tương tác cao 48 dp, thay vì tăng padding trực quan của pill; cách này đạt target accessibility mà ít thay đổi hierarchy/visual density hơn.
+- Giữ `PressableScale` cho transaction filters để bảo toàn motion/callback hiện tại; riêng Settings đổi `GestureDetector` sang `Material` + `InkWell` để có keyboard focus, tap semantics và ripple chuẩn mà không đổi public API.
+- Tăng filter bar từ 44 lên 48 dp là thay đổi layout tối thiểu cần thiết để chứa target thật; không dùng hit-test overlay vượt khỏi parent vì vùng ngoài bounds không nhận pointer ổn định.
+- Test đo ancestor tương tác thật (`PressableScale`/`InkWell`), không đo pill trang trí, để acceptance phản ánh đúng vùng nhận tap.

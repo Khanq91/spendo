@@ -206,3 +206,10 @@
 - Test đỏ trên code cũ: final Settings content bottom `505.1939` > glass bar top `504.0`; sau fix focused test pass `2/2` và full suite pass `34/34`.
 - Repo-wide `dart format --output=none --set-exit-if-changed .` exit 1 với `79/133` file baseline sẽ đổi; lệnh không ghi file. Không format broad trong UI-010.
 - Chưa có Android/iOS device hoặc emulator để xác nhận gesture navigation inset, 3-button inset và visual spacing thật; widget geometry test chỉ chứng minh contract layout trong Flutter test surface.
+
+## [Phase 6] - 2026-07-18 13:30
+- Helper `apply_patch` tích hợp tiếp tục fail với `windows sandbox: helper_unknown_error`; patch scoped được áp bằng executable Codex apply-patch ngoài sandbox, không dùng shell write hoặc broad rewrite.
+- Regression test đỏ đúng trên code cũ: transaction target cao `32.0` thay vì tối thiểu 48 và Settings không tìm thấy `InkWell`; đây là bằng chứng tái hiện, không phải lỗi toolchain.
+- Lần chạy scoped format check song song với focused test trả exit 1 từ formatter nên output test không được tổng hợp; focused test được chạy lại độc lập và pass `4/4`.
+- Repo-wide format check exit 1 với `68/133` file sẽ đổi; `--output=none` không ghi file. Final analyzer wrapper sạch `0/0/0`, full test pass `35/35` và `git diff --check` pass sau khi append đủ ba log.
+- `flutter devices` chỉ có Windows và Edge; chưa xác nhận target, focus traversal hoặc spacing bằng Accessibility Scanner/TalkBack/VoiceOver trên Android/iOS thật.

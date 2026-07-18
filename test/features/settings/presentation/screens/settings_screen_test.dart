@@ -45,6 +45,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Ăn uống'), findsOneWidget);
 
+    for (final label in ['Chi (1)', 'Thu (0)']) {
+      final target = find.ancestor(
+        of: find.text(label),
+        matching: find.byType(InkWell),
+      );
+      expect(target, findsOneWidget);
+      expect(tester.getSize(target).height, greaterThanOrEqualTo(48));
+    }
+
     await tester.tap(find.text('Danh mục thu chi'));
     await tester.pump(const Duration(milliseconds: 50));
 

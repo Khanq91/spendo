@@ -197,10 +197,10 @@ class _CategoryFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: 48,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           _FilterChip(
             label: 'Tất cả',
@@ -244,24 +244,32 @@ class _FilterChip extends StatelessWidget {
     final c = color ?? cs.primary;
     return PressableScale(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
-        curve: appMotion.curveStandard,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: selected ? c.withValues(alpha: 0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? c : cs.outlineVariant,
-            width: 0.8,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? c : cs.onSurfaceVariant,
+      child: SizedBox(
+        height: 48,
+        child: Center(
+          child: AnimatedContainer(
+            duration: appMotion.whenMotionAllowed(
+              context,
+              appMotion.tapUpDuration,
+            ),
+            curve: appMotion.curveStandard,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: selected ? c.withValues(alpha: 0.12) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selected ? c : cs.outlineVariant,
+                width: 0.8,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected ? c : cs.onSurfaceVariant,
+              ),
+            ),
           ),
         ),
       ),

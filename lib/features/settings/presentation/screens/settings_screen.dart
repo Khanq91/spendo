@@ -1216,35 +1216,49 @@ class _TabChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
-        curve: appMotion.curveStandard,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color:
-              selected
-                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color:
-                selected
-                    ? Theme.of(context).colorScheme.primary
-                    : cs.outlineVariant,
-            width: 0.8,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color:
-                selected
-                    ? Theme.of(context).colorScheme.primary
-                    : cs.onSurfaceVariant,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: SizedBox(
+          height: 48,
+          child: Center(
+            child: AnimatedContainer(
+              duration: appMotion.whenMotionAllowed(
+                context,
+                appMotion.tapUpDuration,
+              ),
+              curve: appMotion.curveStandard,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color:
+                    selected
+                        ? Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.12)
+                        : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color:
+                      selected
+                          ? Theme.of(context).colorScheme.primary
+                          : cs.outlineVariant,
+                  width: 0.8,
+                ),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color:
+                      selected
+                          ? Theme.of(context).colorScheme.primary
+                          : cs.onSurfaceVariant,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ),
           ),
         ),
       ),

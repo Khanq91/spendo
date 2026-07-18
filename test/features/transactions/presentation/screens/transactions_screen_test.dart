@@ -6,6 +6,7 @@ import 'package:spendo/features/categories/presentation/providers/category_provi
 import 'package:spendo/features/transactions/domain/transaction.dart';
 import 'package:spendo/features/transactions/presentation/providers/transaction_provider.dart';
 import 'package:spendo/features/transactions/presentation/screens/transactions_screen.dart';
+import 'package:spendo/shared/widgets/motion/pressable_scale.dart';
 
 void main() {
   testWidgets('shows a retryable error instead of an empty transaction list', (
@@ -39,5 +40,43 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(providerBuilds, 2);
+  });
+
+  testWidgets('category filters expose 48 dp tap targets', (tester) async {
+    const categories = [
+      Category(
+        id: 'food',
+        name: 'Ăn uống',
+        colorHex: '#FF6B6B',
+        iconName: 'utensils',
+        isDefault: true,
+        isIncome: false,
+        sortOrder: 0,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          transactionsProvider.overrideWith(
+            (ref) => Stream.value(const <Transaction>[]),
+          ),
+          categoriesProvider.overrideWith(
+            (ref) => Stream.value(categories),
+          ),
+        ],
+        child: const MaterialApp(home: TransactionsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final label in ['Tất cả', 'Ăn uống']) {
+      final target = find.ancestor(
+        of: find.text(label),
+        matching: find.byType(PressableScale),
+      );
+      expect(target, findsOneWidget);
+      expect(tester.getSize(target).height, greaterThanOrEqualTo(48));
+    }
   });
 }
