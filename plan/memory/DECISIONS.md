@@ -218,3 +218,9 @@
 - Dùng localization chuẩn của Flutter (`Chọn ngày`, `Huỷ`, `OK`) thay vì hardcode text picker, để dialog tiếp tục theo SDK và accessibility semantics hiện hành.
 - Guard `context.mounted` trước `setState` sau khi date picker đóng vì widget có thể bị dispose trong async gap; không thay đổi public API hoặc contract submit.
 - Regression test cố ý dựng outer app không locale và inner app `vi_VN` để khóa đúng root cause, không chỉ test một `MaterialApp` vốn đã pass trước fix.
+
+## [Phase 6] - 2026-07-18 14:45
+- Chọn UI-009 vì đây là issue High còn mở, có thể tái hiện tự động và sửa cục bộ; chưa nối ARCH-001 vì auth/sign-out phụ thuộc quyết định SEC-001 về dữ liệu anonymous và account switching.
+- Ẩn custom numpad khi `MediaQuery.viewInsets.bottom > 0` thay vì biến toàn sheet thành scrollable/refactor layout; keyboard hệ thống đã cung cấp input và thay đổi này giữ nguyên trải nghiệm nhập nhanh khi keyboard đóng.
+- Giữ CTA cùng phần dữ liệu chính trong layout thay vì chỉ clip overflow; regression test khóa contract CTA phải còn hit-test được trên viewport thấp.
+- Dùng `MediaQuery.viewInsetsOf(context)` để rebuild theo keyboard inset của chính sheet, không thêm FocusNode/listener hoặc state mới cần dispose.

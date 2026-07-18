@@ -219,3 +219,9 @@
 - Regression test đỏ đúng trên code cũ vì không tìm thấy `Chọn ngày`. Sau production fix, assertion nhãn hủy ban đầu dùng `HỦY` rồi `Hủy` không khớp SDK; Flutter 3.44 source dùng chính xác `Huỷ`, cập nhật expectation và focused test pass.
 - Repo-wide `dart format --output=none --set-exit-if-changed .` exit 1 với `68/134` file baseline sẽ đổi; lệnh không ghi file. `loan_form_sheet.dart` vẫn nằm trong format debt có sẵn nên không format toàn file trong UI-008.
 - Baseline/final analyzer wrapper đều sạch `0/0/0`; full test tăng từ `35/35` lên `36/36`. `flutter devices` chỉ có Windows và Edge, chưa xác nhận date picker trên Android/iOS thật.
+
+## [Phase 6] - 2026-07-18 14:45
+- Helper `apply_patch` tích hợp fail lặp lại với `windows sandbox: helper_unknown_error`; sau khi user cấp quyền rõ ràng, patch scoped được áp bằng Codex apply-patch executable ngoài sandbox, không dùng shell ghi file hoặc broad rewrite.
+- Regression test đỏ đúng trên code cũ với `RenderFlex overflowed by 235 pixels on the bottom` tại `add_transaction_sheet.dart:367`; test đồng thời xác nhận custom numpad vẫn tồn tại khi keyboard inset là 300 px.
+- Repo-wide `dart format --output=none --set-exit-if-changed .` exit 1 với `69/135` file baseline sẽ đổi; lệnh không ghi file. Test mới format sạch, production sheet vẫn nằm trong format debt có sẵn nên không format toàn file.
+- Baseline/final analyzer wrapper đều sạch `0/0/0`; full test tăng từ `36/36` lên `37/37`. `flutter devices` chỉ có Windows và Edge, chưa xác nhận keyboard animation, IME thực hoặc split-screen trên Android/iOS.

@@ -223,3 +223,12 @@
 - [x] Baseline analyzer `0/0/0`, full test `35/35`; final focused `1/1`, full test `36/36`, scoped analyzer và wrapper cuối đều `0/0/0`.
 - [ ] Repo-wide format check vẫn fail baseline: `68/134` file sẽ đổi, `--output=none` không ghi file. Chỉ có Windows và Edge; chưa smoke test dialog/z-order/theme trên Android/iOS thật.
 - Bước tiếp theo: smoke test Loan date picker trên mobile sau onboarding; sau đó xử lý UI-005 chỉ khi product intent của nút chuông được chốt, hoặc chọn issue Confirmed độc lập khác.
+
+## [Phase 6] - 2026-07-18 14:45
+- [x] Chỉ xử lý UI-009: AddTransactionSheet overflow khi bàn phím hệ thống mở trên màn hình thấp; không gộp refactor sheet, auth, schema, Aurora hoặc format debt.
+- [x] Root cause: sheet dùng `Column` không scroll/flexible, luôn render custom numpad bốn hàng rồi cộng toàn bộ keyboard `viewInsets` vào đáy, nên phần còn lại vượt quá chiều cao khả dụng.
+- [x] Khi keyboard inset lớn hơn 0, ẩn riêng custom numpad; note field, category, amount, CTA, submit flow, provider API và navigation giữ nguyên. Tăng version `1.7.24+29` lên `1.7.25+30`.
+- [x] Thêm widget regression test 320×568 với keyboard inset 300 px; code cũ overflow 235 px, code mới không có exception, numpad được bỏ và CTA vẫn hit-test được.
+- [x] Baseline analyzer `0/0/0`, full test `36/36`; final focused `1/1`, full test `37/37`, scoped analyzer và wrapper cuối đều `0/0/0`.
+- [ ] Repo-wide format check vẫn fail baseline: `69/135` file sẽ đổi, `--output=none` không ghi file. Chỉ có Windows và Edge; chưa smoke test keyboard animation, focus và CTA trên Android/iOS thật.
+- Bước tiếp theo: smoke test AddTransactionSheet ở 320×568, split-screen và text scale 2.0 trên mobile; sau đó chọn một finding độc lập, không nối ARCH-001 trước khi chốt SEC-001 về ownership dữ liệu khi đổi tài khoản.

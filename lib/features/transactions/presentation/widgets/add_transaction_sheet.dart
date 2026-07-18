@@ -336,6 +336,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final allCategories = categoriesAsync.valueOrNull ?? [];
     final cats = _categories(allCategories);
     final cs = Theme.of(context).colorScheme;
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final wallets = ref.watch(walletsProvider).valueOrNull ?? [];
 
     final budgetProgressMap =
@@ -612,10 +613,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
           const Divider(height: 12, thickness: 0.5),
 
-          ListenableBuilder(
-            listenable: _amountCtrl,
-            builder: (_, __) => Numpad(onKey: _amountCtrl.press),
-          ),
+          if (!isKeyboardVisible)
+            ListenableBuilder(
+              listenable: _amountCtrl,
+              builder: (_, __) => Numpad(onKey: _amountCtrl.press),
+            ),
 
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
