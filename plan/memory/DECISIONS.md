@@ -212,3 +212,9 @@
 - Giữ `PressableScale` cho transaction filters để bảo toàn motion/callback hiện tại; riêng Settings đổi `GestureDetector` sang `Material` + `InkWell` để có keyboard focus, tap semantics và ripple chuẩn mà không đổi public API.
 - Tăng filter bar từ 44 lên 48 dp là thay đổi layout tối thiểu cần thiết để chứa target thật; không dùng hit-test overlay vượt khỏi parent vì vùng ngoài bounds không nhận pointer ổn định.
 - Test đo ancestor tương tác thật (`PressableScale`/`InkWell`), không đo pill trang trí, để acceptance phản ánh đúng vùng nhận tap.
+
+## [Phase 6] - 2026-07-18 13:43
+- Chọn `useRootNavigator: false` tại call site `LoanFormSheet` thay vì cấu hình locale cho outer splash app hoặc refactor bỏ nested `MaterialApp`; đây là thay đổi nhỏ nhất đưa dialog về navigator đã có locale/theme sản phẩm.
+- Dùng localization chuẩn của Flutter (`Chọn ngày`, `Huỷ`, `OK`) thay vì hardcode text picker, để dialog tiếp tục theo SDK và accessibility semantics hiện hành.
+- Guard `context.mounted` trước `setState` sau khi date picker đóng vì widget có thể bị dispose trong async gap; không thay đổi public API hoặc contract submit.
+- Regression test cố ý dựng outer app không locale và inner app `vi_VN` để khóa đúng root cause, không chỉ test một `MaterialApp` vốn đã pass trước fix.

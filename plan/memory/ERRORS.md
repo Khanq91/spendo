@@ -213,3 +213,9 @@
 - Lần chạy scoped format check song song với focused test trả exit 1 từ formatter nên output test không được tổng hợp; focused test được chạy lại độc lập và pass `4/4`.
 - Repo-wide format check exit 1 với `68/133` file sẽ đổi; `--output=none` không ghi file. Final analyzer wrapper sạch `0/0/0`, full test pass `35/35` và `git diff --check` pass sau khi append đủ ba log.
 - `flutter devices` chỉ có Windows và Edge; chưa xác nhận target, focus traversal hoặc spacing bằng Accessibility Scanner/TalkBack/VoiceOver trên Android/iOS thật.
+
+## [Phase 6] - 2026-07-18 13:43
+- Helper `apply_patch` tích hợp tiếp tục fail với `windows sandbox: helper_unknown_error`; patch scoped được áp bằng executable Codex apply-patch ngoài sandbox, không dùng shell ghi file hoặc broad rewrite.
+- Regression test đỏ đúng trên code cũ vì không tìm thấy `Chọn ngày`. Sau production fix, assertion nhãn hủy ban đầu dùng `HỦY` rồi `Hủy` không khớp SDK; Flutter 3.44 source dùng chính xác `Huỷ`, cập nhật expectation và focused test pass.
+- Repo-wide `dart format --output=none --set-exit-if-changed .` exit 1 với `68/134` file baseline sẽ đổi; lệnh không ghi file. `loan_form_sheet.dart` vẫn nằm trong format debt có sẵn nên không format toàn file trong UI-008.
+- Baseline/final analyzer wrapper đều sạch `0/0/0`; full test tăng từ `35/35` lên `36/36`. `flutter devices` chỉ có Windows và Edge, chưa xác nhận date picker trên Android/iOS thật.

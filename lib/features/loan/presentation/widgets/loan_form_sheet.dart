@@ -64,11 +64,14 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
   Future<void> _pickDueDate() async {
     final picked = await showDatePicker(
       context: context,
+      useRootNavigator: false,
       initialDate: _dueDate ?? DateTime.now().add(const Duration(days: 30)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
     );
-    if (picked != null) setState(() => _dueDate = picked);
+    if (context.mounted && picked != null) {
+      setState(() => _dueDate = picked);
+    }
   }
 
   Future<void> _submit() async {

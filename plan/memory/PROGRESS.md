@@ -214,3 +214,12 @@
 - [x] Baseline analyzer `0/0/0`, full test `34/34`; final focused `4/4`, full test `35/35`, analyzer wrapper và `audit/flutter_analyze.txt` đều `0/0/0`.
 - [ ] Repo-wide format check vẫn fail baseline: `68/133` file sẽ đổi, `--output=none` không ghi file. Chưa smoke test tap/spacing trên Android/iOS vì `flutter devices` chỉ có Windows và Edge.
 - Bước tiếp theo: smoke test UI-007 ở 320 dp, text scale 2.0 và accessibility scanner trên mobile; sau đó chọn một issue độc lập, ưu tiên UI-008 hoặc UI-005 nếu product intent đã rõ, không mở rộng session này.
+
+## [Phase 6] - 2026-07-18 13:43
+- [x] Chỉ xử lý UI-008: date picker ngày hết hạn khoản vay dùng tiếng Anh trong app locale Việt; không gộp nested `MaterialApp`, notification navigation, UI-005 hoặc các finding dữ liệu.
+- [x] Root cause: `showDatePicker` mặc định dùng root navigator nên dialog được dựng dưới outer `MaterialApp` không có locale, thay vì inner `SpendoApp` đã cấu hình `vi_VN`.
+- [x] Đặt `useRootNavigator: false` tại riêng call site khoản vay và guard `context.mounted` sau async gap; public API, theme, khoảng ngày và submit flow giữ nguyên.
+- [x] Thêm widget regression test với đúng cấu trúc hai `MaterialApp`: code cũ không tìm thấy `Chọn ngày`, code mới xác nhận `Chọn ngày`/`Huỷ`/`OK` và không còn `Select date`. Tăng version `1.7.23+28` lên `1.7.24+29`.
+- [x] Baseline analyzer `0/0/0`, full test `35/35`; final focused `1/1`, full test `36/36`, scoped analyzer và wrapper cuối đều `0/0/0`.
+- [ ] Repo-wide format check vẫn fail baseline: `68/134` file sẽ đổi, `--output=none` không ghi file. Chỉ có Windows và Edge; chưa smoke test dialog/z-order/theme trên Android/iOS thật.
+- Bước tiếp theo: smoke test Loan date picker trên mobile sau onboarding; sau đó xử lý UI-005 chỉ khi product intent của nút chuông được chốt, hoặc chọn issue Confirmed độc lập khác.
