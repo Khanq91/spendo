@@ -11,6 +11,7 @@ import '../../features/transactions/presentation/screens/transactions_screen.dar
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
 import 'aurora_theme_background.dart';
 import 'motion/motion.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -73,7 +74,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     child: RepaintBoundary(
                       child: GlassButton(
                         key: const Key('spendo_fab_add_transaction'),
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(LucideIcons.plus),
                         iconSize: 28,
                         useOwnLayer: true,
                         quality: AppGlassPolicy.interactiveQuality,
@@ -90,7 +91,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       heroTag: 'global_fab',
                       onPressed: _showAddTransactionSheet,
                       shape: const CircleBorder(),
-                      child: const Icon(Icons.add, size: 28),
+                      child: const Icon(LucideIcons.plus, size: 28),
                     ),
                   )
               : null,
@@ -119,18 +120,18 @@ class _SpendoNavBar extends StatelessWidget {
 
   static const _items = [
     _NavItem(
-      icon: Icons.receipt_long_outlined,
-      activeIcon: Icons.receipt_long,
+      icon: LucideIcons.receiptText,
+      activeIcon: LucideIcons.receiptText,
       label: 'Giao dịch',
     ),
     _NavItem(
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home,
+      icon: LucideIcons.house,
+      activeIcon: LucideIcons.house,
       label: 'Trang chủ',
     ),
     _NavItem(
-      icon: Icons.settings_outlined,
-      activeIcon: Icons.settings,
+      icon: LucideIcons.settings,
+      activeIcon: LucideIcons.settings,
       label: 'Cài đặt',
     ),
   ];
@@ -190,18 +191,18 @@ class _FancySpendoNavBar extends StatelessWidget {
         unselectedLabelColor: cs.onSurfaceVariant,
         tabs: const [
           GlassTab(
-            icon: Icon(Icons.receipt_long_outlined),
-            activeIcon: Icon(Icons.receipt_long),
+            icon: Icon(LucideIcons.receiptText),
+            activeIcon: Icon(LucideIcons.receiptText),
             label: 'Giao dịch',
           ),
           GlassTab(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
+            icon: Icon(LucideIcons.house),
+            activeIcon: Icon(LucideIcons.house),
             label: 'Trang chủ',
           ),
           GlassTab(
-            icon: Icon(Icons.settings_outlined),
-            activeIcon: Icon(Icons.settings),
+            icon: Icon(LucideIcons.settings),
+            activeIcon: Icon(LucideIcons.settings),
             label: 'Cài đặt',
           ),
         ],

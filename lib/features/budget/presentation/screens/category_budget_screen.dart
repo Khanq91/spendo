@@ -320,7 +320,7 @@ class _CategoryNobudgetTile extends StatelessWidget {
           ),
           trailing: TextButton.icon(
             onPressed: onAdd,
-            icon: const Icon(Icons.add, size: 14),
+            icon: const Icon(LucideIcons.plus, size: 14),
             label: const Text('Đặt', style: TextStyle(fontSize: 12)),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.primary,

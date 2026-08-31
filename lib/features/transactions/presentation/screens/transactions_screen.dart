@@ -94,7 +94,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(_showSearch ? Icons.close : Icons.search_outlined),
+            icon: Icon(_showSearch ? LucideIcons.x : LucideIcons.search),
             onPressed: () {
               setState(() => _showSearch = !_showSearch);
               if (!_showSearch) {

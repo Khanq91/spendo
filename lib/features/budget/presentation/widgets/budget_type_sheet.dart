@@ -140,7 +140,7 @@ class _OptionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_right, size: 18, color: cs.onSurfaceVariant),
+            Icon(LucideIcons.chevronRight, size: 18, color: cs.onSurfaceVariant),
           ],
         ),
       ),

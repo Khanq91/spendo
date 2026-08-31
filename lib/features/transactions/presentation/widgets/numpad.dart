@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class Numpad extends StatelessWidget {
   final Function(String) onKey;
@@ -34,7 +35,7 @@ class Numpad extends StatelessWidget {
           ),
           child: Center(
             child: isDelete
-                ? const Icon(Icons.backspace_outlined, size: 20)
+                ? const Icon(LucideIcons.delete, size: 20)
                 : Text(
               label,
               style: const TextStyle(

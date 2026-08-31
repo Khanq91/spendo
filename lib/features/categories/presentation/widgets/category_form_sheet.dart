@@ -3,6 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../data/category_repository.dart';
 import '../../domain/category.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 const _kIconNames = [
   'restaurant',
@@ -194,7 +195,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                       child:
                           selected
                               ? const Icon(
-                                Icons.check,
+                                LucideIcons.check,
                                 size: 14,
                                 color: Colors.white,
                               )

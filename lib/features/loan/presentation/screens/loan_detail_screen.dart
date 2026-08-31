@@ -57,7 +57,7 @@ class _LoanDetailScreenState extends ConsumerState<LoanDetailScreen> {
                 ),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 20),
+            icon: const Icon(LucideIcons.ellipsisVertical, size: 20),
             onSelected: (val) => _handleMenu(context, val, loan),
             itemBuilder:
                 (_) => [

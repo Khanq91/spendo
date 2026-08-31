@@ -16,6 +16,7 @@ import '../../../../core/utils/category_icons.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../screens/note_picker_screen.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final Transaction? existing;
@@ -489,7 +490,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                             ),
                             if (selected && !_userPickedCategory) ...[
                               const SizedBox(width: 3),
-                              Icon(Icons.auto_fix_high, size: 10, color: color),
+                              Icon(LucideIcons.wand, size: 10, color: color),
                             ],
                             if (!selected && progress != null) ...[
                               const SizedBox(width: 3),
@@ -563,7 +564,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: Icon(
-                      Icons.search,
+                      LucideIcons.search,
                       size: 18,
                       color: cs.onSurfaceVariant,
                     ),
@@ -745,7 +746,7 @@ class _SelectedWalletChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Icon(Icons.arrow_drop_down, size: 14, color: color),
+          Icon(LucideIcons.chevronDown, size: 14, color: color),
         ],
       ),
     );
@@ -817,7 +818,7 @@ class _WalletPickerSheet extends StatelessWidget {
             ),
             trailing:
                 selected
-                    ? Icon(Icons.check, color: cs.primary, size: 18)
+                    ? Icon(LucideIcons.check, color: cs.primary, size: 18)
                     : null,
           );
         }),

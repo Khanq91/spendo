@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Bottom sheet chọn tháng/năm cụ thể.
 /// Trả về DateTime (ngày 1 của tháng được chọn) qua Navigator.pop.
@@ -65,7 +66,7 @@ class _MonthPickerSheetState extends State<MonthPickerSheet> {
                     ? () => setState(() => _year--)
                     : null,
                 icon: Icon(
-                  Icons.chevron_left,
+                  LucideIcons.chevronLeft,
                   color: canGoPrev ? cs.onSurface : cs.outlineVariant,
                 ),
                 visualDensity: VisualDensity.compact,
@@ -83,7 +84,7 @@ class _MonthPickerSheetState extends State<MonthPickerSheet> {
                     ? () => setState(() => _year++)
                     : null,
                 icon: Icon(
-                  Icons.chevron_right,
+                  LucideIcons.chevronRight,
                   color: canGoNext ? cs.onSurface : cs.outlineVariant,
                 ),
                 visualDensity: VisualDensity.compact,

@@ -4,6 +4,7 @@ import '../../../transactions/presentation/widgets/amount_input_controller.dart'
 import '../../../transactions/presentation/widgets/numpad.dart';
 import '../../data/loan_repository.dart';
 import '../../domain/loan.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class LoanFormSheet extends StatefulWidget {
   final Loan? existing;
@@ -139,7 +140,7 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
               children: [
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(LucideIcons.x),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   style: IconButton.styleFrom(
@@ -259,7 +260,7 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.calendar_today_outlined,
+                      LucideIcons.calendarDays,
                       size: 16,
                       color: cs.onSurfaceVariant,
                     ),
@@ -280,7 +281,7 @@ class _LoanFormSheetState extends State<LoanFormSheet> {
                       GestureDetector(
                         onTap: () => setState(() => _dueDate = null),
                         child: Icon(
-                          Icons.close,
+                          LucideIcons.x,
                           size: 16,
                           color: cs.onSurfaceVariant,
                         ),

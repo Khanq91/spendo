@@ -252,7 +252,7 @@ class _CategoryPickerSheet extends StatelessWidget {
                     : null,
                 trailing: isUsed
                     ? null
-                    : Icon(Icons.chevron_right,
+                    : Icon(LucideIcons.chevronRight,
                     size: 18, color: cs.onSurfaceVariant),
                 onTap: isUsed
                     ? null

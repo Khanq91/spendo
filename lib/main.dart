@@ -1,18 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'app.dart';
 import 'core/config.dart';
 import 'core/db/powersync_db.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/reminder_notification_service.dart';
 import 'core/services/gdrive_background_backup.dart';
 import 'core/theme/app_glass_policy.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/utils/widget_sync.dart';
 import 'features/onboarding/presentation/startup_gate.dart';
 import 'features/reminders/data/reminder_repository.dart';
@@ -58,14 +61,31 @@ void main() async {
   );
 }
 
-class _AppRoot extends StatelessWidget {
+/// The single [MaterialApp] of the app.
+///
+/// Splash and onboarding used to live inside their own `MaterialApp` seeded
+/// with the brand colour, with [SpendoApp] pushed as a route *inside* it —
+/// two nested MaterialApps, so the first frames ignored the user's theme.
+/// Everything now runs under one themed app: splash and welcome are ordinary
+/// screens, and the router takes over once onboarding is done.
+class _AppRoot extends ConsumerWidget {
   const _AppRoot();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
+      title: 'Spendo',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: const Color(0xFFF06292)),
+      theme: ref.watch(lightThemeProvider),
+      darkTheme: ref.watch(darkThemeProvider),
+      themeMode: ref.watch(themeModeProvider),
+      locale: const Locale('vi', 'VN'),
+      supportedLocales: const [Locale('vi', 'VN'), Locale('en', 'US')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: SplashScreen(
         onInit: _initServices,
         nextScreen: const StartupGate(),

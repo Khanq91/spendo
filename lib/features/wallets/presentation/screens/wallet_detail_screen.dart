@@ -74,7 +74,7 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
             onPressed: () => _openEdit(context, wallet),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 20),
+            icon: const Icon(LucideIcons.ellipsisVertical, size: 20),
             onSelected: (val) => _handleMenu(context, val, wallet),
             itemBuilder:
                 (_) => [

@@ -10,6 +10,7 @@ import '../../../shared/widgets/aurora_theme_background.dart';
 import '../../../shared/widgets/visual_mode_picker.dart';
 import '../../settings/presentation/providers/gdrive_provider.dart';
 import 'startup_gate.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -248,7 +249,7 @@ class _GoogleDriveOptIn extends ConsumerWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else
-                const Icon(Icons.cloud_outlined, size: 20),
+                const Icon(LucideIcons.cloud, size: 20),
               const SizedBox(width: 10),
               const Text(
                 'Đăng nhập Google',

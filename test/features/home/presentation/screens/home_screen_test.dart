@@ -9,6 +9,7 @@ import 'package:spendo/features/transactions/domain/transaction.dart';
 import 'package:spendo/features/transactions/presentation/providers/transaction_provider.dart';
 import 'package:spendo/features/wallets/domain/wallet.dart';
 import 'package:spendo/features/wallets/presentation/providers/wallet_provider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 void main() {
   testWidgets('opens reminders when the Home notification button is tapped', (
@@ -47,7 +48,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byIcon(Icons.notifications_none_outlined));
+    await tester.tap(find.byIcon(LucideIcons.bell));
     await tester.pumpAndSettle();
 
     expect(find.text('Reminders route'), findsOneWidget);

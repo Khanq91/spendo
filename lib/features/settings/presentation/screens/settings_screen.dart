@@ -376,7 +376,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         trailing: Icon(
-                          Icons.chevron_right,
+                          LucideIcons.chevronRight,
                           size: 18,
                           color: cs.onSurfaceVariant,
                         ),
@@ -1122,7 +1122,7 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                   ),
                   curve: appMotion.curveStandard,
                   child: Icon(
-                    Icons.keyboard_arrow_down,
+                    LucideIcons.chevronDown,
                     size: 20,
                     color: cs.onSurfaceVariant,
                   ),
@@ -1169,7 +1169,7 @@ class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
                                       _tab == 0
                                           ? widget.onAddExpense
                                           : widget.onAddIncome,
-                                  icon: const Icon(Icons.add, size: 15),
+                                  icon: const Icon(LucideIcons.plus, size: 15),
                                   label: const Text(
                                     'Thêm',
                                     style: TextStyle(fontSize: 12),

@@ -33,7 +33,7 @@ class RemindersScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(LucideIcons.plus),
             onPressed: () => _openForm(context),
           ),
         ],
@@ -408,7 +408,7 @@ class _DebugPanelState extends State<_DebugPanel> {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
             child: Row(
               children: [
-                const Icon(Icons.bug_report, size: 16, color: Colors.orange),
+                const Icon(LucideIcons.bug, size: 16, color: Colors.orange),
                 const SizedBox(width: 6),
                 const Text(
                   'DEBUG — Test notification',
@@ -585,7 +585,7 @@ class _DebugPanelState extends State<_DebugPanel> {
                     }
                   },
                   style: FilledButton.styleFrom(backgroundColor: Colors.purple),
-                  icon: const Icon(Icons.science, size: 16),
+                  icon: const Icon(LucideIcons.flaskConical, size: 16),
                   label: const Text('Seed habit test data'),
                 ),
               ],
@@ -658,7 +658,7 @@ class _PresetSection extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.add, size: 14),
+                      const Icon(LucideIcons.plus, size: 14),
                       const SizedBox(width: 4),
                       Text(preset.title, style: const TextStyle(fontSize: 13)),
                     ],
@@ -754,7 +754,7 @@ class _ReminderTile extends ConsumerWidget {
             onChanged: (_) => actions.toggleActive(reminder),
           ),
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, size: 18, color: cs.onSurfaceVariant),
+            icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: cs.onSurfaceVariant),
             onSelected: (val) async {
               if (val == 'edit') {
                 showModalBottomSheet(
@@ -815,7 +815,7 @@ class _EmptyState extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: onAdd,
-                icon: const Icon(Icons.add, size: 18),
+                icon: const Icon(LucideIcons.plus, size: 18),
                 label: const Text('Thêm nhắc nhở'),
               ),
             ],

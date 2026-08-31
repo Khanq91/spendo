@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/utils/date_helpers.dart';
 import 'month_picker_sheet.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class MonthSelector extends StatelessWidget {
   final DateTime month;
@@ -39,7 +40,7 @@ class MonthSelector extends StatelessWidget {
       children: [
         IconButton(
           onPressed: onPrev,
-          icon: const Icon(Icons.chevron_left),
+          icon: const Icon(LucideIcons.chevronLeft),
           visualDensity: VisualDensity.compact,
         ),
 
@@ -64,7 +65,7 @@ class MonthSelector extends StatelessWidget {
                 ),
                 const SizedBox(width: 2),
                 Icon(
-                  Icons.arrow_drop_down,
+                  LucideIcons.chevronDown,
                   size: 18,
                   color: cs.onSurfaceVariant,
                 ),
@@ -76,7 +77,7 @@ class MonthSelector extends StatelessWidget {
         IconButton(
           onPressed: _isCurrentMonth ? null : onNext,
           icon: Icon(
-            Icons.chevron_right,
+            LucideIcons.chevronRight,
             color: _isCurrentMonth ? Colors.grey.shade300 : null,
           ),
           visualDensity: VisualDensity.compact,

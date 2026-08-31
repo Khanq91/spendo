@@ -32,7 +32,7 @@ class LoanListScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(LucideIcons.plus),
             onPressed: () => _openForm(context),
           ),
         ],
@@ -76,7 +76,7 @@ class LoanListScreen extends ConsumerWidget {
         heroTag: 'loan_fab',
         onPressed: () => _openForm(context),
         shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 28),
+        child: const Icon(LucideIcons.plus, size: 28),
       ),
     );
   }
@@ -262,7 +262,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: onAdd,
-            icon: const Icon(Icons.add, size: 18),
+            icon: const Icon(LucideIcons.plus, size: 18),
             label: const Text('Thêm khoản vay'),
           ),
         ],

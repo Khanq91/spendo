@@ -6,6 +6,7 @@ import '../../../transactions/presentation/widgets/amount_input_controller.dart'
 import '../../../transactions/presentation/widgets/numpad.dart';
 import '../../data/wallet_repository.dart';
 import '../../domain/wallet.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class WalletFormSheet extends ConsumerStatefulWidget {
   final Wallet? existing;
@@ -147,7 +148,7 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
                     child:
                         selected
                             ? const Icon(
-                              Icons.check,
+                              LucideIcons.check,
                               size: 18,
                               color: Colors.white,
                             )
@@ -196,7 +197,7 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
               children: [
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(LucideIcons.x),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   style: IconButton.styleFrom(
@@ -394,7 +395,7 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 14, color: accentColor),
+                  Icon(LucideIcons.info, size: 14, color: accentColor),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(

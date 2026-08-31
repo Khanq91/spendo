@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../core/theme/app_typography.dart';
+import '../../core/theme/spendo_colors.dart';
 import '../../core/theme/theme_provider.dart';
 
 typedef InitCallback =
@@ -230,16 +232,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Đọc brightness mỗi frame — đảm bảo luôn đúng
     final isDark = _resolveBrightness() == Brightness.dark;
 
-    final bgColor = isDark ? const Color(0xFF0F0A12) : const Color(0xFFFAF5FF);
-    final taglineColor =
-        isDark ? const Color(0xFFB89AB0) : const Color(0xFF7B5F8A);
-    final statusColor =
-        isDark ? const Color(0xFF8A7090) : const Color(0xFF9E7DB0);
-    final versionColor =
-        isDark ? const Color(0xFF5A4560) : const Color(0xFFB09ABF);
-    final progressTrackColor =
-        isDark ? const Color(0xFF2A1A2E) : const Color(0xFFE8D8F5);
-    final appNameColor = isDark ? Colors.white : const Color(0xFF1A0A2E);
+    // Splash colours come from the theme so the first frames already match the
+    // scheme the user picked (the visual redesign itself lands in Phase 7).
+    final cs = Theme.of(context).colorScheme;
+    final bgColor = cs.surface;
+    final taglineColor = cs.onSurfaceVariant;
+    final statusColor = cs.onSurfaceVariant;
+    final versionColor = cs.outline;
+    final progressTrackColor = cs.surfaceContainerHighest;
+    final appNameColor = cs.onSurface;
 
     return FadeTransition(
       opacity: _exitOpacity,
@@ -285,12 +286,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                   child: Text(
                                     'Spendo',
                                     style: TextStyle(
-                                      fontFamily: 'serif',
+                                      fontFamily: AppTypography.displayFamily,
                                       fontSize: 44,
                                       fontWeight: FontWeight.w700,
                                       color: appNameColor,
-                                      letterSpacing: -1.5,
-                                      height: 1,
+                                      letterSpacing: -1,
+                                      height: 1.2,
                                     ),
                                   ),
                                 ),
@@ -412,25 +413,24 @@ class _LogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brand = context.spendo.brand;
     return Container(
       width: 96,
       height: 96,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          colors: [Color(0xFFF48FB1), Color(0xFFF06292)],
-          center: Alignment(-0.3, -0.3),
+        gradient: RadialGradient(
+          colors: [Color.lerp(brand, Colors.white, 0.35)!, brand],
+          center: const Alignment(-0.3, -0.3),
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(
-              0xFFF06292,
-            ).withValues(alpha: 0.25 + 0.25 * glowIntensity),
+            color: brand.withValues(alpha: 0.25 + 0.25 * glowIntensity),
             blurRadius: 24 + 20 * glowIntensity,
             spreadRadius: 2 + 4 * glowIntensity,
           ),
           BoxShadow(
-            color: const Color(0xFFF06292).withValues(alpha: 0.1 * glowIntensity),
+            color: brand.withValues(alpha: 0.1 * glowIntensity),
             blurRadius: 60,
             spreadRadius: 10,
           ),
@@ -480,12 +480,15 @@ class _ProgressBar extends StatelessWidget {
                 height: 3,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(2),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFF06292), Color(0xFFCE93D8)],
+                  gradient: LinearGradient(
+                    colors: [
+                      context.spendo.brand,
+                      Theme.of(context).colorScheme.primary,
+                    ],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFF06292).withValues(alpha: 0.6),
+                      color: context.spendo.brand.withValues(alpha: 0.6),
                       blurRadius: 6,
                       spreadRadius: 1,
                     ),
@@ -528,13 +531,29 @@ class _BackgroundMesh extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _MeshPainter(isDark: isDark));
+    final cs = Theme.of(context).colorScheme;
+    return CustomPaint(
+      painter: _MeshPainter(
+        isDark: isDark,
+        topOrbColor: cs.primary,
+        bottomOrbColor: context.spendo.brand,
+        bgColor: cs.surface,
+      ),
+    );
   }
 }
 
 class _MeshPainter extends CustomPainter {
   final bool isDark;
-  const _MeshPainter({required this.isDark});
+  final Color topOrbColor;
+  final Color bottomOrbColor;
+  final Color bgColor;
+  const _MeshPainter({
+    required this.isDark,
+    required this.topOrbColor,
+    required this.bottomOrbColor,
+    required this.bgColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -546,7 +565,7 @@ class _MeshPainter extends CustomPainter {
         Paint()
           ..shader = RadialGradient(
             colors: [
-              const Color(0xFF7B1FA2).withValues(alpha: topOrbOpacity),
+              topOrbColor.withValues(alpha: topOrbOpacity),
               Colors.transparent,
             ],
           ).createShader(
@@ -565,7 +584,7 @@ class _MeshPainter extends CustomPainter {
         Paint()
           ..shader = RadialGradient(
             colors: [
-              const Color(0xFFF06292).withValues(alpha: bottomOrbOpacity),
+              bottomOrbColor.withValues(alpha: bottomOrbOpacity),
               Colors.transparent,
             ],
           ).createShader(
@@ -580,7 +599,6 @@ class _MeshPainter extends CustomPainter {
       bottomOrb,
     );
 
-    final bgColor = isDark ? const Color(0xFF0F0A12) : const Color(0xFFFAF5FF);
     final vignette =
         Paint()
           ..shader = RadialGradient(
@@ -591,5 +609,9 @@ class _MeshPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _MeshPainter old) => old.isDark != isDark;
+  bool shouldRepaint(covariant _MeshPainter old) =>
+      old.isDark != isDark ||
+      old.topOrbColor != topOrbColor ||
+      old.bottomOrbColor != bottomOrbColor ||
+      old.bgColor != bgColor;
 }

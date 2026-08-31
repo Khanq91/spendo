@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../providers/stats_provider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// BottomSheet cho phép chọn khoảng thời gian thống kê.
 class DateRangePickerSheet extends StatelessWidget {
@@ -99,7 +100,7 @@ class DateRangePickerSheet extends StatelessWidget {
             child: ListTile(
               dense: true,
               leading: Icon(
-                Icons.date_range_rounded,
+                LucideIcons.calendarRange,
                 color: Theme.of(context).colorScheme.primary,
                 size: 20,
               ),
@@ -243,7 +244,7 @@ class _PresetTile extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         tileColor: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08) : null,
         leading: Icon(
-          isSelected ? Icons.check_circle : Icons.circle_outlined,
+          isSelected ? LucideIcons.circleCheck : LucideIcons.circle,
           color: isSelected ? Theme.of(context).colorScheme.primary : cs.outlineVariant,
           size: 20,
         ),

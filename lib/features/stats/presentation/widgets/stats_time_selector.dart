@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/widgets/motion/motion_spec.dart';
 import '../providers/stats_provider.dart';
 import 'date_range_picker_sheet.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Widget hiển thị & chọn khoảng thời gian trên AppBar của StatsScreen.
 class StatsTimeSelector extends ConsumerWidget {
@@ -33,7 +34,7 @@ class StatsTimeSelector extends ConsumerWidget {
               ref.read(statsDateRangeProvider.notifier).state =
                   StatsDateRange.fromMonth(DateTime(cur.year, cur.month - 1));
             },
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(LucideIcons.chevronLeft),
             visualDensity: VisualDensity.compact,
           ),
 
@@ -58,7 +59,7 @@ class StatsTimeSelector extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(right: 4),
                     child: Icon(
-                      Icons.date_range_rounded,
+                      LucideIcons.calendarRange,
                       size: 14,
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -85,7 +86,7 @@ class StatsTimeSelector extends ConsumerWidget {
                 ),
                 const SizedBox(width: 2),
                 Icon(
-                  Icons.arrow_drop_down,
+                  LucideIcons.chevronDown,
                   size: 18,
                   color: cs.onSurfaceVariant,
                 ),
@@ -109,7 +110,7 @@ class StatsTimeSelector extends ConsumerWidget {
                       );
                     },
             icon: Icon(
-              Icons.chevron_right,
+              LucideIcons.chevronRight,
               color: isCurrentMonth ? Colors.grey.shade300 : null,
             ),
             visualDensity: VisualDensity.compact,

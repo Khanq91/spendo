@@ -52,7 +52,7 @@ class HomeScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_outlined),
+            icon: const Icon(LucideIcons.bell),
             tooltip: 'Nhắc nhở',
             onPressed: () => context.push('/reminders'),
           ),

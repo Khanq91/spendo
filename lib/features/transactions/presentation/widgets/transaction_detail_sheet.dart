@@ -101,7 +101,7 @@ class TransactionDetailSheet extends ConsumerWidget {
             valueColor: color,
           ),
           _DetailRow(
-            icon: transaction.isAutomatic ? Icons.bolt : LucideIcons.pencil,
+            icon: transaction.isAutomatic ? LucideIcons.zap : LucideIcons.pencil,
             label: 'Nguồn',
             value: transaction.isAutomatic ? 'SePay' : 'Thủ công',
             valueColor:

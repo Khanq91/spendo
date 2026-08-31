@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
-import 'core/theme/theme_provider.dart';
 import 'core/notifications/notification_service.dart';
 
-class SpendoApp extends ConsumerStatefulWidget {
+/// The routed part of the app, shown once splash + onboarding are done.
+///
+/// This is deliberately NOT a `MaterialApp`: the single one lives in
+/// `main.dart` so that splash and onboarding already run under the user's
+/// theme. Here only the router is attached, via [Router.withConfig].
+class SpendoApp extends StatefulWidget {
   const SpendoApp({super.key});
 
   @override
-  ConsumerState<SpendoApp> createState() => _SpendoAppState();
+  State<SpendoApp> createState() => _SpendoAppState();
 }
 
-class _SpendoAppState extends ConsumerState<SpendoApp> {
+class _SpendoAppState extends State<SpendoApp> {
   @override
   void initState() {
     super.initState();
@@ -28,25 +30,6 @@ class _SpendoAppState extends ConsumerState<SpendoApp> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeModeProvider);
-
-    return MaterialApp.router(
-      title: 'Spendo',
-      debugShowCheckedModeBanner: false,
-      theme: ref.watch(lightThemeProvider),
-      darkTheme: ref.watch(darkThemeProvider),
-      themeMode: themeMode,
-      routerConfig: appRouter,
-      locale: const Locale('vi', 'VN'),
-      supportedLocales: const [
-        Locale('vi', 'VN'),
-        Locale('en', 'US'),
-      ],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-    );
+    return Router.withConfig(config: appRouter);
   }
 }

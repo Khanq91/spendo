@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../wallets/presentation/providers/wallet_provider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class SummaryCards extends ConsumerStatefulWidget {
   final int income;
@@ -100,8 +101,8 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                       padding: const EdgeInsets.all(4),
                       child: Icon(
                         _balanceVisible
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
+                            ? LucideIcons.eye
+                            : LucideIcons.eyeOff,
                         color: Colors.white70,
                         size: 20,
                       ),
@@ -144,7 +145,7 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                   label: 'Thu nhập',
                   amount: widget.income,
                   color: AppTheme.incomeColor,
-                  icon: Icons.arrow_downward_rounded,
+                  icon: LucideIcons.arrowDown,
                 ),
               ),
               const SizedBox(width: 10),
@@ -153,7 +154,7 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                   label: 'Chi tiêu',
                   amount: widget.expense,
                   color: AppTheme.expenseAltColor,
-                  icon: Icons.arrow_upward_rounded,
+                  icon: LucideIcons.arrowUp,
                 ),
               ),
             ],
@@ -351,8 +352,8 @@ class _MiniCardState extends State<_MiniCard> {
               padding: const EdgeInsets.all(4),
               child: Icon(
                 _visible
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
+                    ? LucideIcons.eye
+                    : LucideIcons.eyeOff,
                 color: cs.onSurfaceVariant,
                 size: 16,
               ),

@@ -4,6 +4,7 @@ import '../../../../core/utils/category_icons.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../domain/recurring_reminder.dart';
 import '../providers/reminder_provider.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class ReminderFormSheet extends ConsumerStatefulWidget {
   final RecurringReminder? existing;
@@ -454,7 +455,7 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.access_time,
+                      LucideIcons.clock,
                       size: 18,
                       color: cs.onSurfaceVariant,
                     ),

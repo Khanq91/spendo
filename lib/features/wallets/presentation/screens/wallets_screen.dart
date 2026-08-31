@@ -29,7 +29,7 @@ class WalletsScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(LucideIcons.plus),
             onPressed: () => _openForm(context),
           ),
         ],
@@ -62,7 +62,7 @@ class WalletsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   child: OutlinedButton.icon(
                     onPressed: () => _openForm(context),
-                    icon: const Icon(Icons.add, size: 16),
+                    icon: const Icon(LucideIcons.plus, size: 16),
                     label: const Text('Thêm nguồn tiền'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -402,7 +402,7 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
                   ),
                   curve: appMotion.curveStandard,
                   child: Icon(
-                    Icons.keyboard_arrow_down,
+                    LucideIcons.chevronDown,
                     size: 16,
                     color: cs.onSurfaceVariant,
                   ),
@@ -499,7 +499,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: onAdd,
-            icon: const Icon(Icons.add, size: 18),
+            icon: const Icon(LucideIcons.plus, size: 18),
             label: const Text('Thêm nguồn tiền'),
           ),
         ],

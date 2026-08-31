@@ -8,6 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/category_icon.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import 'transaction_detail_sheet.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class TransactionListItem extends ConsumerWidget {
   final Transaction transaction;
@@ -63,7 +64,7 @@ class TransactionListItem extends ConsumerWidget {
                         ),
                       ),
                       child: const Icon(
-                        Icons.bolt,
+                        LucideIcons.zap,
                         size: 8,
                         color: Colors.white,
                       ),
