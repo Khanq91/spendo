@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/organic-151aa515-f3fc-44a6-b6ec-150ddcd84152/styles.css">
+<script src="_ds/organic-151aa515-f3fc-44a6-b6ec-150ddcd84152/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Caprasimo&amp;family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#EFE5D2;} a{color:#8C4A5E;} a:hover{color:#703346;}</style>
+</helmet>
+<div style="font-family:'Figtree',sans-serif; color:#221A12; padding:40px 48px 72px;">
+  <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; margin-bottom:28px;">
+    <h1 style="font-family:'Caprasimo',serif; font-weight:400; font-size:30px; margin:0;">Spendo — Danh mục &amp; Form (TO-BE)</h1>
+    <span style="font-size:13px; color:#57493B;">Trang Danh mục mới + 3 form sheet theo token chung (09 §T3.8.3)</span>
+    <a href="04 - Thong ke &amp; Vay &amp; Nhac nho.dc.html" style="font-size:13px; font-weight:600;">← Thống kê + Vay + Nhắc</a>
+    <a href="00 - Foundation.dc.html" style="font-size:13px; font-weight:600;">Foundation</a>
+  </div>
+  <div style="display:flex; gap:56px; flex-wrap:wrap; align-items:flex-start;">
+
+    <div id="categories" data-screen-label="Danh mục" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:13px; font-weight:700; max-width:428px;">14 · Danh mục (/settings/categories) <span style="font-weight:400; color:#57493B;">— trang riêng, Chi|Thu, kéo sắp xếp, swipe xoá</span></div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF1E8" hint-size="428px,908px">
+        <div style="height:100%; position:relative; overflow:hidden; font-family:'Figtree',sans-serif; color:#221A12;">
+          <div style="display:flex; align-items:center; gap:6px; padding:6px 8px 0 8px; height:52px;">
+            <div style="width:44px; height:44px; display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#221A12" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></div>
+            <span style="font-family:'Caprasimo',serif; font-size:23px;">Danh mục</span>
+          </div>
+          <div style="display:flex; background:#EFE0CC; border-radius:999px; padding:3px; margin:12px 16px 0; width:fit-content;">
+            <span style="height:32px; display:flex; align-items:center; padding:0 20px; border-radius:999px; background:#FFD9E1; color:#703346; font-size:12.5px; font-weight:700;">Chi (8)</span>
+            <span style="height:32px; display:flex; align-items:center; padding:0 20px; border-radius:999px; color:#57493B; font-size:12.5px; font-weight:600;">Thu (4)</span>
+          </div>
+          <div style="margin-top:8px;">
+            <div style="display:flex; align-items:center; gap:12px; padding:8px 16px; min-height:60px; box-sizing:border-box;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B7A388" stroke-width="2.25" stroke-linecap="round"><path d="M4 8h16"></path><path d="M4 16h16"></path></svg>
+              <div style="width:40px; height:40px; border-radius:999px; background:rgba(198,113,57,0.16); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C67139" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg></div>
+              <div style="flex:1; min-width:0;"><div style="font-size:14.5px; font-weight:600;">Ăn uống</div><div style="font-size:12px; color:#57493B;">Mặc định · 46 giao dịch</div></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86735F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+            </div>
+            <div style="height:1px; background:#E9DBC6; margin-left:86px;"></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:8px 16px; min-height:60px; box-sizing:border-box;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B7A388" stroke-width="2.25" stroke-linecap="round"><path d="M4 8h16"></path><path d="M4 16h16"></path></svg>
+              <div style="width:40px; height:40px; border-radius:999px; background:rgba(122,138,94,0.18); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#7A8A5E" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path><circle cx="7" cy="17" r="2"></circle><path d="M9 17h6"></path><circle cx="17" cy="17" r="2"></circle></svg></div>
+              <div style="flex:1; min-width:0;"><div style="font-size:14.5px; font-weight:600;">Di chuyển</div><div style="font-size:12px; color:#57493B;">Mặc định · 18 giao dịch</div></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86735F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+            </div>
+            <div style="height:1px; background:#E9DBC6; margin-left:86px;"></div>
+            <div style="position:relative; overflow:hidden;">
+              <div style="position:absolute; inset:0; background:#B23A2E; display:flex; align-items:center; justify-content:flex-end; padding-right:20px;">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </div>
+              <div style="position:relative; transform:translateX(-64px); background:#FAF1E8; display:flex; align-items:center; gap:12px; padding:8px 16px; min-height:60px; box-sizing:border-box;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B7A388" stroke-width="2.25" stroke-linecap="round"><path d="M4 8h16"></path><path d="M4 16h16"></path></svg>
+                <div style="width:40px; height:40px; border-radius:999px; background:rgba(165,102,139,0.18); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#A5668B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"></rect><path d="m17 2-5 5-5-5"></path></svg></div>
+                <div style="flex:1; min-width:0;"><div style="font-size:14.5px; font-weight:600;">Giải trí</div><div style="font-size:12px; color:#57493B;">3 giao dịch</div></div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86735F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+              </div>
+            </div>
+            <div style="height:1px; background:#E9DBC6; margin-left:86px;"></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:8px 16px; min-height:60px; box-sizing:border-box;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B7A388" stroke-width="2.25" stroke-linecap="round"><path d="M4 8h16"></path><path d="M4 16h16"></path></svg>
+              <div style="width:40px; height:40px; border-radius:999px; background:rgba(185,138,47,0.18); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B98A2F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg></div>
+              <div style="flex:1; min-width:0;"><div style="font-size:14.5px; font-weight:600;">Mua sắm</div><div style="font-size:12px; color:#57493B;">12 giao dịch</div></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86735F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+            </div>
+          </div>
+          <div style="margin:10px 16px 0; height:44px; border-radius:999px; background:#382E24; color:#F5E9DA; display:flex; align-items:center; gap:10px; padding:0 18px; box-shadow:0 4px 14px rgba(43,30,19,0.3);">
+            <span style="font-size:13px; flex:1;">Đã xoá "Giải trí"</span>
+            <span style="font-size:13px; font-weight:700; color:#FFB1C5;">Hoàn tác</span>
+          </div>
+          <div style="margin:14px 16px 0; background:#FFFDF9; border-radius:16px; padding:12px 14px; display:flex; gap:10px; align-items:flex-start;">
+            <svg style="margin-top:1px; flex:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86735F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+            <span style="font-size:12px; color:#57493B; line-height:1.5;">Danh mục còn giao dịch không xoá được — app báo rõ và gợi ý gộp. Kéo ☰ để sắp thứ tự (hiện trong grid Thêm giao dịch).</span>
+          </div>
+          <div style="position:absolute; right:16px; bottom:28px; height:56px; border-radius:999px; background:#8C4A5E; box-shadow:0 6px 18px rgba(85,29,48,0.3); display:flex; align-items:center; gap:8px; padding:0 20px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+            <span style="font-size:14px; font-weight:600; color:#FFFFFF;">Thêm danh mục</span>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div id="catform" data-screen-label="Form danh mục" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:13px; font-weight:700; max-width:428px;">15 · Form danh mục <span style="font-weight:400; color:#57493B;">— ghi rõ loại, swatch + icon inline, cuộn được</span></div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF1E8" hint-size="428px,908px">
+        <div style="height:100%; position:relative; overflow:hidden; font-family:'Figtree',sans-serif; color:#221A12;">
+          <div style="display:flex; align-items:center; gap:6px; padding:6px 8px 0 8px; height:52px;">
+            <div style="width:44px; height:44px; display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#221A12" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></div>
+            <span style="font-family:'Caprasimo',serif; font-size:23px;">Danh mục</span>
+          </div>
+          <div style="position:absolute; inset:0; background:rgba(43,30,19,0.42);"></div>
+          <div style="position:absolute; left:0; right:0; bottom:0; background:#FFFDF9; border-radius:28px 28px 0 0; box-shadow:0 -8px 32px rgba(43,30,19,0.25); padding:0 16px 20px;">
+            <div style="width:36px; height:4px; border-radius:999px; background:#DCC9AF; margin:10px auto 0;"></div>
+            <div style="display:flex; align-items:center; padding:8px 0 0;">
+              <span style="font-size:14px; font-weight:600; color:#8C4A5E; padding:8px 4px;">Huỷ</span>
+              <span style="flex:1; text-align:center; font-size:16px; font-weight:700;">Thêm danh mục chi</span>
+              <span style="height:38px; display:flex; align-items:center; padding:0 20px; border-radius:999px; background:#8C4A5E; color:#FFFFFF; font-size:14px; font-weight:600;">Lưu</span>
+            </div>
+            <div style="margin-top:14px; border-radius:12px; background:#EFE0CC; padding:8px 14px 10px;">
+              <div style="font-size:11px; font-weight:600; color:#57493B;">Tên danh mục</div>
+              <div style="font-size:15px; font-weight:600; margin-top:2px;">Thú cưng</div>
+            </div>
+            <div style="font-size:12px; font-weight:600; color:#57493B; letter-spacing:0.4px; margin-top:16px;">MÀU</div>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;">
+              <span style="width:28px; height:28px; border-radius:999px; background:#C67139; box-shadow:0 0 0 2px #FFFDF9, 0 0 0 4px #8C4A5E;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#7A8A5E;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#B98A2F;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#5E7E8A;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#A5668B;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#C05B4D;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#6B7EA8;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#8C6E4F;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#5A7230;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#B26A00;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#8C4A5E;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#F06292;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#557C74;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#9A7BB3;"></span>
+              <span style="width:28px; height:28px; border-radius:999px; background:#86735F;"></span>
+            </div>
+            <div style="font-size:12px; font-weight:600; color:#57493B; letter-spacing:0.4px; margin-top:16px;">ICON</div>
+            <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-top:8px;">
+              <div style="height:44px; border-radius:12px; background:rgba(198,113,57,0.16); box-shadow:inset 0 0 0 2px #C67139; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C67139" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="4" cy="8" r="2"></circle><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path><circle cx="7" cy="17" r="2"></circle><path d="M9 17h6"></path><circle cx="17" cy="17" r="2"></circle></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M14 8H8"></path><path d="M16 12H8"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"></rect><path d="m17 2-5 5-5-5"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.51 4.04 3 5.5l7 7Z"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M9 22V12h6v10"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="4"></rect><path d="M3 10h18"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"></path></svg></div>
+              <div style="height:44px; border-radius:12px; background:#EFE0CC; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></div>
+            </div>
+            <div style="margin-top:16px; border-radius:12px; background:rgba(178,58,46,0.08); border:1px solid rgba(178,58,46,0.3); padding:10px 14px; display:flex; gap:8px; align-items:center;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B23A2E" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+              <span style="font-size:12px; color:#B23A2E; font-weight:600;">Ví dụ lỗi inline: "Thú cưng" đã tồn tại trong danh mục chi.</span>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div id="reminderform" data-screen-label="Form nhắc nhở" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:13px; font-weight:700; max-width:428px;">16 · Form nhắc nhở <span style="font-weight:400; color:#57493B;">— SegmentedButton tần suất, "Nhắc trước", số tiền numpad</span></div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF1E8" hint-size="428px,908px">
+        <div style="height:100%; position:relative; overflow:hidden; font-family:'Figtree',sans-serif; color:#221A12;">
+          <div style="display:flex; align-items:center; gap:6px; padding:6px 8px 0 8px; height:52px;">
+            <div style="width:44px; height:44px; display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#221A12" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></div>
+            <span style="font-family:'Caprasimo',serif; font-size:23px;">Nhắc nhở</span>
+          </div>
+          <div style="position:absolute; inset:0; background:rgba(43,30,19,0.42);"></div>
+          <div style="position:absolute; left:0; right:0; bottom:0; background:#FFFDF9; border-radius:28px 28px 0 0; box-shadow:0 -8px 32px rgba(43,30,19,0.25); padding:0 16px 20px;">
+            <div style="width:36px; height:4px; border-radius:999px; background:#DCC9AF; margin:10px auto 0;"></div>
+            <div style="display:flex; align-items:center; padding:8px 0 0;">
+              <span style="font-size:14px; font-weight:600; color:#8C4A5E; padding:8px 4px;">Huỷ</span>
+              <span style="flex:1; text-align:center; font-size:16px; font-weight:700;">Thêm nhắc nhở</span>
+              <span style="height:38px; display:flex; align-items:center; padding:0 20px; border-radius:999px; background:#8C4A5E; color:#FFFFFF; font-size:14px; font-weight:600;">Lưu</span>
+            </div>
+            <div style="margin-top:14px; border-radius:12px; background:#EFE0CC; padding:8px 14px 10px;">
+              <div style="font-size:11px; font-weight:600; color:#57493B;">Tên</div>
+              <div style="font-size:15px; font-weight:600; margin-top:2px;">Tiền điện</div>
+            </div>
+            <div style="font-size:12px; font-weight:600; color:#57493B; letter-spacing:0.4px; margin-top:14px;">DANH MỤC</div>
+            <div style="display:flex; gap:8px; margin-top:8px; overflow:hidden;">
+              <span style="height:34px; border-radius:999px; background:#FFD9E1; color:#703346; display:flex; align-items:center; gap:6px; padding:0 13px; font-size:12.5px; font-weight:700; white-space:nowrap; flex:none;"><span style="width:7px; height:7px; border-radius:999px; background:#5E7E8A;"></span>Hoá đơn</span>
+              <span style="height:34px; border-radius:999px; background:#EFE0CC; color:#57493B; display:flex; align-items:center; gap:6px; padding:0 13px; font-size:12.5px; font-weight:600; white-space:nowrap; flex:none;"><span style="width:7px; height:7px; border-radius:999px; background:#C67139;"></span>Ăn uống</span>
+              <span style="height:34px; border-radius:999px; background:#EFE0CC; color:#57493B; display:flex; align-items:center; gap:6px; padding:0 13px; font-size:12.5px; font-weight:600; white-space:nowrap; flex:none;"><span style="width:7px; height:7px; border-radius:999px; background:#7A8A5E;"></span>Di chuyển</span>
+              <span style="height:34px; border-radius:999px; background:#EFE0CC; color:#57493B; display:flex; align-items:center; gap:6px; padding:0 13px; font-size:12.5px; font-weight:600; white-space:nowrap; flex:none;"><span style="width:7px; height:7px; border-radius:999px; background:#B98A2F;"></span>Mua sắm</span>
+            </div>
+            <div style="display:flex; align-items:center; margin-top:14px; border-radius:12px; background:#EFE0CC; padding:10px 14px;">
+              <div>
+                <div style="font-size:11px; font-weight:600; color:#57493B;">Số tiền gợi ý (tuỳ chọn)</div>
+                <div style="font-size:18px; font-weight:700; font-feature-settings:'tnum'; margin-top:2px;">300.000 ₫</div>
+              </div>
+              <div style="flex:1;"></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8C4A5E" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="3"></rect><path d="M8 6h8"></path><path d="M8 11h.01"></path><path d="M12 11h.01"></path><path d="M16 11h.01"></path><path d="M8 15h.01"></path><path d="M12 15h.01"></path><path d="M16 15h.01"></path><path d="M8 19h8"></path></svg>
+            </div>
+            <div style="font-size:12px; font-weight:600; color:#57493B; letter-spacing:0.4px; margin-top:14px;">TẦN SUẤT</div>
+            <div style="display:flex; background:#EFE0CC; border-radius:999px; padding:3px; margin-top:8px;">
+              <span style="flex:1; height:34px; display:flex; align-items:center; justify-content:center; border-radius:999px; color:#57493B; font-size:12.5px; font-weight:600;">Hàng ngày</span>
+              <span style="flex:1; height:34px; display:flex; align-items:center; justify-content:center; border-radius:999px; color:#57493B; font-size:12.5px; font-weight:600;">Hàng tuần</span>
+              <span style="flex:1; height:34px; display:flex; align-items:center; justify-content:center; border-radius:999px; background:#FFD9E1; color:#703346; font-size:12.5px; font-weight:700;">Hàng tháng</span>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+              <div style="flex:1; display:flex; align-items:center; border-radius:12px; background:#EFE0CC; padding:10px 14px;">
+                <div><div style="font-size:11px; font-weight:600; color:#57493B;">Ngày trong tháng</div><div style="font-size:14.5px; font-weight:700; margin-top:2px;">Ngày 5</div></div>
+                <div style="flex:1;"></div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86735F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+              </div>
+              <div style="flex:1; display:flex; align-items:center; border-radius:12px; background:#EFE0CC; padding:10px 14px;">
+                <div><div style="font-size:11px; font-weight:600; color:#57493B;">Giờ nhắc</div><div style="font-size:14.5px; font-weight:700; font-feature-settings:'tnum'; margin-top:2px;">20:00</div></div>
+                <div style="flex:1;"></div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86735F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+              </div>
+            </div>
+            <div style="font-size:12px; font-weight:600; color:#57493B; letter-spacing:0.4px; margin-top:14px;">NHẮC TRƯỚC</div>
+            <div style="display:flex; background:#EFE0CC; border-radius:999px; padding:3px; margin-top:8px; width:fit-content;">
+              <span style="height:32px; display:flex; align-items:center; padding:0 18px; border-radius:999px; color:#57493B; font-size:12.5px; font-weight:600;">Tắt</span>
+              <span style="height:32px; display:flex; align-items:center; padding:0 18px; border-radius:999px; background:#FFD9E1; color:#703346; font-size:12.5px; font-weight:700;">6 giờ</span>
+              <span style="height:32px; display:flex; align-items:center; padding:0 18px; border-radius:999px; color:#57493B; font-size:12.5px; font-weight:600;">1 ngày</span>
+            </div>
+            <div style="margin-top:16px; background:#F5E9DA; border-radius:16px; padding:12px 14px; display:flex; gap:10px; align-items:flex-start;">
+              <svg style="margin-top:1px; flex:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86735F" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+              <span style="font-size:12px; color:#57493B; line-height:1.5;">Nhắc "Tiền điện ~300.000 ₫" ngày 5 hàng tháng lúc 20:00, báo trước 6 giờ. Tap số tiền mở numpad.</span>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div id="loanform" data-screen-label="Form khoản vay" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="font-size:13px; font-weight:700; max-width:428px;">17 · Form khoản vay <span style="font-weight:400; color:#57493B;">— segmented loại, chip ngày, numpad, nút bám tên</span></div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF1E8" hint-size="428px,908px">
+        <div style="height:100%; position:relative; overflow:hidden; font-family:'Figtree',sans-serif; color:#221A12;">
+          <div style="display:flex; align-items:center; gap:6px; padding:6px 8px 0 8px; height:52px;">
+            <div style="width:44px; height:44px; display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#221A12" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></div>
+            <span style="font-family:'Caprasimo',serif; font-size:23px;">Khoản vay</span>
+          </div>
+          <div style="position:absolute; inset:0; background:rgba(43,30,19,0.42);"></div>
+          <div style="position:absolute; left:0; right:0; bottom:0; top:64px; background:#FFFDF9; border-radius:28px 28px 0 0; box-shadow:0 -8px 32px rgba(43,30,19,0.25); display:flex; flex-direction:column; padding:0 16px;">
+            <div style="width:36px; height:4px; border-radius:999px; background:#DCC9AF; margin:10px auto 0; flex:none;"></div>
+            <div style="display:flex; align-items:center; padding:8px 0 0; flex:none;">
+              <span style="font-size:14px; font-weight:600; color:#8C4A5E; padding:8px 4px;">Huỷ</span>
+              <span style="flex:1; text-align:center; font-size:16px; font-weight:700;">Thêm khoản vay</span>
+              <span style="height:38px; display:flex; align-items:center; padding:0 20px; border-radius:999px; background:#8C4A5E; color:#FFFFFF; font-size:14px; font-weight:600;">Lưu</span>
+            </div>
+            <div style="display:flex; background:#EFE0CC; border-radius:999px; padding:3px; margin-top:14px;">
+              <span style="flex:1; height:34px; display:flex; align-items:center; justify-content:center; border-radius:999px; background:#FFD9E1; color:#703346; font-size:12.5px; font-weight:700;">Tôi đang vay</span>
+              <span style="flex:1; height:34px; display:flex; align-items:center; justify-content:center; border-radius:999px; color:#57493B; font-size:12.5px; font-weight:600;">Tôi cho vay</span>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+              <div style="flex:1.4; border-radius:12px; background:#EFE0CC; padding:8px 14px 10px;">
+                <div style="font-size:11px; font-weight:600; color:#57493B;">Tên khoản vay</div>
+                <div style="font-size:15px; font-weight:600; margin-top:2px;">Vay mua xe</div>
+              </div>
+              <div style="flex:1; border-radius:12px; background:#EFE0CC; padding:8px 14px 10px;">
+                <div style="font-size:11px; font-weight:600; color:#57493B;">Người liên hệ</div>
+                <div style="font-size:15px; font-weight:600; margin-top:2px;">Anh A</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <span style="height:36px; border-radius:999px; background:#F5E9DA; display:flex; align-items:center; gap:6px; padding:0 13px; font-size:12.5px; font-weight:600; white-space:nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="4"></rect><path d="M3 10h18"></path></svg>Bắt đầu: 1/8/2026</span>
+              <span style="height:36px; border-radius:999px; background:#F5E9DA; display:flex; align-items:center; gap:6px; padding:0 13px; font-size:12.5px; font-weight:600; white-space:nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#57493B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Hạn: 30/8/2026</span>
+            </div>
+            <div style="text-align:center; padding:16px 0 4px; flex:none;">
+              <div style="font-size:11px; font-weight:600; color:#57493B;">Số tiền</div>
+              <span style="font-size:32px; font-weight:800; letter-spacing:-0.5px; font-feature-settings:'tnum';">5.000.000 ₫</span>
+            </div>
+            <div style="margin-top:auto; padding:10px 0 14px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; flex:none;">
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">1</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">2</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">3</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">4</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">5</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">6</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">7</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">8</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">9</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; font-feature-settings:'tnum';">000</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:500; font-feature-settings:'tnum';">0</div>
+              <div style="height:52px; border-radius:16px; background:#F5E9DA; display:flex; align-items:center; justify-content:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#221A12" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"></path><path d="m18 9-6 6"></path><path d="m12 9 6 6"></path></svg></div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+  </div>
+  <p style="font-size:12.5px; color:#57493B; max-width:860px; margin-top:32px;">Ghi chú duyệt: (1) Danh mục — trang riêng thay expansion tile chôn cuối Settings; kéo ☰ sắp thứ tự (dùng sortOrder có sẵn), xoá bị chặn khi còn giao dịch; (2) Form danh mục — tiêu đề ghi rõ "chi/thu", màu + icon inline cùng pattern với form ví, lỗi trùng tên hiện inline thay SnackBar; (3) Form nhắc nhở — tần suất + nhắc trước dùng segmented, số tiền mở numpad (thay keyboard hệ thống); (4) Form khoản vay — nút Lưu cố định trên đầu (không đổi tên theo input), ngày bắt đầu/hạn chọn được. Còn lại: Onboarding/Splash, trang con Cài đặt (Giao diện/Sao lưu/Ngân hàng/Widget), PeriodPicker + Chuyển tiền (roadmap).</p>
+</div>
+</x-dc>
+</body>
+</html>
