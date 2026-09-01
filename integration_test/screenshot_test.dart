@@ -14,8 +14,6 @@ import 'package:spendo/app.dart';
 import 'package:spendo/core/config.dart';
 import 'package:spendo/core/db/powersync_db.dart';
 import 'package:spendo/core/router/app_router.dart';
-import 'package:spendo/features/budget/presentation/screens/budget_screen.dart';
-import 'package:spendo/features/budget/presentation/screens/category_budget_screen.dart';
 import 'package:spendo/features/loan/presentation/widgets/loan_form_sheet.dart';
 import 'package:spendo/features/reminders/presentation/widgets/reminder_form_sheet.dart';
 import 'package:spendo/features/wallets/presentation/widgets/wallet_form_sheet.dart';
@@ -197,24 +195,13 @@ final List<ScreenshotStep> _steps = [
     },
   ),
   ScreenshotStep(
-    id: '09_month_budget',
-    title: 'Han muc thang',
-    description: 'Bottom sheet dat han muc chi tieu tong cho thang dang chon.',
-    action: (tester) async {
-      await _closeModalIfAny(tester);
-      await _go('/');
-      await _showSheet(tester, const BudgetScreen());
-    },
-  ),
-  ScreenshotStep(
-    id: '10_category_budget',
-    title: 'Han muc danh muc',
+    id: '09_budget',
+    title: 'Han muc',
     description:
-        'Quan ly han muc theo tung danh muc chi tieu va tien do su dung.',
+        'Trang han muc: tien do tong thang va han muc tung danh muc chi tieu.',
     action: (tester) async {
       await _closeModalIfAny(tester);
-      await _go('/');
-      await _showSheet(tester, const CategoryBudgetScreen());
+      await _go('/budget');
     },
   ),
   ScreenshotStep(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -8,7 +9,6 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../budget/presentation/providers/budget_provider.dart';
-import '../../../budget/presentation/widgets/budget_type_sheet.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 
 /// Month budget progress, or the dashed "set a limit" call to action.
@@ -67,7 +67,7 @@ class _BudgetProgress extends StatelessWidget {
     return SpendoCard(
       key: const ValueKey('home_budget_progress'),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      onTap: () => showBudgetTypeSheet(context),
+      onTap: () => context.push('/budget'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -119,7 +119,7 @@ class _BudgetCta extends StatelessWidget {
       deferTapToChild: true,
       child: GestureDetector(
         key: const ValueKey('home_budget_cta'),
-        onTap: () => showBudgetTypeSheet(context),
+        onTap: () => context.push('/budget'),
         behavior: HitTestBehavior.opaque,
         child: DottedBorderBox(
           radius: AppTheme.radiusCardFeature,

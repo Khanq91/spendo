@@ -138,11 +138,7 @@ class _AddWalletChip extends StatelessWidget {
         child: GestureDetector(
           key: const ValueKey('home_add_wallet'),
           behavior: HitTestBehavior.opaque,
-          onTap: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            builder: (_) => const WalletFormSheet(),
-          ),
+          onTap: () => showWalletFormSheet(context),
           child: DottedBorderBox(
             radius: HomeWalletStrip._height / 2,
             color: context.spendo.dashedOutline,

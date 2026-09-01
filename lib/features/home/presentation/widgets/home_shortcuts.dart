@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../shared/widgets/motion/motion.dart';
-import '../../../budget/presentation/widgets/budget_type_sheet.dart';
 
 /// The four Home shortcuts: Ví · Vay nợ · Nhắc nhở · Hạn mức.
 ///
@@ -34,7 +33,7 @@ class HomeShortcuts extends StatelessWidget {
       (
         label: 'Hạn mức',
         icon: LucideIcons.target,
-        onTap: () => showBudgetTypeSheet(context),
+        onTap: () => context.push('/budget'),
       ),
     ];
 

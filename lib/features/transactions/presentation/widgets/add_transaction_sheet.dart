@@ -31,6 +31,7 @@ Future<void> showAddTransactionSheet(
   BuildContext context, {
   Transaction? existing,
   String? preselectedCategoryId,
+  String? preselectedWalletId,
   String? prefillNote,
   int? prefillAmount,
 }) {
@@ -39,6 +40,7 @@ Future<void> showAddTransactionSheet(
     builder: (_) => AddTransactionSheet(
       existing: existing,
       preselectedCategoryId: preselectedCategoryId,
+      preselectedWalletId: preselectedWalletId,
       prefillNote: prefillNote,
       prefillAmount: prefillAmount,
     ),
@@ -48,6 +50,10 @@ Future<void> showAddTransactionSheet(
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final Transaction? existing;
   final String? preselectedCategoryId;
+
+  /// Set when the sheet is opened from a wallet's own screen, so the entry
+  /// lands in the wallet the user was already looking at.
+  final String? preselectedWalletId;
   final String? prefillNote;
   final int? prefillAmount;
 
@@ -55,6 +61,7 @@ class AddTransactionSheet extends ConsumerStatefulWidget {
     super.key,
     this.existing,
     this.preselectedCategoryId,
+    this.preselectedWalletId,
     this.prefillNote,
     this.prefillAmount,
   });
@@ -96,6 +103,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     if (widget.preselectedCategoryId != null) {
       _selectedCategoryId = widget.preselectedCategoryId;
       _userPickedCategory = true;
+    }
+
+    if (widget.preselectedWalletId != null) {
+      _trackWallet = true;
+      _selectedWalletId = widget.preselectedWalletId;
     }
 
     if (tx != null) {

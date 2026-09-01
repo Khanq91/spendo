@@ -1,393 +1,497 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/utils/category_icons.dart';
+
+import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/wallet_icons.dart';
+import '../../../../shared/domain/period.dart';
+import '../../../../shared/widgets/motion/motion.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../transactions/domain/transaction.dart';
+import '../../../transactions/presentation/widgets/add_transaction_sheet.dart';
 import '../../../transactions/presentation/widgets/grouped_transaction_sliver.dart';
-import '../../../home/presentation/widgets/month_selector.dart';
-import '../../../../shared/widgets/motion/motion.dart';
 import '../../data/wallet_repository.dart';
 import '../../domain/wallet.dart';
 import '../providers/wallet_provider.dart';
 import '../widgets/wallet_form_sheet.dart';
 
-enum _TxFilter { byMonth, all }
+enum _TxScope { byMonth, all }
 
+/// Screen 07 of the redesign.
 class WalletDetailScreen extends ConsumerStatefulWidget {
-  final String walletId;
   const WalletDetailScreen({super.key, required this.walletId});
+
+  final String walletId;
 
   @override
   ConsumerState<WalletDetailScreen> createState() => _WalletDetailScreenState();
 }
 
 class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
-  _TxFilter _filter = _TxFilter.byMonth;
-  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  _TxScope _scope = _TxScope.byMonth;
+  Period _period = Period.month(DateTime.now());
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final walletsAsync = ref.watch(walletsProvider);
     final archivedAsync = ref.watch(archivedWalletsProvider);
-    final balanceAsync = ref.watch(walletBalanceProvider(widget.walletId));
-    final breakdownAsync = ref.watch(walletBreakdownProvider(widget.walletId));
 
     final wallet = _findWallet(walletsAsync, archivedAsync);
-
     if (wallet == null) {
+      // Both branches used to show the same endless spinner, so a wallet
+      // deleted from elsewhere left the screen spinning forever.
+      final settled = walletsAsync.hasValue && archivedAsync.hasValue;
       return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: CircularProgressIndicator()),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              const SpendoScreenHeader(title: 'Nguồn tiền'),
+              Expanded(
+                child: settled
+                    ? SpendoEmptyState(
+                        icon: LucideIcons.circleAlert,
+                        title: 'Nguồn tiền không còn tồn tại',
+                        message: 'Có thể ví đã bị xoá ở nơi khác.',
+                        actionLabel: 'Quay lại',
+                        onAction: () => Navigator.of(context).maybePop(),
+                      )
+                    : const Center(child: CircularProgressIndicator()),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    final txsAsync =
-        _filter == _TxFilter.byMonth
-            ? ref.watch(
-              walletTxByMonthProvider((
-                walletId: widget.walletId,
-                year: _month.year,
-                month: _month.month,
-              )),
-            )
-            : ref.watch(walletTxAllProvider(widget.walletId));
+    final txsAsync = _scope == _TxScope.byMonth
+        ? ref.watch(
+            walletTxByMonthProvider((
+              walletId: widget.walletId,
+              year: _period.start.year,
+              month: _period.start.month,
+            )),
+          )
+        : ref.watch(walletTxAllProvider(widget.walletId));
 
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final categoryMap = <String, Category>{};
-    for (final c in categoriesAsync.valueOrNull ?? []) {
-      categoryMap[c.id] = c;
-    }
+    final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
+    final categoryMap = <String, Category>{for (final c in categories) c.id: c};
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          wallet.name,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      floatingActionButton: SpendoExtendedFab(
+        heroTag: 'wallet_detail_fab',
+        label: 'Thêm giao dịch',
+        onPressed: () => showAddTransactionSheet(
+          context,
+          preselectedWalletId: wallet.id,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.pencil, size: 18),
-            onPressed: () => _openEdit(context, wallet),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(LucideIcons.ellipsisVertical, size: 20),
-            onSelected: (val) => _handleMenu(context, val, wallet),
-            itemBuilder:
-                (_) => [
-                  PopupMenuItem(
-                    value: 'archive',
-                    child: Text(wallet.isArchived ? 'Bỏ lưu trữ' : 'Lưu trữ'),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Text(
-                      'Xoá',
-                      style: TextStyle(color: AppTheme.expenseAltColor),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            SpendoScreenHeader(
+              title: wallet.name,
+              actions: [
+                SpendoHeaderIconButton(
+                  icon: LucideIcons.pencil,
+                  tooltip: 'Sửa nguồn tiền',
+                  size: 19,
+                  onPressed: () =>
+                      showWalletFormSheet(context, existing: wallet),
+                ),
+                _WalletMenu(
+                  wallet: wallet,
+                  onArchive: () => _toggleArchive(wallet),
+                  onDelete: () => _delete(wallet),
+                ),
+              ],
+            ),
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(child: _InfoCard(wallet: wallet)),
+                  SliverToBoxAdapter(
+                    child: _ScopeBar(
+                      scope: _scope,
+                      period: _period,
+                      onScopeChanged: (scope) => setState(() => _scope = scope),
+                      onPeriodChanged: (period) =>
+                          setState(() => _period = period),
                     ),
                   ),
+                  if (_scope == _TxScope.byMonth)
+                    SliverToBoxAdapter(
+                      child: _MiniSummary(
+                        txs: txsAsync.valueOrNull ?? const [],
+                      ),
+                    ),
+                  SliverToBoxAdapter(
+                    child: Divider(
+                      height: 1,
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  ),
+                  ...switch (txsAsync) {
+                    AsyncError() when !txsAsync.hasValue => [
+                      SliverToBoxAdapter(
+                        child: SpendoEmptyState(
+                          icon: LucideIcons.circleAlert,
+                          title: 'Không tải được giao dịch',
+                          actionLabel: 'Thử lại',
+                          onAction: () => ref.invalidate(
+                            _scope == _TxScope.byMonth
+                                ? walletTxByMonthProvider
+                                : walletTxAllProvider,
+                          ),
+                        ),
+                      ),
+                    ],
+                    AsyncLoading() when !txsAsync.hasValue => const [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      ),
+                    ],
+                    _ => _txSlivers(txsAsync.value ?? const [], categoryMap),
+                  },
+                  const SliverToBoxAdapter(child: SizedBox(height: 96)),
                 ],
-          ),
-        ],
-      ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: _InfoCard(
-              wallet: wallet,
-              balanceAsync: balanceAsync,
-              breakdownAsync: breakdownAsync,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: _FilterBar(
-              filter: _filter,
-              month: _month,
-              onFilterChange: (f) => setState(() => _filter = f),
-              onMonthChange: (m) => setState(() => _month = m),
-            ),
-          ),
-          if (_filter == _TxFilter.byMonth)
-            SliverToBoxAdapter(
-              child: txsAsync.when(
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-                data: (txs) => _MiniSummary(txs: txs),
               ),
             ),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
-          txsAsync.when(
-            loading:
-                () => const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-            error:
-                (e, _) =>
-                    SliverToBoxAdapter(child: Center(child: Text('Lỗi: $e'))),
-            data: (txs) {
-              if (txs.isEmpty) {
-                return SliverToBoxAdapter(child: _EmptyTx(filter: _filter));
-              }
-              return GroupedTransactionSliver(
-                transactions: txs,
-                categoryMap: categoryMap,
-              );
-            },
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  List<Widget> _txSlivers(
+    List<Transaction> txs,
+    Map<String, Category> categoryMap,
+  ) {
+    if (txs.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: SpendoEmptyState(
+              icon: LucideIcons.receiptText,
+              title: _scope == _TxScope.byMonth
+                  ? 'Không có giao dịch trong kỳ này'
+                  : 'Chưa có giao dịch nào',
+            ),
+          ),
+        ),
+      ];
+    }
+    return [
+      GroupedTransactionSliver(
+        transactions: txs,
+        categoryMap: categoryMap,
+        dismissible: true,
+      ),
+    ];
   }
 
   Wallet? _findWallet(
     AsyncValue<List<Wallet>> active,
     AsyncValue<List<Wallet>> archived,
   ) {
-    final all = [...active.valueOrNull ?? [], ...archived.valueOrNull ?? []];
-    try {
-      return all.firstWhere((w) => w.id == widget.walletId);
-    } catch (_) {
-      return null;
-    }
+    final all = [
+      ...active.valueOrNull ?? const <Wallet>[],
+      ...archived.valueOrNull ?? const <Wallet>[],
+    ];
+    return all.where((w) => w.id == widget.walletId).firstOrNull;
   }
 
-  void _openEdit(BuildContext context, Wallet wallet) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => WalletFormSheet(existing: wallet),
-    );
-  }
-
-  Future<void> _handleMenu(
-    BuildContext context,
-    String val,
-    Wallet wallet,
-  ) async {
+  Future<void> _toggleArchive(Wallet wallet) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final repo = WalletRepository();
-    if (val == 'archive') {
-      if (wallet.isArchived) {
-        await repo.unarchive(wallet.id);
-      } else {
-        await repo.archive(wallet.id);
-        if (context.mounted) Navigator.of(context).pop();
-      }
-    } else if (val == 'delete') {
-      final count = await repo.transactionCount(wallet.id);
-      if (!context.mounted) return;
 
-      if (count > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Ví còn $count giao dịch. Hãy lưu trữ ví thay vì xoá.',
-            ),
-            backgroundColor: AppTheme.expenseAltColor,
-          ),
-        );
-        return;
-      }
-
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: const Text('Xoá nguồn tiền?'),
-              content: Text(
-                'Xoá "${wallet.name}"? Hành động không thể hoàn tác.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Huỷ'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.expenseAltColor,
-                  ),
-                  child: const Text('Xoá'),
-                ),
-              ],
-            ),
-      );
-
-      if (confirm == true) {
-        await repo.delete(wallet.id);
-        if (context.mounted) Navigator.of(context).pop();
-      }
+    if (wallet.isArchived) {
+      await repo.unarchive(wallet.id);
+      return;
     }
+
+    await repo.archive(wallet.id);
+    // Archiving used to pop with no way back, while deleting — the more
+    // destructive of the two — asked first. Undo evens them out.
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Đã lưu trữ ${wallet.name}'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Hoàn tác',
+          onPressed: () => repo.unarchive(wallet.id),
+        ),
+      ),
+    );
+    navigator.pop();
+  }
+
+  Future<void> _delete(Wallet wallet) async {
+    final repo = WalletRepository();
+    final count = await repo.transactionCount(wallet.id);
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    if (count > 0) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Ví còn $count giao dịch. Hãy lưu trữ ví thay vì xoá.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    // No undo here: unlike a transaction, a wallet with no rows leaves nothing
+    // to restore it from, so the confirmation stays.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xoá nguồn tiền?'),
+        content: Text('Xoá "${wallet.name}"? Hành động không thể hoàn tác.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Huỷ'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: const Text('Xoá'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    await repo.delete(wallet.id);
+    if (mounted) Navigator.of(context).pop();
   }
 }
 
-// ── Info card ─────────────────────────────────────────────────────────────────
+// ── Header menu ──────────────────────────────────────────────────────────────
 
-class _InfoCard extends StatelessWidget {
-  final Wallet wallet;
-  final AsyncValue<int> balanceAsync;
-  final AsyncValue<({int x1, int x2})> breakdownAsync;
-
-  const _InfoCard({
+class _WalletMenu extends StatelessWidget {
+  const _WalletMenu({
     required this.wallet,
-    required this.balanceAsync,
-    required this.breakdownAsync,
+    required this.onArchive,
+    required this.onDelete,
   });
+
+  final Wallet wallet;
+  final VoidCallback onArchive;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final color = wallet.color;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
-        borderRadius: BorderRadius.circular(16),
-        color: color.withValues(alpha: 0.05),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return PopupMenuButton<String>(
+      tooltip: 'Tuỳ chọn',
+      icon: const Icon(LucideIcons.ellipsisVertical, size: 20),
+      constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+      padding: EdgeInsets.zero,
+      onSelected: (value) =>
+          value == 'archive' ? onArchive() : onDelete(),
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'archive',
+          child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  categoryIcon(wallet.type.iconName),
-                  size: 22,
-                  color: color,
-                ),
+              Icon(
+                wallet.isArchived
+                    ? LucideIcons.archiveRestore
+                    : LucideIcons.archive,
+                size: 18,
+                color: cs.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      wallet.type.label,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                    if (wallet.note != null && wallet.note!.isNotEmpty)
+              Text(wallet.isArchived ? 'Bỏ lưu trữ' : 'Lưu trữ'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(LucideIcons.trash2, size: 18, color: cs.error),
+              const SizedBox(width: 12),
+              Text('Xoá', style: TextStyle(color: cs.error)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Info card ────────────────────────────────────────────────────────────────
+
+class _InfoCard extends ConsumerWidget {
+  const _InfoCard({required this.wallet});
+
+  final Wallet wallet;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final balanceAsync = ref.watch(walletBalanceProvider(wallet.id));
+    final breakdownAsync = ref.watch(walletBreakdownProvider(wallet.id));
+
+    final note = wallet.note;
+    final subtitle = note == null || note.isEmpty
+        ? wallet.type.label
+        : '${wallet.type.label} · $note';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: SpendoCard(
+        feature: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                SpendoIconTile(
+                  icon: walletTypeIcon(wallet.type),
+                  color: wallet.color,
+                  size: 44,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Text(
-                        wallet.note!,
+                        wallet.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
                           color: cs.onSurfaceVariant,
                         ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Số dư hiện tại',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurfaceVariant,
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          Text(
-            'Số dư hiện tại',
-            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: 4),
-          balanceAsync.when(
-            loading: () => const Text('...'),
-            error: (_, __) => const SizedBox.shrink(),
-            data: (balance) {
-              final isNeg = balance < 0;
-              return AnimatedMoneyText(
+            ),
+            const SizedBox(height: 2),
+            balanceAsync.when(
+              loading: () => const SkeletonBlock(width: 170, height: 30),
+              error: (_, __) => Text(
+                'Chưa tính được',
+                style: TextStyle(fontSize: 20, color: cs.onSurfaceVariant),
+              ),
+              data: (balance) => AnimatedMoneyText(
                 value: balance,
                 formatter: (value) => formatVND(value.round()),
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: isNeg ? AppTheme.expenseAltColor : color,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
+                  color: balance < 0 ? theme.spendo.expense : cs.onSurface,
                 ),
-              );
-            },
-          ),
-          Text(
-            'Ban đầu: ${formatVND(wallet.initialBalance)}',
-            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-          ),
-
-          // Progress bar per wallet
-          breakdownAsync.when(
-            loading: () => const SizedBox(height: 8),
-            error: (_, __) => const SizedBox(height: 8),
-            data: (bd) {
-              if (bd.x1 == 0 && bd.x2 == 0) return const SizedBox(height: 8);
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: _LightProgressBar(x1: bd.x1, x2: bd.x2, color: color),
-              );
-            },
-          ),
-        ],
+              ),
+            ),
+            Text(
+              'Ban đầu: ${formatVND(wallet.initialBalance)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: cs.onSurfaceVariant,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            breakdownAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (bd) {
+                if (bd.x1 == 0 && bd.x2 == 0) return const SizedBox.shrink();
+                return _WalletUsageBar(x1: bd.x1, x2: bd.x2);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Progress bar dùng trên nền sáng (card wallet detail)
-class _LightProgressBar extends StatelessWidget {
+class _WalletUsageBar extends StatelessWidget {
+  const _WalletUsageBar({required this.x1, required this.x2});
+
   final int x1;
   final int x2;
-  final Color color;
-
-  const _LightProgressBar({
-    required this.x1,
-    required this.x2,
-    required this.color,
-  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isOverflow = x2 > x1;
-    final ratio = x1 > 0 ? (x2 / x1).clamp(0.0, 1.0) : (x2 > 0 ? 1.0 : 0.0);
-    final barColor = isOverflow ? Colors.red.shade400 : color;
+    final ratio = x1 > 0 ? x2 / x1 : (x2 > 0 ? 1.5 : 0.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AnimatedProgressBar(
-          value: ratio,
-          height: 6,
-          trackColor:
-              isOverflow
-                  ? Colors.red.withValues(alpha: 0.15)
-                  : color.withValues(alpha: 0.12),
-          valueColor: barColor,
-          borderRadius: BorderRadius.circular(4),
-          semanticLabel: 'Mức sử dụng nguồn tiền',
-        ),
+        const SizedBox(height: 12),
+        SpendoProgressBar(value: ratio, height: 6),
         const SizedBox(height: 6),
         Row(
           children: [
-            Text(
-              'Đã dùng ${formatVND(x2)}',
-              style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+            Expanded(
+              child: Text(
+                'Đã dùng ${formatVND(x2)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: cs.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Text(
               '/ ${formatVND(x1)}',
-              style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+              maxLines: 1,
+              softWrap: false,
+              style: TextStyle(
+                fontSize: 11.5,
+                color: cs.onSurfaceVariant,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ],
         ),
@@ -396,172 +500,104 @@ class _LightProgressBar extends StatelessWidget {
   }
 }
 
-// ── Filter bar ────────────────────────────────────────────────────────────────
+// ── Scope bar ────────────────────────────────────────────────────────────────
 
-class _FilterBar extends StatelessWidget {
-  final _TxFilter filter;
-  final DateTime month;
-  final ValueChanged<_TxFilter> onFilterChange;
-  final ValueChanged<DateTime> onMonthChange;
-
-  const _FilterBar({
-    required this.filter,
-    required this.month,
-    required this.onFilterChange,
-    required this.onMonthChange,
+class _ScopeBar extends StatelessWidget {
+  const _ScopeBar({
+    required this.scope,
+    required this.period,
+    required this.onScopeChanged,
+    required this.onPeriodChanged,
   });
+
+  final _TxScope scope;
+  final Period period;
+  final ValueChanged<_TxScope> onScopeChanged;
+  final ValueChanged<Period> onPeriodChanged;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(16, 14, 4, 0),
+      child: Row(
         children: [
-          Row(
-            children: [
-              _FilterChip(
-                label: 'Theo tháng',
-                selected: filter == _TxFilter.byMonth,
-                onTap: () => onFilterChange(_TxFilter.byMonth),
-              ),
-              const SizedBox(width: 8),
-              _FilterChip(
-                label: 'Tất cả',
-                selected: filter == _TxFilter.all,
-                onTap: () => onFilterChange(_TxFilter.all),
-              ),
-            ],
-          ),
-          if (filter == _TxFilter.byMonth) ...[
-            const SizedBox(height: 8),
-            MonthSelector(
-              month: month,
-              onPrev:
-                  () => onMonthChange(DateTime(month.year, month.month - 1)),
-              onNext:
-                  () => onMonthChange(DateTime(month.year, month.month + 1)),
-              onMonthPicked: onMonthChange,
+          Flexible(
+            child: SpendoSegmented<_TxScope>(
+              value: scope,
+              onChanged: onScopeChanged,
+              expand: true,
+              height: 30,
+              horizontalPadding: 12,
+              options: const [
+                (value: _TxScope.byMonth, label: 'Theo tháng'),
+                (value: _TxScope.all, label: 'Tất cả'),
+              ],
             ),
-          ],
+          ),
+          // The stepper drops its arrows here: the segmented control already
+          // claims most of a 360dp line, and the label still opens the picker,
+          // which reaches every month the arrows could.
+          if (scope == _TxScope.byMonth)
+            SpendoPeriodStepper(
+              period: period,
+              onChanged: onPeriodChanged,
+              showArrows: false,
+              maxLabelWidth: 84,
+            ),
         ],
       ),
     );
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return PressableScale(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
-        curve: appMotion.curveStandard,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color:
-              selected
-                  ? cs.primary.withValues(alpha: 0.12)
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? cs.primary : cs.outlineVariant,
-            width: 0.8,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? cs.primary : cs.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Mini summary ──────────────────────────────────────────────────────────────
+// ── Mini summary ─────────────────────────────────────────────────────────────
 
 class _MiniSummary extends StatelessWidget {
-  final List<Transaction> txs;
   const _MiniSummary({required this.txs});
+
+  final List<Transaction> txs;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final income = txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
     final expense = txs
         .where((t) => t.isExpense)
         .fold(0, (s, t) => s + t.amount);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Row(
-        children: [
-          Text(
-            '${txs.length} giao dịch',
-            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-          ),
-          const Spacer(),
-          Text(
-            '+${formatVND(income)}',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.incomeColor,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            '-${formatVND(expense)}',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.expenseAltColor,
-            ),
-          ),
-        ],
-      ),
+    final muted = TextStyle(
+      fontSize: 12,
+      color: cs.onSurfaceVariant,
+      fontFeatures: const [FontFeature.tabularFigures()],
     );
-  }
-}
 
-// ── Empty tx ──────────────────────────────────────────────────────────────────
-
-class _EmptyTx extends StatelessWidget {
-  final _TxFilter filter;
-  const _EmptyTx({required this.filter});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(LucideIcons.receiptText, size: 40, color: cs.outlineVariant),
-          const SizedBox(height: 12),
-          Text(
-            filter == _TxFilter.byMonth
-                ? 'Không có giao dịch trong tháng này'
-                : 'Chưa có giao dịch nào',
-            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: '${txs.length} giao dịch · '),
+            TextSpan(
+              text: '+${formatVND(income)}',
+              style: muted.copyWith(
+                color: theme.spendo.income,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const TextSpan(text: ' · '),
+            TextSpan(
+              text: '−${formatVND(expense)}',
+              style: muted.copyWith(
+                color: theme.spendo.expense,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: muted,
       ),
     );
   }

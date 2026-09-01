@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/loan/presentation/screens/loan_list_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/stats/presentation/screens/stats_screen.dart';
@@ -39,6 +40,7 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(path: '/reminders', builder: (_, __) => const RemindersScreen()),
+    GoRoute(path: '/budget', builder: (_, __) => const BudgetScreen()),
     GoRoute(path: '/wallets', builder: (_, __) => const WalletsScreen()),
     GoRoute(
       path: '/wallets/:id',

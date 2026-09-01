@@ -11,5 +11,6 @@ export 'spendo_chip.dart';
 export 'spendo_layout.dart';
 export 'spendo_nav.dart';
 export 'spendo_numpad.dart';
+export 'spendo_screen_header.dart';
 export 'spendo_sheet.dart';
 export 'spendo_tiles.dart';

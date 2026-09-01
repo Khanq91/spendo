@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/utils/category_icons.dart';
+
+import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/wallet_icons.dart';
 import '../../../../shared/widgets/motion/motion.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../data/wallet_repository.dart';
 import '../../domain/wallet.dart';
 import '../providers/wallet_provider.dart';
 import '../widgets/wallet_form_sheet.dart';
 
+/// Screen 06 of the redesign.
 class WalletsScreen extends ConsumerWidget {
   const WalletsScreen({super.key});
 
@@ -21,68 +24,480 @@ class WalletsScreen extends ConsumerWidget {
     final netWorthAsync = ref.watch(totalNetWorthProvider);
     final breakdownAsync = ref.watch(totalWalletBreakdownProvider);
 
+    final hasInitialError = walletsAsync.hasError && !walletsAsync.hasValue;
+    final isLoading = walletsAsync.isLoading && !walletsAsync.hasValue;
+    final wallets = walletsAsync.valueOrNull ?? const <Wallet>[];
+    final archived = archivedAsync.valueOrNull ?? const <Wallet>[];
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Nguồn tiền',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      floatingActionButton: SpendoExtendedFab(
+        heroTag: 'wallets_fab',
+        label: 'Thêm nguồn tiền',
+        onPressed: () => showWalletFormSheet(context),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const SpendoScreenHeader(title: 'Nguồn tiền'),
+            Expanded(
+              child: switch ((hasInitialError, isLoading)) {
+                (true, _) => _LoadError(
+                  onRetry: () => ref.invalidate(walletsProvider),
+                ),
+                (_, true) => const _WalletsSkeleton(),
+                _ => ListView(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  children: [
+                    _NetWorthCard(
+                      netWorthAsync: netWorthAsync,
+                      breakdownAsync: breakdownAsync,
+                    ),
+                    if (wallets.isEmpty)
+                      SpendoEmptyState(
+                        icon: LucideIcons.wallet,
+                        title: 'Chưa có nguồn tiền nào',
+                        message:
+                            'Thêm ví, tài khoản ngân hàng để theo dõi số dư',
+                        actionLabel: 'Thêm nguồn tiền',
+                        onAction: () => showWalletFormSheet(context),
+                      )
+                    else ...[
+                      const SizedBox(height: 6),
+                      for (var i = 0; i < wallets.length; i++) ...[
+                        if (i > 0) const _WalletDivider(),
+                        _WalletTile(wallet: wallets[i]),
+                      ],
+                    ],
+                    if (archived.isNotEmpty)
+                      _ArchivedSection(wallets: archived),
+                  ],
+                ),
+              },
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.plus),
-            onPressed: () => _openForm(context),
+      ),
+    );
+  }
+}
+
+class _WalletDivider extends StatelessWidget {
+  const _WalletDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      indent: 72,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    );
+  }
+}
+
+// ── Net worth header card ────────────────────────────────────────────────────
+
+class _NetWorthCard extends StatelessWidget {
+  const _NetWorthCard({
+    required this.netWorthAsync,
+    required this.breakdownAsync,
+  });
+
+  final AsyncValue<int> netWorthAsync;
+  final AsyncValue<({int x1, int x2})> breakdownAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: SpendoCard(
+        feature: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Tổng số dư',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 2),
+            netWorthAsync.when(
+              loading: () => const SkeletonBlock(width: 180, height: 30),
+              error: (_, __) => Text(
+                'Chưa tính được',
+                style: TextStyle(fontSize: 20, color: cs.onSurfaceVariant),
+              ),
+              data: (total) => AnimatedMoneyText(
+                value: total,
+                formatter: (value) => formatVND(value.round()),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: total < 0 ? theme.spendo.expense : cs.onSurface,
+                ),
+              ),
+            ),
+            breakdownAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (bd) {
+                if (bd.x1 == 0 && bd.x2 == 0) return const SizedBox.shrink();
+                return _UsageBar(x1: bd.x1, x2: bd.x2);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Đã dùng X / Y" with the shared progress bar underneath.
+class _UsageBar extends StatelessWidget {
+  const _UsageBar({required this.x1, required this.x2});
+
+  /// Money that came in — initial balance plus income.
+  final int x1;
+
+  /// Money that went out.
+  final int x2;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    // Spending more than ever came in is over the limit, not a full bar — so
+    // it resolves to the error colour rather than a brimming primary one.
+    final ratio = x1 > 0 ? x2 / x1 : (x2 > 0 ? 1.5 : 0.0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        SpendoProgressBar(value: ratio),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Đã dùng ${formatVND(x2)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '/ ${formatVND(x1)}',
+              maxLines: 1,
+              softWrap: false,
+              style: TextStyle(
+                fontSize: 12,
+                color: cs.onSurfaceVariant,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ── Wallet row ───────────────────────────────────────────────────────────────
+
+class _WalletTile extends ConsumerWidget {
+  const _WalletTile({required this.wallet});
+
+  final Wallet wallet;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final balanceAsync = ref.watch(walletBalanceProvider(wallet.id));
+
+    return PressableScale(
+      deferTapToChild: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push('/wallets/${wallet.id}'),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 64),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                SpendoIconTile(
+                  icon: walletTypeIcon(wallet.type),
+                  color: wallet.color,
+                  size: 44,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        wallet.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        wallet.type.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                balanceAsync.when(
+                  loading: () => const SkeletonBlock(width: 84, height: 15),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (balance) => _BalanceColumn(balance: balance),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  LucideIcons.chevronRight,
+                  size: 17,
+                  color: cs.onSurfaceVariant,
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BalanceColumn extends StatelessWidget {
+  const _BalanceColumn({required this.balance});
+
+  final int balance;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isNegative = balance < 0;
+    final color = isNegative
+        ? theme.spendo.expense
+        : theme.colorScheme.onSurface;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 150),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: AnimatedMoneyText(
+              value: balance,
+              formatter: (value) => formatVND(value.round()),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: color,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          // A credit card below zero is normal and a cash wallet below zero is
+          // not, so the badge states the fact and leaves the judgement out.
+          if (isNegative) ...[
+            const SizedBox(height: 3),
+            _NegativeBadge(color: color),
+          ],
         ],
       ),
-      body: walletsAsync.when(
-        loading: () => const _WalletsSkeleton(),
-        error: (e, _) => Center(child: Text('Lỗi: $e')),
-        data:
-            (wallets) => ListView(
+    );
+  }
+}
+
+class _NegativeBadge extends StatelessWidget {
+  const _NegativeBadge({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: ShapeDecoration(
+        color: color.withValues(alpha: 0.12),
+        shape: const StadiumBorder(),
+      ),
+      child: Text(
+        'Đang âm',
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Archived ─────────────────────────────────────────────────────────────────
+
+class _ArchivedSection extends StatefulWidget {
+  const _ArchivedSection({required this.wallets});
+
+  final List<Wallet> wallets;
+
+  @override
+  State<_ArchivedSection> createState() => _ArchivedSectionState();
+}
+
+class _ArchivedSectionState extends State<_ArchivedSection> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final duration = appMotion.whenMotionAllowed(
+      context,
+      appMotion.listDuration,
+    );
+
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
               children: [
-                _NetWorthCard(
-                  netWorthAsync: netWorthAsync,
-                  breakdownAsync: breakdownAsync,
+                Expanded(
+                  child: SpendoSectionHeader(
+                    label: 'Đã lưu trữ (${widget.wallets.length})',
+                    padding: EdgeInsets.zero,
+                  ),
                 ),
-                if (wallets.isEmpty)
-                  _EmptyState(onAdd: () => _openForm(context))
-                else ...[
-                  const SizedBox(height: 8),
-                  ...wallets.map((w) => _WalletTile(wallet: w)),
-                ],
-                archivedAsync.when(
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (archived) {
-                    if (archived.isEmpty) return const SizedBox.shrink();
-                    return _ArchivedSection(wallets: archived);
-                  },
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                  child: OutlinedButton.icon(
-                    onPressed: () => _openForm(context),
-                    icon: const Icon(LucideIcons.plus, size: 16),
-                    label: const Text('Thêm nguồn tiền'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+                AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: duration,
+                  curve: appMotion.curveStandard,
+                  child: Icon(
+                    LucideIcons.chevronDown,
+                    size: 16,
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: const SizedBox(width: double.infinity),
+          secondChild: Column(
+            children: [
+              for (final wallet in widget.wallets)
+                _ArchivedTile(wallet: wallet),
+            ],
+          ),
+          crossFadeState: _expanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: duration,
+          sizeCurve: appMotion.curveLayout,
+        ),
+      ],
+    );
+  }
+}
+
+class _ArchivedTile extends StatelessWidget {
+  const _ArchivedTile({required this.wallet});
+
+  final Wallet wallet;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 60),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Opacity(
+            opacity: 0.55,
+            child: SpendoIconTile(
+              icon: walletTypeIcon(wallet.type),
+              color: wallet.color,
+              size: 44,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  wallet.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+                ),
+                Text(
+                  'Đã lưu trữ',
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          SpendoChip(
+            label: 'Khôi phục',
+            icon: LucideIcons.archiveRestore,
+            onTap: () => WalletRepository().unarchive(wallet.id),
+          ),
+        ],
       ),
     );
   }
+}
 
-  void _openForm(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => const WalletFormSheet(),
+// ── Loading / error ──────────────────────────────────────────────────────────
+
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return SpendoEmptyState(
+      icon: LucideIcons.circleAlert,
+      title: 'Không tải được nguồn tiền',
+      message: 'Kiểm tra kết nối rồi thử lại.',
+      actionLabel: 'Thử lại',
+      onAction: onRetry,
     );
   }
 }
@@ -94,15 +509,13 @@ class _WalletsSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       key: const ValueKey('wallets_loading'),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
         const SkeletonBlock(
-          height: 126,
-          borderRadius: BorderRadius.all(Radius.circular(16)),
+          height: 118,
+          borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
         const SizedBox(height: 20),
-        const SkeletonBlock(width: 112, height: 14),
-        const SizedBox(height: 10),
         for (var i = 0; i < 3; i++) ...[
           const _WalletTileSkeleton(),
           if (i < 2) const SizedBox(height: 8),
@@ -122,9 +535,9 @@ class _WalletTileSkeleton extends StatelessWidget {
       child: Row(
         children: [
           SkeletonBlock(
-            width: 42,
-            height: 42,
-            borderRadius: BorderRadius.all(Radius.circular(12)),
+            width: 44,
+            height: 44,
+            borderRadius: BorderRadius.all(Radius.circular(22)),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -139,369 +552,6 @@ class _WalletTileSkeleton extends StatelessWidget {
           ),
           SizedBox(width: 12),
           SkeletonBlock(width: 76, height: 14),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Net worth header card ─────────────────────────────────────────────────────
-
-class _NetWorthCard extends StatelessWidget {
-  final AsyncValue<int> netWorthAsync;
-  final AsyncValue<({int x1, int x2})> breakdownAsync;
-
-  const _NetWorthCard({
-    required this.netWorthAsync,
-    required this.breakdownAsync,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [cs.primary, cs.primary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Tổng số dư',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                    const SizedBox(height: 4),
-                    netWorthAsync.when(
-                      loading:
-                          () => const Text(
-                            '...',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                      error: (_, __) => const SizedBox.shrink(),
-                      data: (total) {
-                        final isNeg = total < 0;
-                        return AnimatedMoneyText(
-                          value: total,
-                          formatter: (value) => formatVND(value.round()),
-                          style: TextStyle(
-                            color: isNeg ? Colors.redAccent : Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Progress bar — luôn hiển thị, không toggle
-          breakdownAsync.when(
-            loading: () => const SizedBox(height: 8),
-            error: (_, __) => const SizedBox(height: 8),
-            data: (bd) {
-              if (bd.x1 == 0 && bd.x2 == 0) return const SizedBox(height: 8);
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: _DarkProgressBar(x1: bd.x1, x2: bd.x2),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Progress bar dùng trên nền tối (gradient card)
-class _DarkProgressBar extends StatelessWidget {
-  final int x1;
-  final int x2;
-
-  const _DarkProgressBar({required this.x1, required this.x2});
-
-  @override
-  Widget build(BuildContext context) {
-    final isOverflow = x2 > x1;
-    final ratio = x1 > 0 ? (x2 / x1).clamp(0.0, 1.0) : (x2 > 0 ? 1.0 : 0.0);
-    final barColor = isOverflow ? Colors.redAccent : Colors.white70;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 5,
-            child: Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  color:
-                      isOverflow
-                          ? Colors.redAccent.withValues(alpha: 0.3)
-                          : Colors.white.withValues(alpha: 0.2),
-                ),
-                FractionallySizedBox(
-                  widthFactor: ratio,
-                  child: Container(color: barColor),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Text(
-              'Đã dùng ${formatVND(x2)}',
-              style: const TextStyle(fontSize: 10, color: Colors.white60),
-            ),
-            const Spacer(),
-            Text(
-              '/ ${formatVND(x1)}',
-              style: const TextStyle(fontSize: 10, color: Colors.white60),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// ── Wallet tile ───────────────────────────────────────────────────────────────
-
-class _WalletTile extends ConsumerWidget {
-  final Wallet wallet;
-  const _WalletTile({required this.wallet});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final balanceAsync = ref.watch(walletBalanceProvider(wallet.id));
-    final color = wallet.color;
-
-    return ListTile(
-      onTap: () => context.push('/wallets/${wallet.id}'),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(categoryIcon(wallet.type.iconName), size: 20, color: color),
-      ),
-      title: Text(
-        wallet.name,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-      ),
-      subtitle: Text(
-        wallet.type.label,
-        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-      ),
-      trailing: balanceAsync.when(
-        loading:
-            () => const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-        error: (_, __) => const SizedBox.shrink(),
-        data: (balance) {
-          final isNegative = balance < 0;
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              AnimatedMoneyText(
-                value: balance.abs(),
-                formatter: (value) => formatVND(value.round()),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isNegative ? AppTheme.expenseAltColor : cs.onSurface,
-                ),
-              ),
-              if (isNegative)
-                Text(
-                  '⚠️ Âm',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppTheme.expenseAltColor,
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ── Archived section ──────────────────────────────────────────────────────────
-
-class _ArchivedSection extends StatefulWidget {
-  final List<Wallet> wallets;
-  const _ArchivedSection({required this.wallets});
-
-  @override
-  State<_ArchivedSection> createState() => _ArchivedSectionState();
-}
-
-class _ArchivedSectionState extends State<_ArchivedSection> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(
-              children: [
-                Text(
-                  'Đã lưu trữ (${widget.wallets.length})',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurfaceVariant,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                AnimatedRotation(
-                  turns: _expanded ? 0.5 : 0,
-                  duration: appMotion.whenMotionAllowed(
-                    context,
-                    appMotion.listDuration,
-                  ),
-                  curve: appMotion.curveStandard,
-                  child: Icon(
-                    LucideIcons.chevronDown,
-                    size: 16,
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          firstChild: const SizedBox.shrink(),
-          secondChild: Column(
-            children:
-                widget.wallets.map((w) => _ArchivedTile(wallet: w)).toList(),
-          ),
-          crossFadeState:
-              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: appMotion.whenMotionAllowed(
-            context,
-            appMotion.listDuration,
-          ),
-          sizeCurve: appMotion.curveLayout,
-        ),
-      ],
-    );
-  }
-}
-
-class _ArchivedTile extends ConsumerWidget {
-  final Wallet wallet;
-  const _ArchivedTile({required this.wallet});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final color = wallet.color;
-
-    return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          categoryIcon(wallet.type.iconName),
-          size: 20,
-          color: color.withValues(alpha: 0.5),
-        ),
-      ),
-      title: Text(
-        wallet.name,
-        style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
-      ),
-      subtitle: Text(
-        'Đã lưu trữ',
-        style: TextStyle(fontSize: 12, color: cs.outlineVariant),
-      ),
-      trailing: TextButton(
-        onPressed: () async => WalletRepository().unarchive(wallet.id),
-        style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-        child: const Text('Khôi phục', style: TextStyle(fontSize: 12)),
-      ),
-    );
-  }
-}
-
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
-  const _EmptyState({required this.onAdd});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(LucideIcons.wallet, size: 48, color: cs.outlineVariant),
-          const SizedBox(height: 12),
-          Text(
-            'Chưa có nguồn tiền nào',
-            style: TextStyle(color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Thêm ví, tài khoản ngân hàng để theo dõi số dư',
-            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(LucideIcons.plus, size: 18),
-            label: const Text('Thêm nguồn tiền'),
-          ),
         ],
       ),
     );
