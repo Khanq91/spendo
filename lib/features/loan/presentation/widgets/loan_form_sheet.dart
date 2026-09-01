@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
+import '../../../wallets/domain/wallet.dart';
+import '../../../wallets/presentation/providers/wallet_provider.dart';
+import '../../../wallets/presentation/widgets/wallet_picker_sheet.dart';
 import '../../data/loan_repository.dart';
 import '../../domain/loan.dart';
 import '../screens/installment_schedule_screen.dart';
@@ -53,6 +57,14 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
   late RepaymentMode _mode;
   late DateTime _startDate;
   DateTime? _dueDate;
+
+  /// Whether the principal itself moves through a wallet.
+  ///
+  /// Off by default: a debt often predates the app, or the cash never passed
+  /// through a tracked wallet at all, and inventing a transaction for it would
+  /// throw the balance out.
+  bool _trackFunding = false;
+  String? _fundingWalletId;
   bool _saving = false;
   String? _titleError;
 
@@ -97,6 +109,25 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
     _titleFocus.dispose();
     _amountCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickFundingWallet(List<Wallet> wallets) async {
+    final picked = await WalletPickerSheet.show(
+      context,
+      wallets: wallets,
+      selectedId: _fundingWalletId,
+      title: 'Ghi tiền gốc vào ví nào?',
+      clearLabel: 'Không ghi vào ví nào',
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      if (picked == WalletPickerSheet.kNoWallet) {
+        _trackFunding = false;
+        _fundingWalletId = null;
+      } else {
+        _fundingWalletId = picked;
+      }
+    });
   }
 
   Future<void> _pickStartDate() async {
@@ -165,7 +196,10 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
         return;
       }
 
-      final id = await repo.add(loan);
+      final id = await repo.add(
+        loan,
+        fundingWalletId: _trackFunding ? _fundingWalletId : null,
+      );
       // Only an instalment loan hands a loan back; anything else closes with
       // nothing, so the caller knows not to push the schedule screen.
       navigator.pop(
@@ -185,6 +219,9 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // Only offered on a new loan: the transaction is a record of the money as
+    // it actually arrived, so editing a loan later does not rewrite it.
+    final wallets = ref.watch(walletsProvider).valueOrNull ?? const <Wallet>[];
 
     return SpendoSheet(
       header: SpendoSheetHeader(
@@ -290,6 +327,24 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
                       ),
                   ],
                 ),
+                if (!_isEdit && wallets.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _FundingToggle(
+                    type: _type,
+                    enabled: _trackFunding,
+                    wallet: wallets
+                        .where((w) => w.id == _fundingWalletId)
+                        .firstOrNull,
+                    amount: _amountCtrl,
+                    onChanged: (next) => setState(() {
+                      _trackFunding = next;
+                      if (next && _fundingWalletId == null) {
+                        _fundingWalletId = wallets.first.id;
+                      }
+                    }),
+                    onPickWallet: () => _pickFundingWallet(wallets),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Column(
                   children: [
@@ -334,6 +389,100 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
                 style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Ghi vào ví" — the switch plus, once on, the wallet it writes to.
+class _FundingToggle extends StatelessWidget {
+  const _FundingToggle({
+    required this.type,
+    required this.enabled,
+    required this.wallet,
+    required this.amount,
+    required this.onChanged,
+    required this.onPickWallet,
+  });
+
+  final LoanType type;
+  final bool enabled;
+  final Wallet? wallet;
+  final AmountInputController amount;
+  final ValueChanged<bool> onChanged;
+  final VoidCallback onPickWallet;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final borrowed = type == LoanType.borrowed;
+
+    return SpendoCard(
+      color: cs.surfaceContainerLowest,
+      padding: const EdgeInsets.fromLTRB(14, 6, 8, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Ghi vào ví',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      borrowed
+                          ? 'Tiền vay về cộng vào ví'
+                          : 'Tiền cho vay trừ khỏi ví',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(value: enabled, onChanged: onChanged),
+            ],
+          ),
+          if (enabled) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                SpendoChip.meta(
+                  key: const ValueKey('funding_wallet_chip'),
+                  label: wallet?.name ?? 'Chọn ví',
+                  icon: LucideIcons.wallet,
+                  onTap: onPickWallet,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ListenableBuilder(
+                    listenable: amount,
+                    builder: (_, __) => Text(
+                      '${borrowed ? '+' : '−'}'
+                      '${formatVND(amount.value, withSymbol: false)}',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurfaceVariant,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

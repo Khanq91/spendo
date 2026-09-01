@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../loan/data/loan_repository.dart';
 import '../../data/transaction_repository.dart';
 import '../../domain/transaction.dart';
 
@@ -15,6 +16,22 @@ Future<void> deleteTransactionWithUndo(
   Transaction transaction,
 ) async {
   final messenger = ScaffoldMessenger.of(context);
+
+  // A loan's transactions are owned by the loan: deleting one here would leave
+  // the payment it belongs to pointing at nothing. There is exactly one way to
+  // undo it, and it is on the loan (PLAN §2.9).
+  if (transaction.source == kLoanTransactionSource) {
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Giao dịch của khoản vay — xoá từ màn khoản vay.',
+        ),
+      ),
+    );
+    return;
+  }
+
 
   // Built inside the guard: reaching the database can fail before the delete
   // does, and the swipe has already removed the row by this point, so nothing

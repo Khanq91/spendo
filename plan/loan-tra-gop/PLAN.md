@@ -39,7 +39,7 @@ hiển thị kế hoạch và nhắc nhở.
 | GĐ | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
 | 1 — Lịch trả góp | schema + màn tạo/sửa lịch + section Lịch trả ở Detail | ✅ xong | `0f55624` |
-| 2 — Liên kết ví | payment/tiền gốc tạo transaction + 4 danh mục nợ | ⬜ chưa làm | |
+| 2 — Liên kết ví | payment/tiền gốc tạo transaction + 4 danh mục nợ | ✅ xong | |
 | 3 — Nhắc đợt đến hạn | notification 1 ngày trước + deep-link | ⬜ chưa làm | |
 
 Baseline trước GĐ1: `flutter analyze` sạch · **244 test pass** · debug APK
@@ -47,6 +47,9 @@ build được (kế thừa từ redesign, commit `adf1bf1`).
 
 Baseline sau GĐ1: `flutter analyze` sạch · **307 test pass** (244 + 63 mới) ·
 debug APK build được.
+
+Baseline sau GĐ2: `flutter analyze` sạch · **342 test pass** (+35) · debug APK
+build được.
 
 Quy trình mỗi GĐ: giống HANDOFF-STATE mục 5 — đọc quyết định ở mục 2 dưới
 đây → làm → `flutter analyze` + `flutter test` + `flutter build apk --debug`

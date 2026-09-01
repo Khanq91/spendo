@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/spendo_colors.dart';
@@ -8,6 +9,8 @@ import '../../../../core/utils/date_helpers.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
+import '../../../loan/data/loan_repository.dart';
+import '../../../loan/domain/loan.dart';
 import '../../../wallets/domain/wallet.dart';
 import '../../../wallets/presentation/providers/wallet_provider.dart';
 import '../../data/transaction_repository.dart';
@@ -35,6 +38,37 @@ class _TransactionDetailSheetState
     extends ConsumerState<TransactionDetailSheet> {
   late Transaction _transaction = widget.transaction;
   bool _busy = false;
+
+  /// The loan that owns this transaction, when it has one.
+  ///
+  /// A loan's money is edited from the loan, never from here: the payment and
+  /// the transaction are one fact recorded twice, and letting the two ends be
+  /// changed independently is how they come apart.
+  Loan? _owner;
+  bool get _isLoanOwned => _transaction.source == kLoanTransactionSource;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isLoanOwned) _loadOwner();
+  }
+
+  Future<void> _loadOwner() async {
+    try {
+      final loan = await LoanRepository().findByTransaction(_transaction.id);
+      if (mounted) setState(() => _owner = loan);
+    } catch (_) {
+      // The banner still says the transaction belongs to a loan; it just
+      // cannot offer the shortcut to it.
+    }
+  }
+
+  void _openOwner() {
+    final loan = _owner;
+    if (loan == null) return;
+    Navigator.of(context).pop();
+    context.push('/loans/${loan.id}');
+  }
 
   /// Lets the user correct the timestamp without opening the edit sheet — the
   /// audit noted the date was not editable anywhere at all.
@@ -154,6 +188,10 @@ class _TransactionDetailSheetState
                 ),
               ),
             ],
+            if (_isLoanOwned) ...[
+              const SizedBox(height: 10),
+              _LoanOwnerBanner(loan: _owner, onOpen: _openOwner),
+            ],
             const SizedBox(height: 16),
             Divider(height: 1, color: cs.outlineVariant),
             const SizedBox(height: 6),
@@ -164,7 +202,7 @@ class _TransactionDetailSheetState
               value:
                   '${formatDayHeader(_transaction.createdAt)}, '
                   '${formatTime(_transaction.createdAt)}',
-              onEdit: _busy ? null : _editDate,
+              onEdit: _busy || _isLoanOwned ? null : _editDate,
             ),
             if (_transaction.note != null && _transaction.note!.isNotEmpty)
               _DetailRow(
@@ -196,31 +234,81 @@ class _TransactionDetailSheetState
                 value: 'Ví đã lưu trữ',
               ),
             const SizedBox(height: 18),
-            Row(
-              children: [
-                _DeleteButton(onPressed: _busy ? null : _delete),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SpendoButton.secondary(
-                    label: 'Nhân bản',
-                    icon: LucideIcons.copy,
-                    expand: true,
-                    onPressed: _busy ? null : _duplicate,
+            if (_isLoanOwned)
+              // Duplicating is gone too: a copy would be a loan transaction
+              // with no payment behind it.
+              SpendoButton.secondary(
+                label: 'Mở khoản vay',
+                icon: LucideIcons.handCoins,
+                expand: true,
+                onPressed: _owner == null ? null : _openOwner,
+              )
+            else
+              Row(
+                children: [
+                  _DeleteButton(onPressed: _busy ? null : _delete),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SpendoButton.secondary(
+                      label: 'Nhân bản',
+                      icon: LucideIcons.copy,
+                      expand: true,
+                      onPressed: _busy ? null : _duplicate,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SpendoButton(
-                    label: 'Chỉnh sửa',
-                    icon: LucideIcons.pencil,
-                    expand: true,
-                    onPressed: _busy ? null : _edit,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SpendoButton(
+                      label: 'Chỉnh sửa',
+                      icon: LucideIcons.pencil,
+                      expand: true,
+                      onPressed: _busy ? null : _edit,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Says the transaction belongs to a loan, and offers the way there.
+class _LoanOwnerBanner extends StatelessWidget {
+  const _LoanOwnerBanner({required this.loan, required this.onOpen});
+
+  final Loan? loan;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final title = loan?.title;
+
+    return SpendoCard(
+      color: cs.surfaceContainerLowest,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      onTap: loan == null ? null : onOpen,
+      child: Row(
+        children: [
+          Icon(LucideIcons.handCoins, size: 17, color: cs.onSurfaceVariant),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title == null
+                  ? 'Giao dịch này thuộc một khoản vay'
+                  : 'Giao dịch này thuộc khoản vay «$title»',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
+          if (loan != null)
+            Icon(LucideIcons.chevronRight, size: 17, color: cs.onSurfaceVariant),
+        ],
       ),
     );
   }

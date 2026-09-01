@@ -16,6 +16,7 @@ import '../../../reminders/presentation/widgets/reminder_form_sheet.dart';
 import '../../../wallets/data/wallet_repository.dart';
 import '../../../wallets/domain/wallet.dart';
 import '../../../wallets/presentation/providers/wallet_provider.dart';
+import '../../../wallets/presentation/widgets/wallet_picker_sheet.dart';
 import '../../data/transaction_repository.dart';
 import '../../domain/note_suggestions.dart';
 import '../../domain/transaction.dart';
@@ -387,25 +388,17 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     });
   }
 
-  void _openWalletPicker(List<Wallet> wallets) {
-    SpendoSheet.showModal<void>(
-      context: context,
-      builder: (ctx) => _WalletPickerSheet(
-        wallets: wallets,
-        selectedId: _selectedWalletId,
-        onSelect: (id) {
-          setState(() {
-            _trackWallet = true;
-            _selectedWalletId = id;
-          });
-          Navigator.pop(ctx);
-        },
-        onClear: () {
-          setState(() => _trackWallet = false);
-          Navigator.pop(ctx);
-        },
-      ),
+  Future<void> _openWalletPicker(List<Wallet> wallets) async {
+    final picked = await WalletPickerSheet.show(
+      context,
+      wallets: wallets,
+      selectedId: _selectedWalletId,
     );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _trackWallet = picked != WalletPickerSheet.kNoWallet;
+      if (_trackWallet) _selectedWalletId = picked;
+    });
   }
 
   /// Turns the entry being typed into a recurring reminder, pre-filled with
@@ -879,63 +872,6 @@ class _MetaChips extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── Wallet picker ────────────────────────────────────────────────────────────
-
-class _WalletPickerSheet extends StatelessWidget {
-  const _WalletPickerSheet({
-    required this.wallets,
-    required this.selectedId,
-    required this.onSelect,
-    required this.onClear,
-  });
-
-  final List<Wallet> wallets;
-  final String? selectedId;
-  final ValueChanged<String> onSelect;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return SpendoSheet(
-      header: const SpendoSheetHeader(title: 'Chọn nguồn tiền'),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SpendoSettingsGroup(
-            children: [
-              for (final wallet in wallets)
-                SpendoSettingsRow(
-                  icon: LucideIcons.wallet,
-                  label: wallet.name,
-                  trailingText: wallet.type.label,
-                  trailing: wallet.id == selectedId
-                      ? Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Icon(
-                            LucideIcons.check,
-                            size: 18,
-                            color: cs.primary,
-                          ),
-                        )
-                      : null,
-                  onTap: () => onSelect(wallet.id),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SpendoButton.outline(
-            label: 'Không ghi vào ví nào',
-            expand: true,
-            onPressed: onClear,
-          ),
-        ],
       ),
     );
   }

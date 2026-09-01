@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
+import '../../../wallets/domain/wallet.dart';
+import '../../../wallets/presentation/providers/wallet_provider.dart';
+import '../../../wallets/presentation/widgets/wallet_picker_sheet.dart';
 import '../../data/loan_repository.dart';
 import '../../domain/installment_status.dart';
 import '../../domain/loan.dart';
@@ -30,7 +34,7 @@ Future<void> showAddPaymentSheet(
   );
 }
 
-class AddPaymentSheet extends StatefulWidget {
+class AddPaymentSheet extends ConsumerStatefulWidget {
   const AddPaymentSheet({
     super.key,
     required this.loan,
@@ -56,10 +60,10 @@ class AddPaymentSheet extends StatefulWidget {
   final int installmentCount;
 
   @override
-  State<AddPaymentSheet> createState() => _AddPaymentSheetState();
+  ConsumerState<AddPaymentSheet> createState() => _AddPaymentSheetState();
 }
 
-class _AddPaymentSheetState extends State<AddPaymentSheet> {
+class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
   final _amountCtrl = AmountInputController();
   final _noteCtrl = TextEditingController();
 
@@ -68,11 +72,29 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   DateTime _paidAt = DateTime.now();
   bool _saving = false;
 
+  /// The wallet the money leaves or lands in. Optional, like everywhere else
+  /// in the app — a repayment made in cash outside any wallet is normal.
+  String? _walletId;
+  bool _walletChosen = false;
+
   @override
   void initState() {
     super.initState();
     final shortfall = widget.installment?.shortfall ?? 0;
     if (shortfall > 0) _amountCtrl.prefill(shortfall.toString());
+  }
+
+  Future<void> _pickWallet(List<Wallet> wallets) async {
+    final picked = await WalletPickerSheet.show(
+      context,
+      wallets: wallets,
+      selectedId: _walletId,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _walletChosen = true;
+      _walletId = picked == WalletPickerSheet.kNoWallet ? null : picked;
+    });
   }
 
   @override
@@ -109,6 +131,11 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
         amount: _amountCtrl.value,
         paidAt: _paidAt,
         note: note.isEmpty ? null : note,
+        // A repayment is real money moving, so it is written as a transaction
+        // too — the wallet and the statistics see it like any other entry.
+        loanType: widget.loan.type,
+        walletId: _walletId,
+        title: widget.loan.title,
       );
       navigator.pop();
     } catch (_) {
@@ -137,6 +164,13 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final wallets = ref.watch(walletsProvider).valueOrNull ?? const <Wallet>[];
+    // The first wallet stands in until the user says otherwise, matching how
+    // Thêm giao dịch behaves; picking "không ghi vào ví nào" opts out.
+    if (!_walletChosen && _walletId == null && wallets.isNotEmpty) {
+      _walletId = wallets.first.id;
+    }
+    final wallet = wallets.where((w) => w.id == _walletId).firstOrNull;
 
     return SpendoSheet(
       header: SpendoSheetHeader(
@@ -185,18 +219,28 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
+          // Wrapped, not a Row: the wallet chip made three of them, and a long
+          // wallet name on a narrow phone ran off the edge.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               SpendoChip.meta(
                 label: _dateLabel(_paidAt),
                 icon: LucideIcons.calendar,
                 onTap: _pickDate,
               ),
-              const SizedBox(width: 8),
               if (widget.remaining > 0)
                 SpendoChip.meta(
                   label: widget.installment == null ? 'Trả hết' : 'Đủ đợt này',
                   onTap: () => _amountCtrl.prefill(widget.remaining.toString()),
+                ),
+              if (wallets.isNotEmpty)
+                SpendoChip.meta(
+                  key: const ValueKey('payment_wallet_chip'),
+                  label: wallet?.name ?? 'Không ghi ví',
+                  icon: LucideIcons.wallet,
+                  onTap: () => _pickWallet(wallets),
                 ),
             ],
           ),

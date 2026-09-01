@@ -6,6 +6,7 @@ import '../../../../core/utils/date_helpers.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
+import '../../../loan/data/loan_repository.dart';
 import '../../domain/transaction.dart';
 import 'delete_transaction_action.dart';
 import 'transaction_list_item.dart';
@@ -115,6 +116,13 @@ class GroupedTransactionSliver extends StatelessWidget {
           ),
         ),
       ),
+      // A loan's transaction cannot be deleted from here, so the swipe is
+      // stopped before the row animates away and springs back (PLAN §2.9).
+      confirmDismiss: (_) async {
+        if (transaction.source != kLoanTransactionSource) return true;
+        await deleteTransactionWithUndo(context, transaction);
+        return false;
+      },
       // The row is gone as soon as it is swiped; the snackbar carries the undo,
       // so there is no confirm step in the way.
       onDismissed: (_) => deleteTransactionWithUndo(context, transaction),

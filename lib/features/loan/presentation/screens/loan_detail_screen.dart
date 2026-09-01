@@ -159,7 +159,7 @@ class LoanDetailScreen extends ConsumerWidget {
                   else
                     for (var i = 0; i < payments.length; i++) ...[
                       if (i > 0) const _PaymentDivider(),
-                      _PaymentTile(payment: payments[i]),
+                      _PaymentTile(loan: loan, payment: payments[i]),
                     ],
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 18, 16, 0),
@@ -713,6 +713,15 @@ class _InfoCard extends StatelessWidget {
                 ),
                 if (loan.dueDate != null)
                   SpendoChip.meta(label: 'Hạn: ${_dateLabel(loan.dueDate!)}'),
+                if (loan.fundingTransactionId != null)
+                  // The principal was booked into a wallet. Editing the loan's
+                  // amount later deliberately does not rewrite that entry — it
+                  // records the money as it actually arrived — so the link is
+                  // here for whoever wants to reconcile the two by hand.
+                  SpendoChip.meta(
+                    label: 'Đã ghi vào ví',
+                    icon: LucideIcons.wallet,
+                  ),
               ],
             ),
             const SizedBox(height: 16),
@@ -793,8 +802,9 @@ class _StatusBadge extends StatelessWidget {
 // ── Payment row ──────────────────────────────────────────────────────────────
 
 class _PaymentTile extends StatelessWidget {
-  const _PaymentTile({required this.payment});
+  const _PaymentTile({required this.loan, required this.payment});
 
+  final Loan loan;
   final LoanPayment payment;
 
   @override
@@ -812,7 +822,7 @@ class _PaymentTile extends StatelessWidget {
     return Dismissible(
       key: ValueKey('payment_${payment.id}'),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => _deleteWithUndo(context, payment),
+      onDismissed: (_) => _deleteWithUndo(context, loan, payment),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
@@ -862,9 +872,20 @@ class _PaymentTile extends StatelessWidget {
   }
 }
 
-Future<void> _deleteWithUndo(BuildContext context, LoanPayment payment) async {
+Future<void> _deleteWithUndo(
+  BuildContext context,
+  Loan loan,
+  LoanPayment payment,
+) async {
   final messenger = ScaffoldMessenger.of(context);
   final repo = LoanRepository();
+
+  // The transaction the payment wrote goes with it, and comes back with it —
+  // read the wallet before the row is gone, so the undo can put the money back
+  // where it came from.
+  final walletId = payment.transactionId == null
+      ? null
+      : await repo.walletOfTransaction(payment.transactionId!);
 
   await repo.deletePayment(payment.id);
   messenger.clearSnackBars();
@@ -879,6 +900,15 @@ Future<void> _deleteWithUndo(BuildContext context, LoanPayment payment) async {
           amount: payment.amount,
           paidAt: payment.paidAt,
           note: payment.note,
+          loanType: loan.type,
+          walletId: walletId,
+          title: loan.title,
+          // Re-using the id keeps the restored transaction the same row it
+          // was, not a look-alike.
+          transactionId: payment.transactionId,
+          // A payment recorded before wallets were linked had no transaction
+          // and must not grow one on the way back.
+          withTransaction: payment.transactionId != null,
         ),
       ),
     ),

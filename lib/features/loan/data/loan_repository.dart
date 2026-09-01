@@ -3,12 +3,22 @@ import 'package:powersync/powersync.dart';
 import '../../../core/db/powersync_db.dart' as app_db;
 import '../domain/loan.dart';
 import '../presentation/providers/loan_provider.dart';
+import 'loan_category_resolver.dart';
+
+/// The `transactions.source` a loan writes.
+///
+/// Only `'sepay'` was ever checked for (`transaction.isAutomatic`), so a new
+/// value is safe; it is what the Giao dịch screen keys its read-only guard on.
+const String kLoanTransactionSource = 'loan';
 
 class LoanRepository {
   /// Defaults to the app database; tests hand in their own.
-  LoanRepository({PowerSyncDatabase? database}) : _database = database;
+  LoanRepository({PowerSyncDatabase? database, LoanCategoryResolver? resolver})
+    : _database = database,
+      _resolver = resolver ?? LoanCategoryResolver(database: database);
 
   final PowerSyncDatabase? _database;
+  final LoanCategoryResolver _resolver;
 
   PowerSyncDatabase get _db => _database ?? app_db.db;
 
@@ -37,7 +47,41 @@ class LoanRepository {
   /// Inserts [loan] and returns the id it was given, so a caller that wants
   /// to keep going — opening the schedule screen right after saving — does not
   /// have to hunt for the row it just wrote.
-  Future<String> add(Loan loan) async {
+  ///
+  /// With [fundingWalletId] set, the principal is also written as a real
+  /// transaction — money in for a loan taken, money out for one given — and
+  /// linked back through `loans.funding_transaction_id`.
+  Future<String> add(Loan loan, {String? fundingWalletId}) async {
+    final id = await _insertLoan(loan);
+    if (fundingWalletId == null) return id;
+
+    final categoryId = await _resolver.resolve(
+      LoanCategoryKind.fundingFor(loan.type),
+    );
+    await _db.writeTransaction((tx) async {
+      final rows = await tx.execute(
+        '''INSERT INTO transactions(
+             id, amount, type, category_id, note, created_at, wallet_id, source
+           ) VALUES(uuid(), ?, ?, ?, ?, ?, ?, ?) RETURNING id''',
+        [
+          loan.principal.toString(),
+          loan.type == LoanType.borrowed ? 'income' : 'expense',
+          categoryId,
+          loan.title,
+          loan.startDate.millisecondsSinceEpoch.toString(),
+          fundingWalletId,
+          kLoanTransactionSource,
+        ],
+      );
+      await tx.execute(
+        'UPDATE loans SET funding_transaction_id = ? WHERE id = ?',
+        [rows.first['id'] as String, id],
+      );
+    });
+    return id;
+  }
+
+  Future<String> _insertLoan(Loan loan) async {
     // `RETURNING` has to run on a write connection: reading it back with a
     // plain `get` lands on the read pool, where the insert is rejected.
     final rows = await _db.execute(
@@ -97,8 +141,35 @@ class LoanRepository {
     );
   }
 
+  /// Deletes the loan, its schedule, its payments and every transaction it
+  /// put in a wallet — the payments' and the principal's alike.
+  ///
+  /// The ids are gathered before the rows that hold them go, and the whole
+  /// sweep runs in one write, so a wallet is never left holding a transaction
+  /// whose loan is gone.
   Future<void> delete(String id) async {
     await _db.writeTransaction((tx) async {
+      final linked = await tx.getAll(
+        '''SELECT transaction_id FROM loan_payments
+           WHERE loan_id = ? AND transaction_id IS NOT NULL''',
+        [id],
+      );
+      final funding = await tx.getOptional(
+        'SELECT funding_transaction_id FROM loans WHERE id = ?',
+        [id],
+      );
+
+      final transactionIds = <String>{
+        for (final row in linked) row['transaction_id'] as String,
+        if (funding?['funding_transaction_id'] != null)
+          funding!['funding_transaction_id'] as String,
+      };
+      for (final transactionId in transactionIds) {
+        await tx.execute('DELETE FROM transactions WHERE id = ?', [
+          transactionId,
+        ]);
+      }
+
       await tx.execute('DELETE FROM loan_installments WHERE loan_id = ?', [id]);
       await tx.execute('DELETE FROM loan_payments WHERE loan_id = ?', [id]);
       await tx.execute('DELETE FROM loans WHERE id = ?', [id]);
@@ -227,25 +298,121 @@ class LoanRepository {
     return row['total'] as int;
   }
 
+  /// Records a payment, and with it the transaction that moves the money.
+  ///
+  /// A repayment is a real expense (or, on a loan you gave, real income), so it
+  /// belongs in the wallet and the statistics like any other — [walletId] is
+  /// optional the same way it is everywhere else in the app. The two rows are
+  /// written together, and [transactionId] lets an undo put back the exact
+  /// transaction that was deleted rather than a fresh one.
   Future<void> addPayment({
     required String loanId,
     required int amount,
     required DateTime paidAt,
     String? note,
+    LoanType? loanType,
+    String? walletId,
+    String? title,
+    String? transactionId,
+    bool withTransaction = true,
   }) async {
-    await _db.execute(
-      '''INSERT INTO loan_payments(id, loan_id, amount, paid_at, note)
-         VALUES(uuid(), ?, ?, ?, ?)''',
-      [loanId, amount.toString(), paidAt.toIso8601String(), note],
+    if (!withTransaction || loanType == null) {
+      await _db.execute(
+        '''INSERT INTO loan_payments(id, loan_id, amount, paid_at, note,
+             transaction_id)
+           VALUES(uuid(), ?, ?, ?, ?, ?)''',
+        [
+          loanId,
+          amount.toString(),
+          paidAt.toIso8601String(),
+          note,
+          transactionId,
+        ],
+      );
+      return;
+    }
+
+    final categoryId = await _resolver.resolve(
+      LoanCategoryKind.paymentFor(loanType),
     );
+    final fallbackNote = loanType == LoanType.borrowed
+        ? 'Trả nợ: ${title ?? ''}'
+        : 'Thu nợ: ${title ?? ''}';
+
+    await _db.writeTransaction((tx) async {
+      final rows = await tx.execute(
+        '''INSERT INTO transactions(
+             id, amount, type, category_id, note, created_at, wallet_id, source
+           ) VALUES(COALESCE(?, uuid()), ?, ?, ?, ?, ?, ?, ?) RETURNING id''',
+        [
+          // An undo re-uses the id the deleted transaction had, so anything
+          // still pointing at it lines back up.
+          transactionId,
+          amount.toString(),
+          loanType == LoanType.borrowed ? 'expense' : 'income',
+          categoryId,
+          note == null || note.isEmpty ? fallbackNote.trim() : note,
+          paidAt.millisecondsSinceEpoch.toString(),
+          walletId,
+          kLoanTransactionSource,
+        ],
+      );
+      await tx.execute(
+        '''INSERT INTO loan_payments(id, loan_id, amount, paid_at, note,
+             transaction_id)
+           VALUES(uuid(), ?, ?, ?, ?, ?)''',
+        [
+          loanId,
+          amount.toString(),
+          paidAt.toIso8601String(),
+          note,
+          rows.first['id'] as String,
+        ],
+      );
+    });
   }
 
+  /// Deletes a payment and the transaction it wrote, together.
   Future<void> deletePayment(String paymentId) async {
-    await _db.execute(
-      'DELETE FROM loan_payments WHERE id = ?',
-      [paymentId],
-    );
+    await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT transaction_id FROM loan_payments WHERE id = ?',
+        [paymentId],
+      );
+      final transactionId = row?['transaction_id'] as String?;
+      if (transactionId != null) {
+        await tx.execute('DELETE FROM transactions WHERE id = ?', [
+          transactionId,
+        ]);
+      }
+      await tx.execute('DELETE FROM loan_payments WHERE id = ?', [paymentId]);
+    });
   }
+
+  /// The wallet a transaction was written against — read before a delete, so
+  /// an undo can put the money back in the same place.
+  Future<String?> walletOfTransaction(String transactionId) async {
+    final row = await _db.getOptional(
+      'SELECT wallet_id FROM transactions WHERE id = ?',
+      [transactionId],
+    );
+    return row?['wallet_id'] as String?;
+  }
+
+  /// The loan a `source='loan'` transaction belongs to, or null when the
+  /// transaction is not one of ours.
+  Future<Loan?> findByTransaction(String transactionId) async {
+    final row = await _db.getOptional(
+      '''SELECT l.* FROM loans l
+         WHERE l.funding_transaction_id = ?
+            OR l.id = (SELECT loan_id FROM loan_payments
+                       WHERE transaction_id = ? LIMIT 1)
+         LIMIT 1''',
+      [transactionId, transactionId],
+    );
+    return row == null ? null : Loan.fromMap(row);
+  }
+
 
   // ── Summary with remaining ────────────────────────────────────────────────
 

@@ -18,6 +18,11 @@ IconData categoryIcon(String iconName) {
     'movie'          => LucideIcons.clapperboard,
     'fitness_center' => LucideIcons.dumbbell,
     'pets'           => LucideIcons.pawPrint,
+    // Bốn danh mục của khoản vay — tạo lần đầu cần đến, không nằm trong seed.
+    'loan_repay'     => LucideIcons.handCoins,
+    'loan_collect'   => LucideIcons.coins,
+    'loan_in'        => LucideIcons.piggyBank,
+    'loan_out'       => LucideIcons.handshake,
     _                => LucideIcons.circleEllipsis,
   };
 }
