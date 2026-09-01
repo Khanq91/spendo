@@ -42,10 +42,10 @@ Cấm rải hex trong widget, mọi màu lấy qua `ColorScheme` + `context.spen
 | 3 — Giao dịch & PeriodPicker | ✅ xong | `0bd474a` |
 | 4 — Ví & Hạn mức | ✅ xong | `37ee086` |
 | 5 — Thống kê, Vay, Nhắc nhở | ✅ xong | `eb30303` + `583d7d0` |
-| 6 — Cài đặt & trang con | ⬜ tiếp theo | |
-| 7 — Khởi động + Dark pass + QA | ⬜ | |
+| 6 — Cài đặt & trang con | ✅ xong | `da955a9` |
+| 7 — Khởi động + Dark pass + QA | ⬜ tiếp theo | |
 
-Baseline hiện tại: `flutter analyze` sạch · **177 test pass** · debug APK build được.
+Baseline hiện tại: `flutter analyze` sạch · **207 test pass** · debug APK build được.
 
 > Sau Phase 3 có 1 commit sửa lỗi UI phát hiện khi chạy thật (`6eb95fa`) —
 > xem mục 2.9.
@@ -174,10 +174,9 @@ light + dark).
 đặt ở **icon** (`SpendoIconTile`, `SpendoCategoryTile`). Lý do: danh mục màu
 đỏ (`#FF6B6B`) làm chip đang chọn đọc thành báo lỗi ở dark mode.
 
-Còn **1** bản chip riêng: `settings_screen.dart:_TabChip` (Phase 6).
-`wallet_detail_screen.dart:_FilterChip` xoá ở Phase 4,
-`loan_detail_screen.dart:_MetaChip` xoá ở Phase 5 (đều thay bằng
-`SpendoSegmented` / `SpendoChip.meta`).
+**Đã hết chip riêng.** `wallet_detail_screen.dart:_FilterChip` xoá ở Phase 4,
+`loan_detail_screen.dart:_MetaChip` ở Phase 5, `settings_screen.dart:_TabChip`
+ở Phase 6 (đều thay bằng `SpendoSegmented` / `SpendoChip.meta`).
 
 ### 2.10 `SpendoSheet.showModal` tự bọc nền
 
@@ -403,6 +402,84 @@ addListener** → gõ tên xong nút vẫn xám.
 - `showDatePicker(firstDate: now)` cũ **ném lỗi** khi sửa loan có hạn quá khứ
   (`initialDate < firstDate`) → `firstDate` lùi về `now.year - 10`.
 
+### 2.27 Phase 6 — Cài đặt là HUB, mỗi nhóm một trang có route
+
+Màn cũ 1366 dòng, 9 nhóm không liên quan trong 1 list phẳng ~2000px, không có
+điều hướng cấp 2 (`20-settings.md` §L).
+
+Giờ là hub 3 card — **DỮ LIỆU / KẾT NỐI / ỨNG DỤNG** — 9 dòng, mỗi dòng 1
+trang. Route mới:
+
+| Route | Màn | Thay cho |
+|---|---|---|
+| `/settings/categories` | 14 | expansion tile cuối trang |
+| `/settings/appearance` | 20 | 3 ListTile + `_VisualModeSheet` + `_ThemeColorSheet` |
+| `/settings/backup` | 21 | 3 section (Drive / JSON / CSV) |
+| `/settings/bank` | 22 | `SepayConnectionSection` |
+| `/settings/widget` | 23 | `WidgetPinSection` |
+| `/settings/notifications` | — | section Thông báo |
+
+`Nguồn tiền` / `Khoản vay` / `Nhắc nhở` trỏ vào route đã có (`/wallets`,
+`/loans`, `/reminders`) — hub không dựng lại màn nào.
+
+**Xoá hẳn:** `gdrive_backup_section.dart` · `sepay_connection_section.dart` ·
+`widget_pin_section.dart` (nội dung viết lại trong trang tương ứng).
+
+⚠️ Mỗi dòng hub hiện **số đếm lấy từ đúng provider trang đích dùng** — đừng
+đếm lại bằng query riêng, sẽ lệch.
+
+Có test khoá: hub vừa 1 màn 360×640 (kể cả footer), và **mọi dòng điều hướng
+đúng route** (`settings_screen_test.dart`).
+
+### 2.28 Phase 6 — `CategoryRepository` thêm `reorder()` + `restore()`
+
+Cột `sort_order` đã có trong DB nhưng **chỉ được ghi lúc tạo** → lưới danh mục
+ở sheet Thêm giao dịch kẹt theo thứ tự chèn.
+
+- `reorder(orderedIds)` — ghi lại `sort_order` 1 transaction, gọi từ
+  `ReorderableListView` ở trang Danh mục (user duyệt phương án này).
+- `restore(category)` — chèn lại **đúng id + sortOrder**, backing cho Hoàn tác.
+  `add()` sinh `uuid()` mới nên không dùng để khôi phục được.
+- `watchTransactionCounts()` + `categoryTransactionCountsProvider` — số giao
+  dịch từng danh mục, hiện ngay trên dòng.
+
+⚠️ **Vuốt xoá chỉ bật khi `!isDefault && count == 0`.** Danh mục còn giao dịch
+bị repo chặn xoá; arm gesture rồi báo lỗi sau là để user vuốt hụt.
+
+### 2.29 Phase 6 — Sao lưu: 1 pattern tiến trình inline
+
+Luồng restore cũ xếp **3 dialog loading toàn màn không nền** + 2 dialog xác
+nhận (`20-settings.md` §L). Trang `/settings/backup` giờ có **1 dải progress
+inline** (`_ProgressStrip`) cho mọi thao tác dài, và preview khôi phục là
+`SpendoSheet` chứ không phải `AlertDialog` text thuần.
+
+Card trạng thái ở đầu trang trả lời "dữ liệu của tôi có an toàn không" bằng 3
+trạng thái: chưa bật · đã kết nối nhưng chưa sao lưu · đã sao lưu (kèm thời
+gian tương đối).
+
+### 2.30 Phase 6 — tên 5 màu GIỮ tiếng Anh
+
+`27-*.md` §L và mockup 20 đề xuất đổi sang tiếng Việt (Hồng / Chàm / Ngọc lục
+/ Xám xanh / Hổ phách). **User chốt giữ nguyên** `Rose (Mặc định)` /
+`Indigo Midnight` / … → `AppColorScheme.label` và
+`test/core/theme/app_theme_test.dart` không đổi. Đây là chỗ mockup thua
+HANDOFF-STATE, đừng "sửa lại cho khớp mockup".
+
+### 2.31 Phase 6 — `SpendoSettingsRow` nhận subtitle / enabled / showChevron
+
+Trang Sao lưu và Ngân hàng cần dòng 2 (`Toàn bộ dữ liệu, khôi phục được`,
+`Đang đồng bộ`), cần làm mờ khi đang bận, và có dòng **hành động tại chỗ**
+(toggle, chọn giá trị) không nên có chevron.
+
+| Tham số | Mặc định | Dùng khi |
+|---|---|---|
+| `subtitle` / `subtitleColor` | null | dòng 2; màu riêng cho trạng thái đồng bộ |
+| `enabled` | true | làm mờ + bỏ tap, **giữ nguyên chỗ** trong group |
+| `showChevron` | `onTap != null` | đặt `false` cho hành động tại chỗ |
+
+`minHeight` 49 → **52** cho vừa 2 dòng. `_DashedCircle` đổi tên thành
+**`SpendoDashedCircle`** (public) vì hàng slot widget cần nó ở cỡ 32.
+
 ### 2.5 Phase 2 — `shellTabProvider` thay `setState` trong AppShell
 
 Nút "Xem tất cả" ở Home phải chuyển sang **tab** Giao dịch, không push route
@@ -428,7 +505,7 @@ Cần thiết để đạt tiêu chí nghiệm thu, không đụng logic:
 bàn phím theo token ngay. Phase 4 dọn 3/5 call-site, Phase 5 dọn 2 cái cuối
 (loan). **File đã xoá** — dùng thẳng `SpendoNumpad`.
 
-### 2.8 `AppTheme.incomeColor/expenseColor/expenseAltColor` — còn nợ
+### 2.8 `AppTheme.incomeColor/expenseColor/expenseAltColor` — ĐÃ XOÁ ở Phase 6
 
 Phase 0 giữ 3 hằng static này (đã trỏ sang giá trị token mới) vì có **53
 call-site / 16 file** dùng chúng ngoài widget tree. Cách đúng là
@@ -437,9 +514,14 @@ call-site / 16 file** dùng chúng ngoài widget tree. Cách đúng là
 **Việc còn tồn:** mỗi phase 2–6 khi động vào màn nào thì chuyển call-site của
 màn đó sang `context.spendo`. Phase 7 quét nốt phần còn lại rồi xoá 3 hằng.
 
-Sau Phase 5: **14 chỗ / 3 file** (từ 53/16). Còn lại `settings_screen` (8),
-`gdrive_backup_section` (4), `sepay_connection_section` (2) — **tất cả thuộc
-Phase 6**. Xong Phase 6 là xoá được 3 hằng, không cần đợi Phase 7.
+**✅ ĐÃ TRẢ XONG ở Phase 6.** 3 file cuối (`settings_screen`,
+`gdrive_backup_section`, `sepay_connection_section`) đều được viết lại hoặc
+xoá, nên 14 call-site cuối biến mất cùng lúc.
+
+**3 hằng `AppTheme.incomeColor/expenseColor/expenseAltColor` đã xoá khỏi
+`app_theme.dart`.** Dùng `context.spendo.income` / `.expense`; màu hành động
+phá huỷ dùng `cs.error` / `cs.errorContainer`. Đừng thêm lại hằng màu tĩnh —
+chúng chỉ đúng ở light mode.
 
 ---
 
@@ -467,11 +549,12 @@ meta) · `SpendoSegmented` (Chi|Thu) · `SpendoCard` · `SpendoSectionHeader` ·
 `SpendoSettingsGroup` / `SpendoSettingsRow` · `SpendoBottomNav` · `SpendoFab` /
 `SpendoExtendedFab` · `DottedBorderBox` (viền nét đứt bo góc — CTA hạn mức,
 ô "+" thêm ví) · `SpendoScreenHeader` / `SpendoHeaderIconButton` /
-`SpendoPeriodStepper` (hàng tiêu đề màn push — mục 2.15).
+`SpendoPeriodStepper` (hàng tiêu đề màn push — mục 2.15) ·
+`SpendoDashedCircle` (vòng nét đứt, mục 2.31).
 
-> Phase 2–5 đã lắp bộ này vào màn 01–13 + form 16/17. Phase 6 làm tương tự cho
-> màn của mình: thấy màn nào còn tự vẽ drag-handle / chip / empty state / AppBar
-> → thay.
+> Phase 2–6 đã lắp bộ này vào **toàn bộ 24 màn** trong phạm vi. Phase 7 chỉ còn
+> Splash + Welcome; thấy màn nào còn tự vẽ drag-handle / chip / empty state /
+> AppBar → thay.
 
 ### 3.4 Thứ khác Phase 2 dựng, phase sau dùng lại
 
@@ -501,6 +584,13 @@ meta) · `SpendoSegmented` (Chi|Thu) · `SpendoCard` · `SpendoSectionHeader` ·
 | `showLoanFormSheet(context, existing:, initialType:)` | `loan/…/widgets/` | mở form khoản vay — 1 nơi duy nhất |
 | `showReminderFormSheet(context, ...)` | `reminders/…/widgets/` | mở form nhắc nhở — 1 nơi duy nhất (mục 2.25) |
 | `WarnBefore` | `reminders/…/widgets/reminder_form_sheet.dart` | mức nhắc trước (mục 2.25) |
+| `showCategoryFormSheet(context, existing:, isIncome:)` | `categories/…/widgets/` | mở form danh mục — 1 nơi duy nhất |
+| `deleteCategoryWithUndo(context, ref, cat)` | `categories/…/screens/categories_screen.dart` | xoá danh mục + Hoàn tác |
+| `categoryTransactionCountsProvider` | `categories/…/providers/` | số giao dịch từng danh mục (mục 2.28) |
+| `CategoryRepository.reorder / restore` | `categories/data/` | đổi thứ tự · khôi phục sau xoá (mục 2.28) |
+| `showSepayMappingSheet(context)` | `settings/…/widgets/` | form liên kết tài khoản SePay (mục 2.27) |
+| `SpendoSettingsRow(subtitle:, enabled:, showChevron:)` | `spendo_tiles.dart` | dòng cài đặt 2 dòng / bận / hành động tại chỗ (mục 2.31) |
+| `SpendoDashedCircle` | `spendo_tiles.dart` | vòng nét đứt cỡ tuỳ ý (mục 2.31) |
 
 ### 3.3 Motion — giữ nguyên, chỉ đổi màu
 
@@ -515,15 +605,16 @@ tôn trọng reduce-motion.
 
 | Việc | Quy mô hiện tại |
 |---|---|
-| Hex hard-code ngoài `core/theme/` | **20** chỗ (từ 55) — chỉ còn 3 file Cài đặt, Phase 6 |
-| `Colors.white/grey/red/orange/…` cố định (không đổi theo dark) | ~100 chỗ |
-| `AppTheme.incomeColor/…` → `context.spendo` | **14** chỗ / 3 file (từ 53/16) — chỉ còn Cài đặt |
+| ~~Hex hard-code ngoài `core/theme/`~~ | ✅ **0** (từ 55) — hết ở Phase 6 |
+| ~~`AppTheme.incomeColor/…` → `context.spendo`~~ | ✅ **0** (từ 53/16) — 3 hằng đã xoá, mục 2.8 |
+| `Colors.white/grey/red/orange/…` cố định (không đổi theo dark) | **19** chỗ / 4 file (từ ~100): `debug_reminder_panel` (chỉ kDebugMode), `aurora_theme_background`, `category_icon`, `splash_screen` — Phase 7 |
 | ~~`numpad.dart` (alias) → xoá~~ | ✅ xoá ở Phase 5 |
 | ~~`month_selector.dart` → xoá~~ | ✅ xoá ở Phase 4 |
 | ~~`typedef StatsDateRange = Period` → xoá alias~~ | ✅ xoá ở Phase 5 (mục 2.17) |
 | Splash | Phase 0 mới đổi màu sang token; redesign thật ở Phase 7 |
 | 2 widget Android native `widget_layout_*.xml` | chưa đổi màu — Phase 7 |
-| Route `/stats` `/settings` trùng tab của shell | rà khi Phase 6 làm Cài đặt (`/features` + AllFeatures đã xoá ở Phase 2) |
+| Route `/stats` `/settings` trùng tab của shell | vẫn còn — Phase 6 giữ nguyên vì hub push `/wallets` `/loans` `/reminders` ra ngoài shell, đổi cơ chế là việc của Phase 7 |
+| `shared/widgets/category_icon.dart` | trùng vai với `SpendoIconTile`; còn call-site ngoài phạm vi Phase 6 — Phase 7 gộp |
 
 ---
 
@@ -631,6 +722,37 @@ Làm 2 commit: `eb30303` (Thống kê) + `583d7d0` (Vay + Nhắc nhở).
 `loan_list_screen_test.dart` · `loan_detail_screen_test.dart` ·
 `loan_form_sheet_test.dart` (viết lại) · `reminders_screen_test.dart` ·
 `reminder_form_sheet_test.dart` (+2) — 150 → 177 test
+
+## 4f. Phase 6 đã đụng file nào
+
+1 commit: `da955a9`.
+
+**Thêm:** `categories/…/screens/categories_screen.dart` ·
+`settings/…/screens/appearance_screen.dart` · `…/backup_screen.dart` ·
+`…/bank_screen.dart` · `…/widget_screen.dart` · `…/notifications_screen.dart` ·
+`settings/…/widgets/sepay_mapping_sheet.dart`
+
+**Viết lại:** `settings/…/screens/settings_screen.dart` (1366 → ~250 dòng) ·
+`categories/…/widgets/category_form_sheet.dart`
+
+**Sửa:** `app_router.dart` (6 route `/settings/*`) ·
+`categories/data/category_repository.dart` (`reorder`, `restore`,
+`watchTransactionCounts`) · `categories/…/providers/category_provider.dart`
+(`categoryTransactionCountsProvider`) · `shared/widgets/spendo/spendo_tiles.dart`
+(`SpendoSettingsRow` +subtitle/enabled/showChevron, `SpendoDashedCircle` public) ·
+`core/theme/app_theme.dart` (xoá 3 hằng màu) ·
+`integration_test/screenshot_test.dart` (bước 19 cuộn → 4 bước mở trang con)
+
+**Xoá:** `settings/…/widgets/gdrive_backup_section.dart` ·
+`…/sepay_connection_section.dart` · `…/widget_pin_section.dart`
+
+**Test mới:** `settings_screen_test.dart` (viết lại, 3 test) ·
+`appearance_screen_test.dart` · `backup_screen_test.dart` ·
+`bank_screen_test.dart` · `widget_screen_test.dart` ·
+`categories_screen_test.dart` · `category_form_sheet_test.dart`
+— 177 → **207 test**
+
+---
 
 ## 5. Quy trình mỗi phase
 
