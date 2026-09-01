@@ -39,13 +39,13 @@ Cấm rải hex trong widget, mọi màu lấy qua `ColorScheme` + `context.spen
 | 0 — Nền theme & hạ tầng | ✅ xong | `ae1b508` |
 | 1 — Shell & component dùng chung | ✅ xong | `be499de` |
 | 2 — Home + Add (màn 01, 02, 02b) | ✅ xong | `1e9322f` |
-| 3 — Giao dịch & PeriodPicker | ⬜ tiếp theo | |
-| 4 — Ví & Hạn mức | ⬜ | |
+| 3 — Giao dịch & PeriodPicker | ✅ xong | `0bd474a` |
+| 4 — Ví & Hạn mức | ⬜ tiếp theo | |
 | 5 — Thống kê, Vay, Nhắc nhở | ⬜ | |
 | 6 — Cài đặt & trang con | ⬜ | |
 | 7 — Khởi động + Dark pass + QA | ⬜ | |
 
-Baseline hiện tại: `flutter analyze` sạch · **77 test pass** · debug APK build được.
+Baseline hiện tại: `flutter analyze` sạch · **119 test pass** · debug APK build được.
 
 ---
 
@@ -107,15 +107,53 @@ trong `app_theme.dart` giờ khai báo tường minh `brandColor` / `onBrandColo
 ramp primary cho từng lựa chọn; **bộ surface cream/nâu dùng chung cho cả 5**.
 Có test khoá hành vi này (`test/core/theme/app_theme_test.dart`).
 
-### 2.4 Phase 2 — chọn tháng ở Home tạm dùng MonthPickerSheet
+### 2.4 Chọn kỳ — ĐÃ XONG ở Phase 3
 
-Mockup 01 bỏ 2 nút `‹ ›` và chip "Hôm nay", chỉ còn `Tháng 8/2026 ▾`. Đã làm
-đúng mockup: label mở `MonthPickerSheet` **hiện có**.
+Mockup 01 bỏ 2 nút `‹ ›` và chip "Hôm nay", chỉ còn `Tháng 8/2026 ▾`.
 
-Phase 3 dựng `PeriodPickerSheet` (màn 24) → thay vào đúng chỗ đó
-(`_HomeTitleBar._pickMonth` trong `home_screen.dart`). `month_selector.dart`
-**vẫn còn** vì Giao dịch (Phase 3) và Chi tiết ví (Phase 4) đang dùng; xoá khi
-2 màn đó chuyển sang PeriodPicker.
+Phase 3 đã dựng `PeriodPickerSheet` và **thay hết**: Home, Giao dịch, Thống kê
+và `MonthSelector` đều gọi nó. `MonthPickerSheet` + `DateRangePickerSheet` đã
+xoá.
+
+`month_selector.dart` **vẫn còn** — chỉ Chi tiết ví (Phase 4) dùng; Phase 4
+thay nốt rồi xoá file.
+
+### 2.4b Phase 3 — model kỳ chung `Period`
+
+`StatsDateRange` (trong `features/stats/`) chuyển ra
+**`lib/shared/domain/period.dart`** thành `Period` — 4 màn cùng hỏi "kỳ nào".
+
+- Biên **nửa mở**: `start` inclusive, `end` exclusive → query
+  `created_at >= start AND < end`, không phải cộng trừ cuối ngày ở từng chỗ.
+- `PeriodPreset` (Tháng này / Tháng trước / 3 tháng gần nhất / Năm nay) tự
+  resolve theo lịch.
+- Màn chỉ chạy theo tháng truyền `allowCustomRange: false` → picker ẩn **cả**
+  khoảng tuỳ chọn **lẫn** preset nhiều tháng (Home, và Hạn mức ở Phase 4).
+- `features/stats` giữ `typedef StatsDateRange = Period;` để màn Thống kê
+  (Phase 5) chưa phải sửa.
+
+### 2.4c Phase 3 — xoá giao dịch dùng Hoàn tác, bỏ dialog
+
+Mockup 03 (vuốt) + 04 (xoá → undo). Cả hai đường xoá gọi chung
+`deleteTransactionWithUndo` (`transactions/presentation/widgets/`):
+xoá ngay → snackbar "Hoàn tác" 5s → `TransactionRepository.restore()` chèn lại
+đúng id + createdAt.
+
+Dialog xác nhận cũ đã bỏ: dialog hỏi trước **mọi** lần xoá kể cả lần cố ý,
+còn undo chỉ tốn chú ý khi xoá nhầm.
+
+Phase 4–5 khi làm màn có xoá (ví, khoản vay, nhắc nhở) nên dùng cùng kiểu này.
+
+### 2.4d Phase 3 — Giao dịch có kỳ + bộ lọc riêng
+
+- `transactionsPeriodProvider` (kỳ của màn Giao dịch) tách khỏi
+  `selectedMonthProvider` (tháng của Home). Audit ghi: dùng chung state toàn
+  cục → lọc ở bản push `/transactions` còn dính lại khi về tab.
+- `TransactionFilter` (`transactions/domain/transaction_filter.dart`) gom:
+  loại (Tất cả|Chi|Thu) · **nhiều** danh mục · **nhiều** ví · từ khoá.
+  Chip strip cũ chỉ giữ được 1 danh mục và trộn thu/chi cùng hàng.
+- `activeCount` = số bộ lọc đang áp (badge trên nút phễu). Từ khoá **không**
+  tính vì ô tìm kiếm đã tự hiện chữ đang gõ.
 
 ### 2.5 Phase 2 — `shellTabProvider` thay `setState` trong AppShell
 
@@ -152,8 +190,8 @@ call-site / 16 file** dùng chúng ngoài widget tree. Cách đúng là
 **Việc còn tồn:** mỗi phase 2–6 khi động vào màn nào thì chuyển call-site của
 màn đó sang `context.spendo`. Phase 7 quét nốt phần còn lại rồi xoá 3 hằng.
 
-Sau Phase 2: **45 chỗ / 11 file** (từ 53/16). Các file còn lại đều thuộc màn
-của Phase 3–6.
+Sau Phase 3: **39 chỗ / 9 file** (từ 53/16). Các file còn lại đều thuộc màn
+của Phase 4–6.
 
 ---
 
@@ -193,6 +231,12 @@ meta) · `SpendoSegmented` (Chi|Thu) · `SpendoCard` · `SpendoSectionHeader` ·
 | `showBudgetTypeSheet(context)` | `budget/…/widgets/budget_type_sheet.dart` | mở sheet hạn mức — 1 nơi duy nhất |
 | `loadNoteHistory` / `mergeNoteSuggestions` / `kDefaultNotes` | `transactions/domain/note_suggestions.dart` | gợi ý ghi chú (sheet Thêm + màn 02b dùng chung) |
 | `SpendoSheet.showModal` | `spendo_sheet.dart` | mở bottom sheet đã có token sẵn |
+| `Period` / `PeriodPreset` | `shared/domain/period.dart` | mọi chỗ cần khoảng thời gian (mục 2.4b) |
+| `PeriodPickerSheet.show()` | `shared/widgets/spendo/` | chọn kỳ — 1 picker cho 4 màn |
+| `deleteTransactionWithUndo` | `transactions/…/widgets/` | xoá + Hoàn tác (mục 2.4c) |
+| `TransactionFilter` | `transactions/domain/` | lọc danh sách giao dịch (mục 2.4d) |
+| `SpendoSegmented(height:, horizontalPadding:)` | `spendo_chip.dart` | segmented gọn khi hàng chật |
+| `GroupedTransactionSliver(dismissible: true)` | `transactions/…/widgets/` | bật vuốt-xoá cho list |
 
 ### 3.3 Motion — giữ nguyên, chỉ đổi màu
 
@@ -211,8 +255,8 @@ tôn trọng reduce-motion.
 | `Colors.white/grey/red/orange/…` cố định (không đổi theo dark) | ~100 chỗ |
 | `AppTheme.incomeColor/…` → `context.spendo` | **45** chỗ / 11 file (từ 53/16) |
 | `numpad.dart` (alias) → gọi thẳng `SpendoNumpad` rồi xoá | 5 call-site, Phase 4–5 (mục 2.7) |
-| `month_selector.dart` → `PeriodPickerSheet` rồi xoá | 2 call-site, Phase 3–4 (mục 2.4) |
-| `TransactionDetailSheet` chưa dựng trên `SpendoSheet` (chưa có nền riêng) | Phase 3 |
+| `month_selector.dart` → xoá | còn **1** call-site (Chi tiết ví), Phase 4 |
+| `typedef StatsDateRange = Period` → dùng thẳng `Period` rồi xoá alias | Phase 5 (mục 2.4b) |
 | Splash | Phase 0 mới đổi màu sang token; redesign thật ở Phase 7 |
 | 2 widget Android native `widget_layout_*.xml` | chưa đổi màu — Phase 7 |
 | Route `/stats` `/settings` trùng tab của shell | rà khi Phase 6 làm Cài đặt (`/features` + AllFeatures đã xoá ở Phase 2) |
@@ -241,6 +285,29 @@ tôn trọng reduce-motion.
 **Xoá:** `all_features_screen.dart` · `summary_card.dart` · `feature_grid.dart` ·
 `home_feature_actions.dart` · `wallet_card_home.dart` (+ test carousel của nó —
 hành vi carousel đã bị thay)
+
+---
+
+## 4c. Phase 3 đã đụng file nào
+
+**Thêm:** `shared/domain/period.dart` ·
+`shared/widgets/spendo/period_picker_sheet.dart` ·
+`transactions/domain/transaction_filter.dart` ·
+`transactions/…/widgets/delete_transaction_action.dart` ·
+`transactions/…/widgets/transaction_filter_sheet.dart`
+
+**Viết lại:** `transactions/…/screens/transactions_screen.dart` ·
+`transactions/…/widgets/transaction_detail_sheet.dart` ·
+`transactions/…/providers/transaction_provider.dart` ·
+`stats/…/widgets/stats_time_selector.dart`
+
+**Sửa:** `home_screen.dart` + `month_selector.dart` (dùng `PeriodPickerSheet`) ·
+`stats_provider.dart` (dùng `Period` + alias) · `grouped_transaction_sliver.dart`
+(thêm `dismissible`) · `transaction_list_item.dart` · `spendo_chip.dart`
+(`SpendoSegmented` nhận height/padding) · `transaction_repository.dart`
+(thêm `restore`)
+
+**Xoá:** `month_picker_sheet.dart` · `stats/…/widgets/date_range_picker_sheet.dart`
 
 ---
 
