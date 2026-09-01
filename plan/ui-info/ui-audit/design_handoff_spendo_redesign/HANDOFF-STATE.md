@@ -7,6 +7,29 @@
 >
 > Cập nhật file này mỗi khi xong một phase.
 
+## 0. Đọc gì trước khi bắt đầu
+
+Mọi đường dẫn dưới đây tính từ `plan/ui-info/ui-audit/design_handoff_spendo_redesign/`.
+
+| Thứ tự | File | Để làm gì |
+|---|---|---|
+| 1 | **file này** | đang ở đâu, đã chốt khác spec chỗ nào |
+| 2 | `01-tokens.md` | bảng màu light+dark, thang chữ, bo góc, spacing |
+| 3 | `02-components.md` | spec từng component dùng chung |
+| 4 | `03-screens.md` | bảng 26 màn: mockup nào ↔ audit nào ↔ đổi gì |
+| 5 | `04-phases.md` | mục của phase sắp làm + tiêu chí Nghiệm thu |
+| 6 | `README.md` | bối cảnh chung (đọc lướt, đã tóm ở đây) |
+
+Khi làm một màn cụ thể thì đọc thêm:
+- `audit/<nn>-*.md` — hiện trạng code màn đó, có ref `file:line`
+- `mockups/*.dc.html` — thiết kế TO-BE, style nằm inline; **reference, không
+  copy HTML vào app**
+- `../screenshots/<nn>-*.png` — ảnh render các màn, đã đặt tên theo số màn
+
+Nguyên tắc chung: giữ nguyên logic nghiệp vụ / provider / database — đây là
+redesign UI. Icon chỉ dùng Lucide (stroke 2.25). Số tiền luôn tabular figures.
+Cấm rải hex trong widget, mọi màu lấy qua `ColorScheme` + `context.spendo`.
+
 ---
 
 ## 1. Tiến độ
@@ -147,18 +170,20 @@ tôn trọng reduce-motion.
 
 ## 5. Quy trình mỗi phase
 
-1. Đọc `04-phases.md` mục phase đó → biết màn nào, lưu ý gì.
-2. Với **mỗi màn**: đọc file audit AS-IS tương ứng (bảng ở `03-screens.md`,
-   có ref `file:line`) **trước khi sửa**.
-3. Mở mockup `.dc.html` (đọc source, style inline) **và** ảnh render trong
-   `plan/ui-info/ui-audit/screenshots/` — ảnh đã đặt tên theo số màn
-   (`01-trang-chu.png`, `02-them-giao-dich.png`…).
-4. Dựng lại bằng component + token đã có. Không sửa logic nghiệp vụ /
-   provider / database trừ khi phase yêu cầu.
-5. Xong: `flutter analyze` → `flutter test` → `flutter build apk --debug`.
-6. Tự kiểm mục "Nghiệm thu" của phase, liệt kê file đã sửa.
-7. **Commit** (mỗi phase / giai đoạn nhỏ 1 commit, giữ `git status` sạch),
-   cập nhật bảng tiến độ ở mục 1 của file này, rồi dừng chờ duyệt.
+1. Đọc mục phase đó trong `04-phases.md` → biết làm màn nào, lưu ý gì.
+2. Với **mỗi màn**: đọc audit AS-IS tương ứng **trước khi sửa**, rồi mở mockup
+   + ảnh (xem mục 0 để biết file nào).
+3. Dựng lại bằng component + token đã có (mục 3). Màn nào động tới thì tiện tay
+   chuyển `AppTheme.incomeColor/…` của màn đó sang `context.spendo` (mục 2.4).
+4. Xong: `flutter analyze` → `flutter test` → `flutter build apk --debug`.
+   Cả ba phải sạch mới tính là xong.
+5. Tự kiểm mục "Nghiệm thu" của phase trong `04-phases.md`, liệt kê file đã sửa.
+6. **Commit** (mỗi phase / giai đoạn nhỏ 1 commit, giữ `git status` sạch).
+7. **Cập nhật file này**: bảng tiến độ mục 1 (trạng thái + hash commit), baseline
+   số test, và mục 2 nếu phát sinh quyết định mới lệch spec. Rồi dừng chờ duyệt.
+
+Làm đúng 1 phase mỗi lượt, không lấn phase sau. Điều gì không rõ → hỏi, kèm
+phương án đề xuất.
 
 Ưu tiên khi mâu thuẫn: **HANDOFF-STATE (mục 2) > tokens > mockup > audit**.
 (Audit là AS-IS — mô tả cái đang có, không phải cái cần làm.)
