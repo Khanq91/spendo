@@ -34,6 +34,7 @@ void main() {
   });
 
   tearDown(() async {
+    resetLoanScheduleListeners();
     await database.close();
     await tempDirectory.delete(recursive: true);
   });
@@ -206,6 +207,114 @@ void main() {
     expect(await repository.getAllInstallments(), isEmpty);
     expect(await repository.getAllPayments(), isEmpty);
     expect(await repository.getAll(), isEmpty);
+  });
+
+  // ── Reminder hooks (GĐ3) ──────────────────────────────────────────────────
+
+  /// Records what the repository told the notification layer, so the tests can
+  /// check the hooks fire without a notification plugin behind them.
+  ({List<String> changed, List<List<String>> cancelled}) listen() {
+    final changed = <String>[];
+    final cancelled = <List<String>>[];
+    setLoanScheduleListeners(
+      onChanged: (loanId) async => changed.add(loanId),
+      onCancelled: (ids) async => cancelled.add(ids.toList()),
+    );
+    return (changed: changed, cancelled: cancelled);
+  }
+
+  test('saving a schedule asks for its reminders', () async {
+    final id = await addLoan();
+    final log = listen();
+
+    await repository.replaceInstallments(id, schedule(id, [4500000, 4500000]));
+
+    expect(log.changed, [id]);
+    expect(log.cancelled.single, isEmpty);
+  });
+
+  test('replacing a schedule cancels the reminders of the old rows', () async {
+    final id = await addLoan();
+    await repository.replaceInstallments(id, schedule(id, [4500000, 4500000]));
+    final oldIds = (await repository.getInstallments(id)).map((i) => i.id);
+    final log = listen();
+
+    await repository.replaceInstallments(
+      id,
+      schedule(id, [3000000, 3000000, 3000000]),
+    );
+
+    // The rows are new, so a reminder keyed to an old id would fire for an
+    // instalment that no longer exists.
+    expect(log.cancelled.single, unorderedEquals(oldIds));
+    expect(log.changed, [id]);
+  });
+
+  test('dropping a schedule cancels its reminders', () async {
+    final id = await addLoan();
+    await repository.replaceInstallments(id, schedule(id, [4500000, 4500000]));
+    final oldIds = (await repository.getInstallments(id)).map((i) => i.id);
+    final log = listen();
+
+    await repository.clearInstallments(id);
+
+    expect(log.cancelled.single, unorderedEquals(oldIds));
+  });
+
+  test('a payment and its undo both ask for a reschedule', () async {
+    final id = await addLoan();
+    await repository.replaceInstallments(id, schedule(id, [4500000, 4500000]));
+    final log = listen();
+
+    await repository.addPayment(
+      loanId: id,
+      amount: 4500000,
+      paidAt: DateTime(2026, 10, 16),
+      loanType: LoanType.borrowed,
+      title: 'Vay mua xe',
+    );
+    await repository.deletePayment((await repository.getAllPayments()).single.id);
+
+    // Paying settles an instalment (cancel its reminder, pull in the next);
+    // undoing un-settles it and wants the reminder back.
+    expect(log.changed, [id, id]);
+  });
+
+  test('a payment written without a transaction still reschedules', () async {
+    final id = await addLoan();
+    final log = listen();
+
+    await repository.addPayment(
+      loanId: id,
+      amount: 1000000,
+      paidAt: DateTime(2026, 10, 16),
+      withTransaction: false,
+    );
+
+    expect(log.changed, [id]);
+  });
+
+  test('deleting a loan cancels the reminders before the ids vanish', () async {
+    final id = await addLoan();
+    await repository.replaceInstallments(id, schedule(id, [4500000, 4500000]));
+    final ids = (await repository.getInstallments(id)).map((i) => i.id);
+    final log = listen();
+
+    await repository.delete(id);
+
+    expect(log.cancelled.single, unorderedEquals(ids));
+    // Nothing to reschedule — the loan is gone.
+    expect(log.changed, isEmpty);
+  });
+
+  test('settling and reopening a loan both reschedule', () async {
+    final id = await addLoan();
+    final log = listen();
+
+    await repository.close(id);
+    await repository.reopen(id);
+
+    expect(log.changed, [id, id]);
   });
 
   // ── Wallet linkage (GĐ2) ──────────────────────────────────────────────────

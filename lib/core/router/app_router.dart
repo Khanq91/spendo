@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
+import '../../features/loan/domain/installment_status.dart';
+import '../../features/loan/presentation/providers/loan_provider.dart';
 import '../../features/loan/presentation/screens/loan_detail_screen.dart';
 import '../../features/loan/presentation/screens/loan_list_screen.dart';
+import '../../features/loan/presentation/widgets/add_payment_sheet.dart';
 import '../../features/categories/presentation/screens/categories_screen.dart';
 import '../../features/settings/presentation/screens/appearance_screen.dart';
 import '../../features/settings/presentation/screens/backup_screen.dart';
@@ -89,11 +93,91 @@ final appRouter = GoRouter(
       builder: (_, state) =>
           LoanDetailScreen(loanId: state.pathParameters['id']!),
     ),
+    // Where an instalment reminder lands. Exists only for the deep link, the
+    // same way `/add` does: in-app, the payment sheet is opened directly.
+    GoRoute(
+      path: '/loan-pay',
+      builder: (_, state) {
+        final amountStr = state.uri.queryParameters['amount'];
+        return LoanPaymentPage(
+          loanId: state.uri.queryParameters['loan_id'] ?? '',
+          prefillAmount: amountStr != null ? int.tryParse(amountStr) : null,
+        );
+      },
+    ),
   ],
 );
 
 void initNotificationNavigatorKey() {
   NotificationService.navigatorKey = _routerNavigatorKey;
+}
+
+/// Landing page for the `/loan-pay` deep link fired by an instalment reminder.
+///
+/// Shows the loan and opens the payment sheet on top of it, so tapping the
+/// notification lands on the one thing it was asking for. The loan detail
+/// stays behind when the sheet closes rather than dropping to the home tab —
+/// the user arrived here to look at this loan.
+class LoanPaymentPage extends ConsumerStatefulWidget {
+  const LoanPaymentPage({
+    super.key,
+    required this.loanId,
+    this.prefillAmount,
+  });
+
+  final String loanId;
+  final int? prefillAmount;
+
+  @override
+  ConsumerState<LoanPaymentPage> createState() => _LoanPaymentPageState();
+}
+
+class _LoanPaymentPageState extends ConsumerState<LoanPaymentPage> {
+  bool _opened = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // The notification can launch the app cold, before the loan stream has
+    // anything in it; the sheet waits for the loan rather than opening on a
+    // blank one.
+    final loan = ref
+        .watch(loansProvider)
+        .valueOrNull
+        ?.where((l) => l.id == widget.loanId)
+        .firstOrNull;
+
+    // Watched, not read inside the callback: the progress provider is
+    // autoDispose, and reading one with no listener yields an empty list built
+    // from dependencies that have not resolved yet.
+    final installments = ref.watch(loanInstallmentsProvider(widget.loanId));
+    final progress = ref.watch(installmentProgressProvider(widget.loanId));
+    final paid = ref.watch(paidByLoanProvider).valueOrNull?[widget.loanId] ?? 0;
+
+    // The schedule arrives a frame or two after the loan does. Opening on the
+    // first build would catch it empty and put up a sheet with no instalment
+    // on it, which is exactly what the notification was about.
+    if (loan != null && !_opened && installments.hasValue) {
+      _opened = true;
+      final next = nextUnsettled(progress);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showAddPaymentSheet(
+          context,
+          loan: loan,
+          // The amount in the payload was right when the reminder was
+          // scheduled; the waterfall is right now, so it wins.
+          remaining:
+              next?.shortfall ??
+              widget.prefillAmount ??
+              (loan.principal - paid).clamp(0, loan.principal),
+          installment: next,
+          installmentCount: progress.length,
+        );
+      });
+    }
+
+    return LoanDetailScreen(loanId: widget.loanId);
+  }
 }
 
 /// Landing page for the `/add` deep link fired by a reminder notification.

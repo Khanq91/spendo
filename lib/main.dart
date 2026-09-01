@@ -11,12 +11,14 @@ import 'package:workmanager/workmanager.dart';
 import 'app.dart';
 import 'core/config.dart';
 import 'core/db/powersync_db.dart';
+import 'core/notifications/loan_reschedule_service.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/reminder_notification_service.dart';
 import 'core/services/gdrive_background_backup.dart';
 import 'core/theme/app_glass_policy.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/utils/widget_sync.dart';
+import 'features/loan/data/loan_repository.dart';
 import 'features/onboarding/presentation/welcome_screen.dart';
 import 'features/reminders/data/reminder_repository.dart';
 import 'shared/widgets/splash_screen.dart';
@@ -129,6 +131,24 @@ Future<void> _initServices(
     ).timeout(const Duration(seconds: 5));
   } catch (e) {
     debugPrint('[Init] Reminder scheduling error: $e');
+  }
+
+  // 4b. Instalment reminders
+  //
+  // Every change to a loan reschedules its own reminders from here on; this
+  // pass is what pulls in instalments that were beyond the window last time,
+  // so a long schedule stays reminded to its end without ever queuing
+  // hundreds of pending notifications.
+  setLoanScheduleListeners(
+    onChanged: LoanRescheduleService.rescheduleLoan,
+    onCancelled: LoanRescheduleService.cancelSchedule,
+  );
+  try {
+    await LoanRescheduleService.rescheduleAll().timeout(
+      const Duration(seconds: 5),
+    );
+  } catch (e) {
+    debugPrint('[Init] Loan scheduling error: $e');
   }
 
   // 5. Home widgets sync

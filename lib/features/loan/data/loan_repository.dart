@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:powersync/powersync.dart';
 
 import '../../../core/db/powersync_db.dart' as app_db;
@@ -10,6 +11,45 @@ import 'loan_category_resolver.dart';
 /// Only `'sepay'` was ever checked for (`transaction.isAutomatic`), so a new
 /// value is safe; it is what the Giao dịch screen keys its read-only guard on.
 const String kLoanTransactionSource = 'loan';
+
+/// Told that a loan's instalment reminders may be out of date.
+///
+/// Every change that moves the waterfall has to be followed by a reschedule,
+/// and the repository is the one place that sees all of them. It is a hook
+/// rather than a direct call so the data layer keeps no notification
+/// dependency, and so tests can run without a plugin behind them: the app
+/// installs the real implementation at startup, and the default does nothing.
+typedef LoanScheduleListener = Future<void> Function(String loanId);
+
+/// Told that instalments are about to stop existing, while their ids can still
+/// be read — a notification id is derived from the instalment id, so this is
+/// the last moment the reminders can be found.
+typedef LoanScheduleCancelListener =
+    Future<void> Function(Iterable<String> installmentIds);
+
+LoanScheduleListener _onScheduleChanged = _noopChanged;
+LoanScheduleCancelListener _onScheduleCancelled = _noopCancelled;
+
+Future<void> _noopChanged(String _) async {}
+
+Future<void> _noopCancelled(Iterable<String> _) async {}
+
+/// Wires the repository up to the notification layer. Called once, at startup.
+void setLoanScheduleListeners({
+  required LoanScheduleListener onChanged,
+  required LoanScheduleCancelListener onCancelled,
+}) {
+  _onScheduleChanged = onChanged;
+  _onScheduleCancelled = onCancelled;
+}
+
+/// Restores the do-nothing defaults, so one test's listener cannot leak into
+/// the next.
+@visibleForTesting
+void resetLoanScheduleListeners() {
+  _onScheduleChanged = _noopChanged;
+  _onScheduleCancelled = _noopCancelled;
+}
 
 class LoanRepository {
   /// Defaults to the app database; tests hand in their own.
@@ -132,6 +172,8 @@ class LoanRepository {
       'UPDATE loans SET is_closed = 1 WHERE id = ?',
       [id],
     );
+    // A settled loan has nothing left to remind about.
+    await _onScheduleChanged(id);
   }
 
   Future<void> reopen(String id) async {
@@ -139,6 +181,7 @@ class LoanRepository {
       'UPDATE loans SET is_closed = 0 WHERE id = ?',
       [id],
     );
+    await _onScheduleChanged(id);
   }
 
   /// Deletes the loan, its schedule, its payments and every transaction it
@@ -148,6 +191,11 @@ class LoanRepository {
   /// sweep runs in one write, so a wallet is never left holding a transaction
   /// whose loan is gone.
   Future<void> delete(String id) async {
+    // Read while the rows are still there: the notification ids are derived
+    // from the instalment ids, so afterwards there would be no way to find
+    // the reminders to cancel.
+    final doomed = (await getInstallments(id)).map((i) => i.id).toList();
+
     await _db.writeTransaction((tx) async {
       final linked = await tx.getAll(
         '''SELECT transaction_id FROM loan_payments
@@ -174,6 +222,8 @@ class LoanRepository {
       await tx.execute('DELETE FROM loan_payments WHERE loan_id = ?', [id]);
       await tx.execute('DELETE FROM loans WHERE id = ?', [id]);
     });
+
+    await _onScheduleCancelled(doomed);
   }
 
   // ── Installments ──────────────────────────────────────────────────────────
@@ -229,6 +279,8 @@ class LoanRepository {
     String loanId,
     List<LoanInstallment> installments,
   ) async {
+    final replaced = (await getInstallments(loanId)).map((i) => i.id).toList();
+
     await _db.writeTransaction((tx) async {
       await tx.execute('DELETE FROM loan_installments WHERE loan_id = ?', [
         loanId,
@@ -253,6 +305,11 @@ class LoanRepository {
         loanId,
       ]);
     });
+
+    // The rows are new — every old id is dead, and the reminders keyed to them
+    // would otherwise fire for instalments that no longer exist.
+    await _onScheduleCancelled(replaced);
+    await _onScheduleChanged(loanId);
   }
 
   /// Drops the schedule and returns the loan to free repayment. Payments are
@@ -329,6 +386,7 @@ class LoanRepository {
           transactionId,
         ],
       );
+      await _onScheduleChanged(loanId);
       return;
     }
 
@@ -370,15 +428,18 @@ class LoanRepository {
         ],
       );
     });
+    await _onScheduleChanged(loanId);
   }
 
   /// Deletes a payment and the transaction it wrote, together.
   Future<void> deletePayment(String paymentId) async {
+    String? loanId;
     await _db.writeTransaction((tx) async {
       final row = await tx.getOptional(
-        'SELECT transaction_id FROM loan_payments WHERE id = ?',
+        '''SELECT transaction_id, loan_id FROM loan_payments WHERE id = ?''',
         [paymentId],
       );
+      loanId = row?['loan_id'] as String?;
       final transactionId = row?['transaction_id'] as String?;
       if (transactionId != null) {
         await tx.execute('DELETE FROM transactions WHERE id = ?', [
@@ -387,6 +448,9 @@ class LoanRepository {
       }
       await tx.execute('DELETE FROM loan_payments WHERE id = ?', [paymentId]);
     });
+    // Undoing a payment can un-settle an instalment, which needs its reminder
+    // back.
+    if (loanId != null) await _onScheduleChanged(loanId!);
   }
 
   /// The wallet a transaction was written against — read before a delete, so

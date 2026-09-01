@@ -7,6 +7,24 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'reminder_reschedule_service.dart';
 
+/// The route an instalment reminder's payload asks for, or null when the
+/// payload is not one — a recurring reminder's, say.
+///
+/// Split out from the handler so the deep link can be checked without a
+/// navigator: the handler itself can only be exercised by tapping a real
+/// notification.
+String? loanPaymentPath(Map<String, dynamic> payload) {
+  final loanId = payload['loan_id'];
+  if (loanId is! String || loanId.isEmpty) return null;
+
+  final amount = payload['amount'];
+  final query = StringBuffer('loan_id=${Uri.encodeComponent(loanId)}');
+  if (amount is String && amount.isNotEmpty) {
+    query.write('&amount=${Uri.encodeComponent(amount)}');
+  }
+  return '/loan-pay?$query';
+}
+
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
@@ -58,6 +76,17 @@ class NotificationService {
 
     try {
       final data = jsonDecode(payload) as Map<String, dynamic>;
+
+      // An instalment reminder goes straight to its loan with the payment
+      // sheet already open — a different destination from the recurring
+      // reminders below, so it is answered first.
+      final loanPath = loanPaymentPath(data);
+      if (loanPath != null) {
+        final context = navigatorKey?.currentContext;
+        if (context != null) GoRouter.of(context).go(loanPath);
+        return;
+      }
+
       final reminderId = data['reminder_id'] as String?;
       final categoryId = data['category_id'] as String?;
       final note = Uri.encodeComponent(data['note'] as String? ?? '');
