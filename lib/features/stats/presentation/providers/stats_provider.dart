@@ -4,64 +4,102 @@ import '../../../../shared/domain/period.dart';
 import '../../../transactions/domain/transaction.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
 
-// ── Date range model ─────────────────────────────────────────────────────────
+/// Which side of the ledger the screen is breaking down.
+///
+/// The audit found Stats hard-wired to expense: the pie ignored income and the
+/// bars drew only spending, so a month with nothing but a salary reported
+/// "Chưa có dữ liệu". The toggle makes the side a choice.
+enum StatsSide {
+  expense,
+  income;
 
-// The range model moved to `shared/domain/period.dart` when the two time
-// pickers were merged (screen 24): Stats, Giao dịch, Home and Hạn mức all ask
-// the same question. The Stats screen keeps its own names below.
+  String get label => switch (this) {
+    StatsSide.expense => 'Chi',
+    StatsSide.income => 'Thu',
+  };
 
-/// Alias kept so the Stats screen — redesigned in phase 5 — still compiles.
-typedef StatsDateRange = Period;
+  bool matches(Transaction t) => switch (this) {
+    StatsSide.expense => t.isExpense,
+    StatsSide.income => t.isIncome,
+  };
+}
 
-// ── Providers ────────────────────────────────────────────────────────────────
-
-/// Khoảng thời gian đang xem trong Stats. Mặc định = tháng hiện tại.
-final statsDateRangeProvider = StateProvider<Period>(
+/// The period Stats is showing.
+final statsPeriodProvider = StateProvider<Period>(
   (_) => Period.month(DateTime(DateTime.now().year, DateTime.now().month)),
 );
 
-/// Stream transactions theo khoảng thời gian Stats đang chọn
-final statsTransactionsProvider =
-    StreamProvider.autoDispose<List<Transaction>>((ref) {
-  final range = ref.watch(statsDateRangeProvider);
-  final repo = ref.watch(transactionRepoProvider);
-  return repo.watchByDateRange(range.start, range.end);
-});
+/// Expense or income — the side both charts break down.
+final statsSideProvider = StateProvider<StatsSide>((_) => StatsSide.expense);
 
-/// Group chi tiêu theo category (pie chart)
-final statsExpensesByCategoryProvider =
-    Provider.autoDispose<Map<String, int>>((ref) {
-  final txs = ref.watch(statsTransactionsProvider).valueOrNull ?? [];
-  final map = <String, int>{};
-  for (final t in txs.where((t) => t.isExpense)) {
-    map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amount;
+/// Every transaction inside the period.
+final statsTransactionsProvider = StreamProvider.autoDispose<List<Transaction>>(
+  (ref) {
+    final period = ref.watch(statsPeriodProvider);
+    final repo = ref.watch(transactionRepoProvider);
+    return repo.watchByDateRange(period.start, period.end);
+  },
+);
+
+/// One slice of the pie: a category and what it holds.
+typedef StatsSlice = ({String categoryId, int amount, double share});
+
+/// The chosen side, grouped by category and sorted largest first.
+final statsByCategoryProvider = Provider.autoDispose<List<StatsSlice>>((ref) {
+  final txs = ref.watch(statsTransactionsProvider).valueOrNull ?? const [];
+  final side = ref.watch(statsSideProvider);
+
+  final totals = <String, int>{};
+  for (final t in txs.where(side.matches)) {
+    totals[t.categoryId] = (totals[t.categoryId] ?? 0) + t.amount;
   }
-  return map;
+
+  final total = totals.values.fold(0, (sum, value) => sum + value);
+  final slices = [
+    for (final entry in totals.entries)
+      (
+        categoryId: entry.key,
+        amount: entry.value,
+        share: total > 0 ? entry.value / total : 0.0,
+      ),
+  ]..sort((a, b) => b.amount.compareTo(a.amount));
+
+  return slices;
 });
 
-/// Group theo ngày (bar chart) — dùng DateTime key để hỗ trợ cross-month
+/// The chosen side's total across the period.
+final statsSideTotalProvider = Provider.autoDispose<int>((ref) {
+  final txs = ref.watch(statsTransactionsProvider).valueOrNull ?? const [];
+  final side = ref.watch(statsSideProvider);
+  return txs.where(side.matches).fold(0, (sum, t) => sum + t.amount);
+});
+
+/// Per-day totals, keyed by date so a period spanning months still lines up.
 final statsDailyTotalsProvider =
     Provider.autoDispose<Map<DateTime, ({int income, int expense})>>((ref) {
-  final txs = ref.watch(statsTransactionsProvider).valueOrNull ?? [];
-  final map = <DateTime, ({int income, int expense})>{};
-  for (final t in txs) {
-    final dateKey =
-        DateTime(t.createdAt.year, t.createdAt.month, t.createdAt.day);
-    final cur = map[dateKey] ?? (income: 0, expense: 0);
-    map[dateKey] = t.isExpense
-        ? (income: cur.income, expense: cur.expense + t.amount)
-        : (income: cur.income + t.amount, expense: cur.expense);
-  }
-  return map;
-});
+      final txs = ref.watch(statsTransactionsProvider).valueOrNull ?? const [];
+      final map = <DateTime, ({int income, int expense})>{};
+      for (final t in txs) {
+        final day = DateTime(
+          t.createdAt.year,
+          t.createdAt.month,
+          t.createdAt.day,
+        );
+        final current = map[day] ?? (income: 0, expense: 0);
+        map[day] = t.isExpense
+            ? (income: current.income, expense: current.expense + t.amount)
+            : (income: current.income + t.amount, expense: current.expense);
+      }
+      return map;
+    });
 
-/// Tổng thu chi cho Stats
+/// Income, expense and the balance between them, for the header.
 final statsSummaryProvider =
     Provider.autoDispose<({int income, int expense, int balance})>((ref) {
-  final txs = ref.watch(statsTransactionsProvider).valueOrNull ?? [];
-  final income =
-      txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
-  final expense =
-      txs.where((t) => t.isExpense).fold(0, (s, t) => s + t.amount);
-  return (income: income, expense: expense, balance: income - expense);
-});
+      final txs = ref.watch(statsTransactionsProvider).valueOrNull ?? const [];
+      final income = txs.where((t) => t.isIncome).fold(0, (s, t) => s + t.amount);
+      final expense = txs
+          .where((t) => t.isExpense)
+          .fold(0, (s, t) => s + t.amount);
+      return (income: income, expense: expense, balance: income - expense);
+    });
