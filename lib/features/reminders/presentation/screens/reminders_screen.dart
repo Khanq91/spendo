@@ -1,830 +1,422 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:timezone/timezone.dart' as tz;
-import '../../../../core/db/powersync_db.dart';
-import '../../../../core/notifications/reminder_notification_service.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/motion/motion.dart';
+
+import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../habits/domain/detected_habit.dart';
 import '../../../habits/presentation/providers/habit_provider.dart';
+import '../../../transactions/presentation/widgets/add_transaction_sheet.dart';
 import '../../domain/recurring_reminder.dart';
 import '../providers/reminder_provider.dart';
+import '../widgets/debug_reminder_panel.dart';
 import '../widgets/reminder_form_sheet.dart';
 
+/// Screen 13 of the redesign.
 class RemindersScreen extends ConsumerWidget {
   const RemindersScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Trigger analysis khi mở màn hình
+    // Kicks off habit analysis when the screen opens.
     ref.watch(habitAnalysisProvider);
 
     final remindersAsync = ref.watch(remindersProvider);
-    final cs = Theme.of(context).colorScheme;
+    final categories = ref.watch(expenseCategoriesProvider);
+    final categoryMap = <String, Category>{for (final c in categories) c.id: c};
+
+    final hasInitialError =
+        remindersAsync.hasError && !remindersAsync.hasValue;
+    final isLoading = remindersAsync.isLoading && !remindersAsync.hasValue;
+    final reminders = remindersAsync.valueOrNull ?? const <RecurringReminder>[];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Nhắc chi tiêu định kỳ',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.plus),
-            onPressed: () => _openForm(context),
-          ),
-        ],
+      floatingActionButton: SpendoExtendedFab(
+        heroTag: 'reminders_fab',
+        label: 'Thêm nhắc nhở',
+        onPressed: () => showReminderFormSheet(context),
       ),
-      body: remindersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Lỗi: $e')),
-        data:
-            (reminders) =>
-                reminders.isEmpty
-                    ? _EmptyState(onAdd: () => _openForm(context))
-                    : ListView(
-                      children: [
-                        _PresetSection(existing: reminders),
-                        // Habit suggestions từ lịch sử giao dịch
-                        _HabitSuggestionSection(existingReminders: reminders),
-                        if (reminders.isNotEmpty) ...[
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                            child: Text(
-                              'Nhắc nhở của bạn',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: cs.onSurfaceVariant,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          AnimatedSwitcher(
-                            duration: appMotion.whenMotionAllowed(
-                              context,
-                              appMotion.listDuration,
-                            ),
-                            child: Column(
-                              key: ValueKey(
-                                reminders
-                                    .map((reminder) => reminder.id)
-                                    .join('|'),
-                              ),
-                              children: [
-                                for (final reminder in reminders)
-                                  _ReminderTile(
-                                    key: ValueKey(reminder.id),
-                                    reminder: reminder,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (kDebugMode && reminders.isNotEmpty) ...[
-                          _DebugPanel(reminders: reminders),
-                        ],
-                        const SizedBox(height: 80),
-                      ],
-                    ),
-      ),
-    );
-  }
-
-  void _openForm(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => const ReminderFormSheet(),
-    );
-  }
-}
-
-// ── Habit suggestion section ──────────────────────────────────────────────────
-
-class _HabitSuggestionSection extends ConsumerWidget {
-  final List<RecurringReminder> existingReminders;
-
-  const _HabitSuggestionSection({required this.existingReminders});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final suggestions = ref.watch(pendingHabitSuggestionsProvider);
-    final cs = Theme.of(context).colorScheme;
-
-    // Lọc bỏ những habit đã có reminder với title tương tự
-    final existingTitles =
-        existingReminders.map((r) => r.title.toLowerCase()).toSet();
-    final filtered =
-        suggestions
-            .where((h) => !existingTitles.contains(h.keyword.toLowerCase()))
-            .toList();
-
-    if (filtered.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            children: [
-              Icon(LucideIcons.sparkles, size: 13, color: cs.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Text(
-                'Gợi ý từ lịch sử của bạn',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurfaceVariant,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        ...filtered.map((habit) => _HabitSuggestionTile(habit: habit)),
-        const SizedBox(height: 4),
-      ],
-    );
-  }
-}
-
-class _HabitSuggestionTile extends ConsumerWidget {
-  final DetectedHabit habit;
-
-  const _HabitSuggestionTile({required this.habit});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final allCats = ref.watch(expenseCategoriesProvider);
-    final cat = allCats.where((c) => c.id == habit.categoryId).firstOrNull;
-    final repo = ref.read(habitRepoProvider);
-
-    final daysText =
-        habit.daysSinceLast == 0
-            ? 'hôm nay'
-            : '${habit.daysSinceLast} ngày trước';
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
-          width: 0.8,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
           children: [
-            // Icon
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Icon(
-                LucideIcons.repeat,
-                size: 16,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Info
+            // The AppBar said "Nhắc chi tiêu định kỳ" while every way in was
+            // labelled "Nhắc nhở"; the screen now answers to its own name.
+            const SpendoScreenHeader(title: 'Nhắc nhở'),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _capitalize(habit.keyword),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Thường mỗi ${habit.medianGapDays} ngày · lần cuối $daysText'
-                    '${cat != null ? ' · ${cat.name}' : ''}',
-                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Actions
-            TextButton(
-              onPressed: () => _openForm(context, habit),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+              child: switch ((hasInitialError, isLoading)) {
+                (true, _) => SpendoEmptyState(
+                  icon: LucideIcons.circleAlert,
+                  title: 'Không tải được nhắc nhở',
+                  message: 'Kiểm tra kết nối rồi thử lại.',
+                  actionLabel: 'Thử lại',
+                  onAction: () => ref.invalidate(remindersProvider),
                 ),
-              ),
-              child: const Text(
-                'Tạo',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-            ),
-            PressableScale(
-              onTap: () => repo.dismiss(habit.id),
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(
-                  LucideIcons.x,
-                  size: 14,
-                  color: cs.onSurfaceVariant,
+                (_, true) => const Center(child: CircularProgressIndicator()),
+                _ => ListView(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  children: [
+                    _SuggestionRow(reminders: reminders),
+                    if (reminders.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: SpendoEmptyState(
+                          icon: LucideIcons.bellOff,
+                          title: 'Chưa có nhắc nhở nào',
+                          message:
+                              'Tạo nhắc nhở để không quên chi tiêu định kỳ.',
+                          actionLabel: 'Thêm nhắc nhở',
+                          onAction: () => showReminderFormSheet(context),
+                        ),
+                      )
+                    else ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
+                        child: SpendoSectionHeader(
+                          label: 'Nhắc nhở của bạn (${reminders.length})',
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                      for (var i = 0; i < reminders.length; i++) ...[
+                        if (i > 0) const _ReminderDivider(),
+                        _ReminderTile(
+                          key: ValueKey(reminders[i].id),
+                          reminder: reminders[i],
+                          category: categoryMap[reminders[i].categoryId],
+                        ),
+                      ],
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: _Hint(
+                          text:
+                              '"Ghi ngay" mở sheet Thêm giao dịch với số tiền '
+                              'và danh mục điền sẵn. Vuốt trái để xoá — có '
+                              'Hoàn tác.',
+                        ),
+                      ),
+                    ],
+                    if (kDebugMode && reminders.isNotEmpty)
+                      DebugReminderPanel(reminders: reminders),
+                  ],
                 ),
-              ),
+              },
             ),
           ],
         ),
       ),
     );
   }
-
-  void _openForm(BuildContext context, DetectedHabit habit) {
-    // Tạo preset từ habit để pre-fill ReminderFormSheet
-    final preset = ReminderPreset(
-      title: _capitalize(habit.keyword),
-      iconName: 'more_horiz',
-      frequency:
-          habit.medianGapDays >= 25
-              ? ReminderFrequency.monthly
-              : habit.medianGapDays >= 6
-              ? ReminderFrequency.weekly
-              : ReminderFrequency.daily,
-    );
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder:
-          (_) => ReminderFormSheet(
-            preset: preset,
-            preselectedCategoryId: habit.categoryId,
-          ),
-    );
-  }
-
-  String _capitalize(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
-// ── Debug panel ───────────────────────────────────────────────────────────────
-
-class _DebugPanel extends StatefulWidget {
-  final List<RecurringReminder> reminders;
-  const _DebugPanel({required this.reminders});
-
-  @override
-  State<_DebugPanel> createState() => _DebugPanelState();
-}
-
-class _DebugPanelState extends State<_DebugPanel> {
-  RecurringReminder? _selected;
-  bool _firing = false;
-  int _delaySeconds = 5;
-
-  @override
-  void initState() {
-    super.initState();
-    _selected = widget.reminders.first;
-  }
-
-  @override
-  void didUpdateWidget(_DebugPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.reminders != oldWidget.reminders) {
-      final currentId = _selected?.id;
-      if (currentId != null) {
-        _selected =
-            widget.reminders.where((r) => r.id == currentId).firstOrNull;
-      }
-      _selected ??= widget.reminders.firstOrNull;
-    }
-  }
-
-  Future<void> _fireNow() async {
-    final r = _selected;
-    if (r == null) return;
-    setState(() => _firing = true);
-
-    try {
-      final testTrigger = tz.TZDateTime.now(
-        tz.local,
-      ).add(Duration(seconds: _delaySeconds));
-      final testReminder = r.copyWith(
-        nextTrigger: testTrigger.toLocal(),
-        isActive: true,
-      );
-      await ReminderNotificationService.scheduleTest(testReminder);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🔔 "${r.title}" sẽ hiện sau $_delaySeconds giây'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _firing = false);
-    }
-  }
-
-  Future<void> _seedHabitTestData() async {
-    // Lấy category id đầu tiên có sẵn
-    final cats = await db.getAll(
-      "SELECT id FROM categories WHERE is_income = 0 LIMIT 1",
-    );
-    if (cats.isEmpty) return;
-    final catId = cats.first['id'] as String;
-
-    final now = DateTime.now();
-    // 3 lần mua "dầu gội", cách nhau 10 ngày
-    for (int i = 3; i >= 1; i--) {
-      final date = now.subtract(Duration(days: i * 10));
-      await db.execute(
-        "INSERT INTO transactions(id, amount, type, category_id, note, created_at) "
-        "VALUES(uuid(), '50000', 'expense', ?, 'dầu gội', ?)",
-        [catId, date.millisecondsSinceEpoch.toString()],
-      );
-    }
-    // 3 lần mua "xăng xe", cách nhau 7 ngày
-    for (int i = 3; i >= 1; i--) {
-      final date = now.subtract(Duration(days: i * 7));
-      await db.execute(
-        "INSERT INTO transactions(id, amount, type, category_id, note, created_at) "
-        "VALUES(uuid(), '100000', 'expense', ?, 'xăng xe', ?)",
-        [catId, date.millisecondsSinceEpoch.toString()],
-      );
-    }
-    // Data nhiễu: "cà phê" hàng ngày — gap = 1, < minGapDays=3, KHÔNG nên suggest
-    for (int i = 10; i >= 1; i--) {
-      final date = now.subtract(Duration(days: i));
-      await db.execute(
-        "INSERT INTO transactions(id, amount, type, category_id, note, created_at) "
-        "VALUES(uuid(), '30000', 'expense', ?, 'cà phê', ?)",
-        [catId, date.millisecondsSinceEpoch.toString()],
-      );
-    }
-  }
+class _ReminderDivider extends StatelessWidget {
+  const _ReminderDivider();
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.5), width: 1),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.orange.withValues(alpha: 0.06),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-            child: Row(
-              children: [
-                const Icon(LucideIcons.bug, size: 16, color: Colors.orange),
-                const SizedBox(width: 6),
-                const Text(
-                  'DEBUG — Test notification',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.orange,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: Colors.orange),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Chọn reminder:',
-                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<RecurringReminder>(
-                  initialValue: _selected,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    isDense: true,
-                  ),
-                  items:
-                      widget.reminders
-                          .map(
-                            (r) => DropdownMenuItem(
-                              value: r,
-                              child: Text(
-                                '${r.title} (${r.frequencyLabel})',
-                                style: const TextStyle(fontSize: 13),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (v) => setState(() => _selected = v),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Fire sau:',
-                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children:
-                      [5, 10, 15, 30].map((s) {
-                        final selected = _delaySeconds == s;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: GestureDetector(
-                            onTap: () => setState(() => _delaySeconds = s),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    selected
-                                        ? Colors.orange.withValues(alpha: 0.2)
-                                        : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color:
-                                      selected
-                                          ? Colors.orange
-                                          : cs.outlineVariant,
-                                  width: 0.8,
-                                ),
-                              ),
-                              child: Text(
-                                '${s}s',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight:
-                                      selected
-                                          ? FontWeight.w700
-                                          : FontWeight.w400,
-                                  color:
-                                      selected
-                                          ? Colors.orange
-                                          : cs.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                ),
-                const SizedBox(height: 12),
-                if (_selected != null) ...[
-                  Text(
-                    'Payload sẽ gửi:',
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: cs.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'reminder_id: ${_selected!.id.substring(0, 8)}...\n'
-                      'category_id: ${_selected!.categoryId.substring(0, 8)}...\n'
-                      'note: ${_selected!.title}\n'
-                      'amount: ${_selected!.amountHint ?? "—"}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        height: 1.6,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _firing || _selected == null ? null : _fireNow,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    icon:
-                        _firing
-                            ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Icon(LucideIcons.bellRing, size: 16),
-                    label: Text(
-                      _firing
-                          ? 'Đang schedule...'
-                          : 'Fire notification sau ${_delaySeconds}s',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: () async {
-                    await _seedHabitTestData();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('✅ Đã seed test data')),
-                      );
-                    }
-                  },
-                  style: FilledButton.styleFrom(backgroundColor: Colors.purple),
-                  icon: const Icon(LucideIcons.flaskConical, size: 16),
-                  label: const Text('Seed habit test data'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return Divider(
+      height: 1,
+      thickness: 1,
+      indent: 72,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
     );
   }
 }
 
-// ── Preset section ────────────────────────────────────────────────────────────
+// ── Suggestions ──────────────────────────────────────────────────────────────
 
-class _PresetSection extends ConsumerWidget {
-  final List<RecurringReminder> existing;
-  const _PresetSection({required this.existing});
+/// Habit suggestions and preset templates in one scrolling row.
+///
+/// The audit found two kinds of suggestion stacked above the list in two
+/// different shapes — a card list and a chip strip — for the same job.
+class _SuggestionRow extends ConsumerWidget {
+  const _SuggestionRow({required this.reminders});
+
+  final List<RecurringReminder> reminders;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final existingTitles = existing.map((r) => r.title.toLowerCase()).toSet();
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final taken = reminders.map((r) => r.title.toLowerCase()).toSet();
 
-    final available =
-        kReminderPresets
-            .where((p) => !existingTitles.contains(p.title.toLowerCase()))
-            .toList();
+    final habits = ref
+        .watch(pendingHabitSuggestionsProvider)
+        .where((h) => !taken.contains(h.keyword.toLowerCase()))
+        .toList();
+    final presets = kReminderPresets
+        .where((p) => !taken.contains(p.title.toLowerCase()))
+        .toList();
 
-    if (available.isEmpty) return const SizedBox.shrink();
+    if (habits.isEmpty && presets.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(
-            'Gợi ý nhanh',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurfaceVariant,
-              letterSpacing: 0.5,
-            ),
-          ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: SpendoSectionHeader(label: 'Gợi ý', padding: EdgeInsets.zero),
         ),
         SizedBox(
           height: 44,
-          child: ListView.separated(
+          child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: available.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (_, i) {
-              final preset = available[i];
-              return PressableScale(
-                onTap:
-                    () => showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => ReminderFormSheet(preset: preset),
-                    ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: cs.outlineVariant, width: 0.8),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(LucideIcons.plus, size: 14),
-                      const SizedBox(width: 4),
-                      Text(preset.title, style: const TextStyle(fontSize: 13)),
-                    ],
-                  ),
+            children: [
+              for (final habit in habits) ...[
+                // A habit read off the user's own history leads, marked out
+                // from the static presets by its fill and its sparkle.
+                _HabitChip(habit: habit),
+                const SizedBox(width: 8),
+              ],
+              for (final preset in presets) ...[
+                SpendoChip.suggestion(
+                  label: preset.title,
+                  icon: LucideIcons.plus,
+                  onTap: () => showReminderFormSheet(context, preset: preset),
                 ),
-              );
-            },
+                const SizedBox(width: 8),
+              ],
+            ],
           ),
         ),
+        // Kept off the chip so dismissing a suggestion is a deliberate second
+        // step rather than a mis-tap next to "create".
+        if (habits.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: Text(
+              habits.length == 1
+                  ? 'Gợi ý từ lịch sử: ${habits.first.medianGapDays} ngày một lần'
+                  : '${habits.length} gợi ý từ lịch sử của bạn',
+              style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+            ),
+          ),
       ],
     );
   }
 }
 
-// ── Reminder tile ─────────────────────────────────────────────────────────────
+class _HabitChip extends ConsumerWidget {
+  const _HabitChip({required this.habit});
 
-class _ReminderTile extends ConsumerWidget {
-  final RecurringReminder reminder;
-  const _ReminderTile({super.key, required this.reminder});
+  final DetectedHabit habit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final allCats = ref.watch(expenseCategoriesProvider);
-    final cat = allCats.where((c) => c.id == reminder.categoryId).firstOrNull;
-    final actions = ref.read(reminderActionsProvider);
+    final label = '${_capitalize(habit.keyword)} · mỗi ${habit.medianGapDays} ngày';
 
-    return ListTile(
-      leading: AnimatedContainer(
-        duration: appMotion.whenMotionAllowed(context, appMotion.listDuration),
-        curve: appMotion.curveStandard,
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color:
-              reminder.isActive
-                  ? Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.12)
-                  : cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
+    return SpendoChip(
+      label: label,
+      icon: LucideIcons.sparkles,
+      selected: true,
+      onTap: () => showReminderFormSheet(
+        context,
+        preset: ReminderPreset(
+          title: _capitalize(habit.keyword),
+          iconName: 'more_horiz',
+          frequency: habit.medianGapDays >= 25
+              ? ReminderFrequency.monthly
+              : habit.medianGapDays >= 6
+              ? ReminderFrequency.weekly
+              : ReminderFrequency.daily,
         ),
-        child: AnimatedSwitcher(
-          duration: appMotion.whenMotionAllowed(
-            context,
-            appMotion.tapUpDuration,
-          ),
-          child: Icon(
-            LucideIcons.bell,
-            key: ValueKey(reminder.isActive),
-            size: 18,
-            color:
-                reminder.isActive
-                    ? Theme.of(context).colorScheme.primary
-                    : cs.onSurfaceVariant,
-          ),
-        ),
+        preselectedCategoryId: habit.categoryId,
       ),
-      title: AnimatedDefaultTextStyle(
-        duration: appMotion.whenMotionAllowed(context, appMotion.listDuration),
-        curve: appMotion.curveStandard,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: reminder.isActive ? cs.onSurface : cs.onSurfaceVariant,
-        ),
-        child: Text(reminder.title),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            reminder.scheduleDetail,
-            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-          ),
-          if (cat != null)
-            Text(
-              cat.name,
-              style: TextStyle(
-                fontSize: 11,
-                color: cat.color,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Switch(
-            value: reminder.isActive,
-            activeThumbColor: Theme.of(context).colorScheme.primary,
-            onChanged: (_) => actions.toggleActive(reminder),
-          ),
-          PopupMenuButton<String>(
-            icon: Icon(LucideIcons.ellipsisVertical, size: 18, color: cs.onSurfaceVariant),
-            onSelected: (val) async {
-              if (val == 'edit') {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => ReminderFormSheet(existing: reminder),
-                );
-              } else if (val == 'delete') {
-                await actions.delete(reminder);
-              }
-            },
-            itemBuilder:
-                (_) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Chỉnh sửa')),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Text(
-                      'Xoá',
-                      style: TextStyle(color: AppTheme.expenseAltColor),
-                    ),
-                  ),
-                ],
-          ),
-        ],
-      ),
-      isThreeLine: cat != null,
+      onDeleted: () => ref.read(habitRepoProvider).dismiss(habit.id),
     );
   }
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
+String _capitalize(String s) =>
+    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
-class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
-  const _EmptyState({required this.onAdd});
+// ── Reminder row ─────────────────────────────────────────────────────────────
+
+class _ReminderTile extends ConsumerWidget {
+  const _ReminderTile({super.key, required this.reminder, this.category});
+
+  final RecurringReminder reminder;
+  final Category? category;
 
   @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final actions = ref.read(reminderActionsProvider);
+    final active = reminder.isActive;
+    final color = category?.color ?? cs.primary;
+
+    return Dismissible(
+      key: ValueKey('reminder_dismiss_${reminder.id}'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => _deleteWithUndo(context, ref, reminder),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        color: cs.errorContainer,
+        child: Icon(LucideIcons.trash2, size: 20, color: cs.onErrorContainer),
+      ),
+      child: Opacity(
+        opacity: active ? 1 : 0.6,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 68),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
             children: [
-              Icon(LucideIcons.bellOff, size: 48, color: cs.outlineVariant),
-              const SizedBox(height: 12),
-              Text(
-                'Chưa có nhắc nhở nào',
-                style: TextStyle(color: cs.onSurfaceVariant),
+              SpendoIconTile(
+                icon: LucideIcons.bell,
+                color: active ? color : cs.onSurfaceVariant,
+                size: 44,
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Tạo nhắc nhở để không quên chi tiêu định kỳ',
-                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      reminder.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: active ? cs.onSurface : cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      _subtitle(reminder),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    if (active) ...[
+                      const SizedBox(height: 6),
+                      // The reminder already knows the category and the rough
+                      // amount; "Ghi ngay" spends them instead of making the
+                      // user retype both.
+                      SpendoChip(
+                        label: 'Ghi ngay',
+                        icon: LucideIcons.plus,
+                        onTap: () => showAddTransactionSheet(
+                          context,
+                          preselectedCategoryId: reminder.categoryId,
+                          prefillNote: reminder.title,
+                          prefillAmount: reminder.amountHint,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: onAdd,
-                icon: const Icon(LucideIcons.plus, size: 18),
-                label: const Text('Thêm nhắc nhở'),
+              const SizedBox(width: 8),
+              Switch(
+                value: active,
+                onChanged: (_) => actions.toggleActive(reminder),
               ),
             ],
           ),
         ),
-        _PresetSection(existing: const []),
-        // Habit suggestions hiện ngay cả khi chưa có reminder nào
-        const _HabitSuggestionSection(existingReminders: []),
-      ],
+      ),
+    );
+  }
+}
+
+/// `Lần tới: Thứ 5, 5/9 · 20:00 · ~300.000 ₫`, or the schedule when off.
+///
+/// The audit found the tile showing only the recurrence rule: the next firing
+/// and the suggested amount were both in the model and both hidden.
+String _subtitle(RecurringReminder reminder) {
+  if (!reminder.isActive) return 'Đã tắt · ${reminder.scheduleDetail}';
+
+  final next = reminder.nextTrigger;
+  final time =
+      '${next.hour.toString().padLeft(2, '0')}:'
+      '${next.minute.toString().padLeft(2, '0')}';
+  final parts = [
+    'Lần tới: ${_weekdayLabel(next.weekday)}, ${next.day}/${next.month}',
+    time,
+    if (reminder.amountHint != null && reminder.amountHint! > 0)
+      '~${formatVND(reminder.amountHint!)}',
+  ];
+  return parts.join(' · ');
+}
+
+String _weekdayLabel(int weekday) => const [
+  '',
+  'Thứ 2',
+  'Thứ 3',
+  'Thứ 4',
+  'Thứ 5',
+  'Thứ 6',
+  'Thứ 7',
+  'CN',
+][weekday.clamp(1, 7)];
+
+Future<void> _deleteWithUndo(
+  BuildContext context,
+  WidgetRef ref,
+  RecurringReminder reminder,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final actions = ref.read(reminderActionsProvider);
+
+  await actions.delete(reminder);
+  // Deleting used to take one tap from a menu with no confirmation and no way
+  // back — the only place in the app that did.
+  messenger.clearSnackBars();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text('Đã xoá ${reminder.title}'),
+      duration: const Duration(seconds: 5),
+      action: SnackBarAction(
+        label: 'Hoàn tác',
+        onPressed: () => actions.add(reminder),
+      ),
+    ),
+  );
+}
+
+class _Hint extends StatelessWidget {
+  const _Hint({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return SpendoCard(
+      color: cs.surfaceContainerLowest,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(LucideIcons.info, size: 16, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

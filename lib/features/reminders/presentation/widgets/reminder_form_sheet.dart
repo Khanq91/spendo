@@ -1,17 +1,76 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/utils/category_icons.dart';
-import '../../../../shared/widgets/spendo/spendo.dart';
-import '../../../categories/presentation/providers/category_provider.dart';
-import '../../domain/recurring_reminder.dart';
-import '../providers/reminder_provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../categories/presentation/providers/category_provider.dart';
+import '../../../transactions/presentation/widgets/amount_input_controller.dart';
+import '../../domain/recurring_reminder.dart';
+import '../providers/reminder_provider.dart';
+
+/// Opens the reminder form. The single place the sheet is presented.
+Future<void> showReminderFormSheet(
+  BuildContext context, {
+  RecurringReminder? existing,
+  ReminderPreset? preset,
+  String? preselectedCategoryId,
+  String? prefillTitle,
+  int? prefillAmount,
+}) {
+  return SpendoSheet.showModal<void>(
+    context: context,
+    builder: (_) => ReminderFormSheet(
+      existing: existing,
+      preset: preset,
+      preselectedCategoryId: preselectedCategoryId,
+      prefillTitle: prefillTitle,
+      prefillAmount: prefillAmount,
+    ),
+  );
+}
+
+/// How far ahead the "sắp hết" nudge fires. `0` turns it off.
+///
+/// The model has carried `warnBeforeHours` and the presets have set it all
+/// along, but the form had no control for it, so every preset's value was
+/// dropped on the way in (`19-reminder-form-sheet.md` §F).
+enum WarnBefore {
+  off(0, 'Tắt'),
+  sixHours(6, '6 giờ'),
+  oneDay(24, '1 ngày'),
+  twoDays(48, '2 ngày');
+
+  const WarnBefore(this.hours, this.label);
+
+  final int hours;
+  final String label;
+
+  /// The option [hours] falls into, rounding down to what the form can show.
+  static WarnBefore nearest(int hours) {
+    if (hours <= 0) return WarnBefore.off;
+    return WarnBefore.values.lastWhere(
+      (option) => option.hours <= hours,
+      orElse: () => WarnBefore.sixHours,
+    );
+  }
+}
+
+/// Screen 16 of the redesign.
 class ReminderFormSheet extends ConsumerStatefulWidget {
+  const ReminderFormSheet({
+    super.key,
+    this.existing,
+    this.preset,
+    this.preselectedCategoryId,
+    this.prefillTitle,
+    this.prefillAmount,
+  });
+
   final RecurringReminder? existing;
   final ReminderPreset? preset;
 
-  /// Category ID pre-selected (dùng khi tạo từ habit suggestion)
+  /// Pre-selected category, used when creating from a habit suggestion.
   final String? preselectedCategoryId;
 
   /// Seeds the title when the sheet is opened from a transaction in progress
@@ -22,475 +81,625 @@ class ReminderFormSheet extends ConsumerStatefulWidget {
   /// Seeds the estimated amount, same origin as [prefillTitle].
   final int? prefillAmount;
 
-  const ReminderFormSheet({
-    super.key,
-    this.existing,
-    this.preset,
-    this.preselectedCategoryId,
-    this.prefillTitle,
-    this.prefillAmount,
-  });
-
   @override
   ConsumerState<ReminderFormSheet> createState() => _ReminderFormSheetState();
 }
 
 class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
   final _titleCtrl = TextEditingController();
-  final _amountCtrl = TextEditingController();
+  final _titleFocus = FocusNode();
+  final _amountCtrl = AmountInputController();
 
   late ReminderFrequency _frequency;
   late int _hour;
   late int _minute;
   late int _dayOfWeek;
   late int _dayOfMonth;
+  late WarnBefore _warnBefore;
   String? _categoryId;
-  bool _loading = false;
+  bool _saving = false;
+  String? _titleError;
+
+  /// True while the keypad is driving the amount instead of the fields.
+  bool _editingAmount = false;
+
+  bool get _isEdit => widget.existing != null;
 
   @override
   void initState() {
     super.initState();
-    final e = widget.existing;
-    final p = widget.preset;
+    final existing = widget.existing;
+    final preset = widget.preset;
 
-    if (e != null) {
-      _titleCtrl.text = e.title;
-      _amountCtrl.text = e.amountHint?.toString() ?? '';
-      _frequency = e.frequency;
-      _hour = e.hour;
-      _minute = e.minute;
-      _dayOfWeek = e.dayOfWeek ?? 1;
-      _dayOfMonth = e.dayOfMonth ?? 1;
-      _categoryId = e.categoryId;
+    if (existing != null) {
+      _titleCtrl.text = existing.title;
+      if (existing.amountHint != null && existing.amountHint! > 0) {
+        _amountCtrl.prefill(existing.amountHint.toString());
+      }
+      _frequency = existing.frequency;
+      _hour = existing.hour;
+      _minute = existing.minute;
+      _dayOfWeek = existing.dayOfWeek ?? 1;
+      _dayOfMonth = existing.dayOfMonth ?? 1;
+      _warnBefore = WarnBefore.nearest(existing.warnBeforeHours);
+      _categoryId = existing.categoryId;
     } else {
-      _frequency = p?.frequency ?? ReminderFrequency.monthly;
-      _titleCtrl.text = widget.prefillTitle ?? p?.title ?? '';
-      _amountCtrl.text =
-          (widget.prefillAmount ?? p?.suggestedAmount)?.toString() ?? '';
+      _frequency = preset?.frequency ?? ReminderFrequency.monthly;
+      _titleCtrl.text = widget.prefillTitle ?? preset?.title ?? '';
+      final amount = widget.prefillAmount ?? preset?.suggestedAmount;
+      if (amount != null && amount > 0) _amountCtrl.prefill(amount.toString());
       _hour = 20;
       _minute = 0;
       _dayOfWeek = 1;
       _dayOfMonth = 1;
-      // Ưu tiên preselectedCategoryId (từ habit suggestion)
+      _warnBefore = WarnBefore.nearest(preset?.defaultWarnBeforeHours ?? 0);
       _categoryId = widget.preselectedCategoryId;
+    }
+    _titleCtrl.addListener(_clearTitleError);
+  }
+
+  void _clearTitleError() {
+    if (_titleError != null && _titleCtrl.text.trim().isNotEmpty) {
+      setState(() => _titleError = null);
     }
   }
 
   @override
   void dispose() {
+    _titleCtrl.removeListener(_clearTitleError);
     _titleCtrl.dispose();
+    _titleFocus.dispose();
     _amountCtrl.dispose();
     super.dispose();
   }
 
-  bool get _isEdit => widget.existing != null;
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _hour, minute: _minute),
+    );
+    if (picked != null) {
+      setState(() {
+        _hour = picked.hour;
+        _minute = picked.minute;
+      });
+    }
+  }
+
+  Future<void> _pickDayOfMonth() async {
+    final picked = await SpendoSheet.showModal<int>(
+      context: context,
+      builder: (_) => _DayOfMonthSheet(selected: _dayOfMonth),
+    );
+    if (picked != null) setState(() => _dayOfMonth = picked);
+  }
 
   Future<void> _submit() async {
     final title = _titleCtrl.text.trim();
-    if (title.isEmpty || _categoryId == null) return;
+    if (title.isEmpty) {
+      setState(() => _titleError = 'Đặt tên cho nhắc nhở này');
+      _titleFocus.requestFocus();
+      return;
+    }
+    final categoryId = _categoryId;
+    if (categoryId == null) return;
 
-    setState(() => _loading = true);
+    setState(() => _saving = true);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       final actions = ref.read(reminderActionsProvider);
-      final nextTrigger = RecurringReminder.calcNextTrigger(
+      final reminder = RecurringReminder(
+        id: widget.existing?.id ?? '',
+        title: title,
+        categoryId: categoryId,
+        amountHint: _amountCtrl.hasValue ? _amountCtrl.value : null,
         frequency: _frequency,
+        dayOfWeek: _frequency == ReminderFrequency.weekly ? _dayOfWeek : null,
+        dayOfMonth: _frequency == ReminderFrequency.monthly
+            ? _dayOfMonth
+            : null,
         hour: _hour,
         minute: _minute,
-        dayOfWeek: _dayOfWeek,
-        dayOfMonth: _dayOfMonth,
+        isActive: widget.existing?.isActive ?? true,
+        warnBeforeHours: _warnBefore.hours,
+        nextTrigger: RecurringReminder.calcNextTrigger(
+          frequency: _frequency,
+          hour: _hour,
+          minute: _minute,
+          dayOfWeek: _dayOfWeek,
+          dayOfMonth: _dayOfMonth,
+        ),
       );
-      final amountHint = int.tryParse(_amountCtrl.text.trim());
 
       if (_isEdit) {
-        final updated = RecurringReminder(
-          id: widget.existing!.id,
-          title: title,
-          categoryId: _categoryId!,
-          amountHint: amountHint,
-          frequency: _frequency,
-          dayOfWeek: _frequency == ReminderFrequency.weekly ? _dayOfWeek : null,
-          dayOfMonth:
-              _frequency == ReminderFrequency.monthly ? _dayOfMonth : null,
-          hour: _hour,
-          minute: _minute,
-          isActive: widget.existing!.isActive,
-          nextTrigger: nextTrigger,
-        );
-        await actions.update(updated);
+        await actions.update(reminder);
       } else {
-        final r = RecurringReminder(
-          id: '',
-          title: title,
-          categoryId: _categoryId!,
-          amountHint: amountHint,
-          frequency: _frequency,
-          dayOfWeek: _frequency == ReminderFrequency.weekly ? _dayOfWeek : null,
-          dayOfMonth:
-              _frequency == ReminderFrequency.monthly ? _dayOfMonth : null,
-          hour: _hour,
-          minute: _minute,
-          isActive: true,
-          nextTrigger: nextTrigger,
-        );
-        await actions.add(r);
+        await actions.add(reminder);
       }
-      if (mounted) Navigator.of(context).pop();
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      navigator.pop();
+    } catch (_) {
+      // The old form let a failure escape unhandled and left `_loading` stuck.
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Không lưu được nhắc nhở. Thử lại.')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final allCats = ref.watch(expenseCategoriesProvider);
+    final categories = ref.watch(expenseCategoriesProvider);
 
-    // Auto-select từ preset icon nếu chưa có category
-    if (_categoryId == null && widget.preset != null && allCats.isNotEmpty) {
-      final match =
-          allCats
-              .where((c) => c.iconName == widget.preset!.iconName)
-              .firstOrNull;
-      if (match != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _categoryId = match.id);
-        });
-      } else {
-        _categoryId = allCats.first.id;
-      }
+    // Fall back to the preset's icon, then to the first category, so the sheet
+    // always opens with a valid selection.
+    if (_categoryId == null && categories.isNotEmpty) {
+      final preset = widget.preset;
+      final byIcon = preset == null
+          ? null
+          : categories.where((c) => c.iconName == preset.iconName).firstOrNull;
+      _categoryId = (byIcon ?? categories.first).id;
     }
 
-    // Fallback nếu không có preselectedCategoryId và không có preset
-    if (_categoryId == null && allCats.isNotEmpty) {
-      _categoryId = allCats.first.id;
-    }
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
-        top: 12,
+    return SpendoSheet(
+      header: SpendoSheetHeader(
+        title: _isEdit ? 'Sửa nhắc nhở' : 'Thêm nhắc nhở',
+        onCancel: () => Navigator.of(context).pop(),
+        action: SpendoButton(
+          label: 'Lưu',
+          busy: _saving,
+          onPressed: _submit,
+        ),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: cs.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Text(
-              _isEdit ? 'Chỉnh sửa nhắc nhở' : 'Thêm nhắc nhở',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _titleCtrl,
-              autofocus: !_isEdit,
-              decoration: InputDecoration(
-                labelText: 'Tên (vd: Dầu gội, Tiền điện...)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Text(
-              'Danh mục',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: cs.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 34,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: allCats.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final cat = allCats[i];
-                  return SpendoChip(
-                    label: cat.name,
-                    icon: categoryIcon(cat.iconName),
-                    selected: cat.id == _categoryId,
-                    onTap: () => setState(() => _categoryId = cat.id),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            TextField(
-              controller: _amountCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Số tiền gợi ý (tuỳ chọn)',
-                suffixText: '₫',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Text(
-              'Tần suất',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: cs.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children:
-                  ReminderFrequency.values.map((f) {
-                    final selected = f == _frequency;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          right: f == ReminderFrequency.monthly ? 0 : 8,
-                        ),
-                        child: GestureDetector(
-                          onTap: () => setState(() => _frequency = f),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color:
-                                  selected
-                                      ? cs.primary.withValues(alpha: 0.12)
-                                      : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color:
-                                    selected ? cs.primary : cs.outlineVariant,
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Text(
-                              f.frequencyLabel,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color:
-                                    selected ? cs.primary : cs.onSurfaceVariant,
-                                fontWeight:
-                                    selected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-            ),
-            const SizedBox(height: 12),
-
-            if (_frequency == ReminderFrequency.weekly) ...[
-              Text(
-                'Ngày trong tuần',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: List.generate(7, (i) {
-                  final dow = i + 1;
-                  final label = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][i];
-                  final selected = dow == _dayOfWeek;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _dayOfWeek = dow),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 100),
-                        margin: const EdgeInsets.only(right: 4),
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selected ? cs.primary : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: selected ? cs.primary : cs.outlineVariant,
-                            width: 0.8,
-                          ),
-                        ),
-                        child: Text(
-                          label,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color:
-                                selected ? cs.onPrimary : cs.onSurfaceVariant,
-                            fontWeight:
-                                selected ? FontWeight.w700 : FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            if (_frequency == ReminderFrequency.monthly) ...[
-              Text(
-                'Ngày trong tháng',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<int>(
-                initialValue: _dayOfMonth,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 8),
+              children: [
+                TextField(
+                  controller: _titleCtrl,
+                  focusNode: _titleFocus,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+                  decoration: InputDecoration(
+                    labelText: 'Tên',
+                    hintText: 'Tiền điện, Dầu gội…',
+                    errorText: _titleError,
                   ),
                 ),
-                items:
-                    List.generate(28, (i) => i + 1)
-                        .map(
-                          (d) => DropdownMenuItem(
-                            value: d,
-                            child: Text('Ngày $d'),
-                          ),
-                        )
-                        .toList(),
-                onChanged: (v) => setState(() => _dayOfMonth = v ?? 1),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            Text(
-              'Giờ nhắc nhở',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: cs.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () async {
-                final picked = await showTimePicker(
-                  context: context,
-                  initialTime: TimeOfDay(hour: _hour, minute: _minute),
-                );
-                if (picked != null && mounted) {
-                  setState(() {
-                    _hour = picked.hour;
-                    _minute = picked.minute;
-                  });
-                }
-              },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+                const SpendoSectionHeader(
+                  label: 'Danh mục',
+                  padding: _labelPad,
                 ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: cs.outlineVariant, width: 0.8),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Icon(
-                      LucideIcons.clock,
-                      size: 18,
-                      color: cs.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${_hour.toString().padLeft(2, '0')}:${_minute.toString().padLeft(2, '0')}',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: cs.primary,
+                    for (final category in categories)
+                      SpendoChip(
+                        label: category.name,
+                        selected: category.id == _categoryId,
+                        leading: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: category.color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        onTap: () =>
+                            setState(() => _categoryId = category.id),
                       ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Tap để thay đổi',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurfaceVariant,
+                  ],
+                ),
+                const SpendoSectionHeader(
+                  label: 'Số tiền gợi ý (tuỳ chọn)',
+                  padding: _labelPad,
+                ),
+                // The amount used to run through the system keyboard with no
+                // thousands separators, while every other money field in the
+                // app used the keypad.
+                _AmountField(
+                  controller: _amountCtrl,
+                  active: _editingAmount,
+                  onTap: () {
+                    FocusScope.of(context).unfocus();
+                    setState(() => _editingAmount = true);
+                  },
+                ),
+                const SpendoSectionHeader(
+                  label: 'Tần suất',
+                  padding: _labelPad,
+                ),
+                SpendoSegmented<ReminderFrequency>(
+                  value: _frequency,
+                  onChanged: (next) => setState(() => _frequency = next),
+                  expand: true,
+                  height: 34,
+                  horizontalPadding: 8,
+                  options: [
+                    for (final value in ReminderFrequency.values)
+                      (value: value, label: value.frequencyLabel),
+                  ],
+                ),
+                if (_frequency == ReminderFrequency.weekly) ...[
+                  const SizedBox(height: 12),
+                  _WeekdayRow(
+                    value: _dayOfWeek,
+                    onChanged: (next) => setState(() => _dayOfWeek = next),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    if (_frequency == ReminderFrequency.monthly) ...[
+                      Expanded(
+                        child: _ValueField(
+                          label: 'Ngày trong tháng',
+                          value: 'Ngày $_dayOfMonth',
+                          icon: LucideIcons.chevronDown,
+                          onTap: _pickDayOfMonth,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                    Expanded(
+                      child: _ValueField(
+                        label: 'Giờ nhắc',
+                        value:
+                            '${_hour.toString().padLeft(2, '0')}:'
+                            '${_minute.toString().padLeft(2, '0')}',
+                        icon: LucideIcons.clock,
+                        onTap: _pickTime,
                       ),
                     ),
                   ],
                 ),
+                const SpendoSectionHeader(
+                  label: 'Nhắc trước',
+                  padding: _labelPad,
+                ),
+                SpendoSegmented<WarnBefore>(
+                  value: _warnBefore,
+                  onChanged: (next) => setState(() => _warnBefore = next),
+                  expand: true,
+                  height: 32,
+                  horizontalPadding: 8,
+                  options: [
+                    for (final value in WarnBefore.values)
+                      (value: value, label: value.label),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _Summary(
+                  title: _titleCtrl.text.trim(),
+                  amount: _amountCtrl.hasValue ? _amountCtrl.value : null,
+                  frequency: _frequency,
+                  dayOfWeek: _dayOfWeek,
+                  dayOfMonth: _dayOfMonth,
+                  hour: _hour,
+                  minute: _minute,
+                  warnBefore: _warnBefore,
+                ),
+              ],
+            ),
+          ),
+          if (_editingAmount && !keyboardOpen)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(
+                children: [
+                  ListenableBuilder(
+                    listenable: _amountCtrl,
+                    builder: (_, __) => SpendoNumpad(
+                      onKey: _amountCtrl.press,
+                      onLongPressDelete: _amountCtrl.reset,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SpendoButton.outline(
+                    label: 'Xong',
+                    onPressed: () => setState(() => _editingAmount = false),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
 
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _loading ? null : _submit,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+const _labelPad = EdgeInsets.only(top: 14, bottom: 8);
+
+// ── Fields ───────────────────────────────────────────────────────────────────
+
+class _AmountField extends StatelessWidget {
+  const _AmountField({
+    required this.controller,
+    required this.active,
+    required this.onTap,
+  });
+
+  final AmountInputController controller;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: active ? Border.all(color: cs.primary, width: 1.5) : null,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: ListenableBuilder(
+                listenable: controller,
+                builder: (_, __) => Text(
+                  '${controller.formatted} ₫',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
-                child:
-                    _loading
-                        ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                        : Text(
-                          _isEdit ? 'Lưu thay đổi' : 'Tạo nhắc nhở',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
               ),
             ),
-            const SizedBox(height: 16),
+            Icon(
+              LucideIcons.calculator,
+              size: 18,
+              color: active ? cs.primary : cs.onSurfaceVariant,
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+/// Label above a tappable value, matching the mockup's paired fields.
+class _ValueField extends StatelessWidget {
+  const _ValueField({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(icon, size: 16, color: cs.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WeekdayRow extends StatelessWidget {
+  const _WeekdayRow({required this.value, required this.onChanged});
+
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  static const _labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+  @override
+  Widget build(BuildContext context) {
+    return SpendoSegmented<int>(
+      value: value,
+      onChanged: onChanged,
+      expand: true,
+      height: 32,
+      horizontalPadding: 2,
+      options: [
+        for (var i = 0; i < _labels.length; i++)
+          (value: i + 1, label: _labels[i]),
+      ],
+    );
+  }
+}
+
+/// Days 1–28, so a reminder never lands on a date some months lack.
+class _DayOfMonthSheet extends StatelessWidget {
+  const _DayOfMonthSheet({required this.selected});
+
+  final int selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SpendoSheet(
+      header: const SpendoSheetHeader(title: 'Ngày trong tháng'),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.45,
+        ),
+        child: GridView.count(
+          crossAxisCount: 7,
+          shrinkWrap: true,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          padding: const EdgeInsets.only(top: 4, bottom: 8),
+          children: [
+            for (var day = 1; day <= 28; day++)
+              _DayCell(day: day, selected: day == selected),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DayCell extends StatelessWidget {
+  const _DayCell({required this.day, required this.selected});
+
+  final int day;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Material(
+      color: selected ? cs.primaryContainer : cs.surfaceContainer,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).pop(day),
+        child: Center(
+          child: Text(
+            '$day',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              color: selected ? cs.onPrimaryContainer : cs.onSurface,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Plain-language read-back of what the form will schedule.
+class _Summary extends StatelessWidget {
+  const _Summary({
+    required this.title,
+    required this.amount,
+    required this.frequency,
+    required this.dayOfWeek,
+    required this.dayOfMonth,
+    required this.hour,
+    required this.minute,
+    required this.warnBefore,
+  });
+
+  final String title;
+  final int? amount;
+  final ReminderFrequency frequency;
+  final int dayOfWeek;
+  final int dayOfMonth;
+  final int hour;
+  final int minute;
+  final WarnBefore warnBefore;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final time =
+        '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    final when = switch (frequency) {
+      ReminderFrequency.daily => 'mỗi ngày',
+      ReminderFrequency.weekly => 'mỗi ${_weekdayName(dayOfWeek)}',
+      ReminderFrequency.monthly => 'ngày $dayOfMonth hàng tháng',
+    };
+    final name = title.isEmpty ? 'Nhắc nhở' : title;
+    final money = amount == null || amount == 0
+        ? ''
+        : ' ~${formatVND(amount!)}';
+    final warn = warnBefore == WarnBefore.off
+        ? ''
+        : ', báo trước ${warnBefore.label.toLowerCase()}';
+
+    return SpendoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(LucideIcons.bell, size: 16, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Nhắc "$name$money" $when lúc $time$warn.',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _weekdayName(int day) => const [
+  '',
+  'Thứ 2',
+  'Thứ 3',
+  'Thứ 4',
+  'Thứ 5',
+  'Thứ 6',
+  'Thứ 7',
+  'Chủ nhật',
+][day.clamp(1, 7)];

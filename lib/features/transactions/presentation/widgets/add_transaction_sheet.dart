@@ -413,13 +413,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   void _createReminder(List<Category> cats) {
     final note = _noteCtrl.text.trim();
     final category = _selectedCategory(cats);
-    SpendoSheet.showModal<void>(
-      context: context,
-      builder: (_) => ReminderFormSheet(
-        preselectedCategoryId: _selectedCategoryId,
-        prefillTitle: note.isNotEmpty ? note : category?.name,
-        prefillAmount: _amountCtrl.hasValue ? _amountCtrl.value : null,
-      ),
+    showReminderFormSheet(
+      context,
+      preselectedCategoryId: _selectedCategoryId,
+      prefillTitle: note.isNotEmpty ? note : category?.name,
+      prefillAmount: _amountCtrl.hasValue ? _amountCtrl.value : null,
     );
   }
 

@@ -1,383 +1,303 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../transactions/presentation/widgets/amount_input_controller.dart';
-import '../../../transactions/presentation/widgets/numpad.dart';
-import '../../data/loan_repository.dart';
-import '../../domain/loan.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class LoanFormSheet extends StatefulWidget {
-  final Loan? existing;
-  /// Pre-select loại khi mở từ filtered view (borrowed/lent)
-  final LoanType? initialType;
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../transactions/presentation/widgets/amount_input_controller.dart';
+import '../../data/loan_repository.dart';
+import '../../domain/loan.dart';
 
-  const LoanFormSheet({super.key, this.existing, this.initialType});
-
-  @override
-  State<LoanFormSheet> createState() => _LoanFormSheetState();
+/// Opens the loan form. The single place the sheet is presented.
+Future<void> showLoanFormSheet(
+  BuildContext context, {
+  Loan? existing,
+  LoanType? initialType,
+}) {
+  return SpendoSheet.showModal<void>(
+    context: context,
+    builder: (_) => LoanFormSheet(existing: existing, initialType: initialType),
+  );
 }
 
-class _LoanFormSheetState extends State<LoanFormSheet> {
+/// Screen 17 of the redesign.
+class LoanFormSheet extends ConsumerStatefulWidget {
+  const LoanFormSheet({super.key, this.existing, this.initialType});
+
+  final Loan? existing;
+  final LoanType? initialType;
+
+  @override
+  ConsumerState<LoanFormSheet> createState() => _LoanFormSheetState();
+}
+
+class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
   final _titleCtrl = TextEditingController();
   final _contactCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
-  late final AmountInputController _amountCtrl;
+  final _titleFocus = FocusNode();
+  final _amountCtrl = AmountInputController();
 
   late LoanType _type;
-  late String _colorHex;
+  late DateTime _startDate;
   DateTime? _dueDate;
-  bool _loading = false;
+  bool _saving = false;
+  String? _titleError;
 
   bool get _isEdit => widget.existing != null;
 
   @override
   void initState() {
     super.initState();
-    _amountCtrl = AmountInputController();
-
-    if (_isEdit) {
-      final l = widget.existing!;
-      _titleCtrl.text = l.title;
-      _contactCtrl.text = l.contactName;
-      _noteCtrl.text = l.note ?? '';
-      _type = l.type;
-      _colorHex = l.colorHex;
-      _dueDate = l.dueDate;
-      _amountCtrl.prefill(l.principal.toString());
+    final existing = widget.existing;
+    if (existing != null) {
+      _titleCtrl.text = existing.title;
+      _contactCtrl.text = existing.contactName;
+      _type = existing.type;
+      _startDate = existing.startDate;
+      _dueDate = existing.dueDate;
+      _amountCtrl.prefill(existing.principal.toString());
     } else {
-      // Dùng initialType nếu có, fallback về borrowed
       _type = widget.initialType ?? LoanType.borrowed;
-      _colorHex = _type == LoanType.borrowed
-          ? AppColors.palette[0]
-          : AppColors.palette[12];
+      _startDate = DateTime.now();
     }
+    _titleCtrl.addListener(_onTitleChanged);
   }
+
+  /// The old form gated its button on the title but never listened to the
+  /// field, so typing a name left the button grey until something else
+  /// happened to rebuild it (`17-loan-form-sheet.md` §L).
+  void _onTitleChanged() => setState(() {
+    if (_titleError != null && _titleCtrl.text.trim().isNotEmpty) {
+      _titleError = null;
+    }
+  });
 
   @override
   void dispose() {
+    _titleCtrl.removeListener(_onTitleChanged);
     _titleCtrl.dispose();
     _contactCtrl.dispose();
-    _noteCtrl.dispose();
+    _titleFocus.dispose();
     _amountCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDueDate() async {
+  Future<void> _pickStartDate() async {
+    final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      useRootNavigator: false,
-      initialDate: _dueDate ?? DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+      initialDate: _startDate,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 10),
     );
-    if (context.mounted && picked != null) {
-      setState(() => _dueDate = picked);
-    }
+    if (picked != null) setState(() => _startDate = picked);
+  }
+
+  Future<void> _pickDueDate() async {
+    final now = DateTime.now();
+    final current = _dueDate;
+    // `firstDate: now` used to throw on a loan whose due date had already
+    // passed, because initialDate fell before it.
+    final earliest = DateTime(now.year - 10);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current ?? now.add(const Duration(days: 30)),
+      firstDate: earliest,
+      lastDate: DateTime(now.year + 10),
+    );
+    if (picked != null) setState(() => _dueDate = picked);
   }
 
   Future<void> _submit() async {
     final title = _titleCtrl.text.trim();
-    if (title.isEmpty || !_amountCtrl.hasValue) return;
+    if (title.isEmpty) {
+      setState(() => _titleError = 'Đặt tên cho khoản vay này');
+      _titleFocus.requestFocus();
+      return;
+    }
+    if (!_amountCtrl.hasValue) return;
 
-    setState(() => _loading = true);
+    setState(() => _saving = true);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final contact = _contactCtrl.text.trim();
+    final existing = widget.existing;
+
     try {
       final repo = LoanRepository();
       final loan = Loan(
-        id: widget.existing?.id ?? '',
+        id: existing?.id ?? '',
         title: title,
         type: _type,
         principal: _amountCtrl.value,
-        contactName: _contactCtrl.text.trim(),
-        startDate: widget.existing?.startDate ?? DateTime.now(),
+        contactName: contact,
+        startDate: _startDate,
         dueDate: _dueDate,
-        note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-        colorHex: _colorHex,
-        isClosed: widget.existing?.isClosed ?? false,
+        note: existing?.note,
+        colorHex: existing?.colorHex ?? _defaultColorFor(_type),
+        isClosed: existing?.isClosed ?? false,
       );
-
       if (_isEdit) {
         await repo.update(loan);
       } else {
         await repo.add(loan);
       }
-      if (mounted) Navigator.of(context).pop();
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      navigator.pop();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Không lưu được khoản vay. Thử lại.')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final accentColor = AppColors.fromHex(_colorHex);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
-        top: 12 + MediaQuery.of(context).padding.top,
+    return SpendoSheet(
+      header: SpendoSheetHeader(
+        title: _isEdit ? 'Sửa khoản vay' : 'Thêm khoản vay',
+        onCancel: () => Navigator.of(context).pop(),
+        // Wrapped, because the button's enabled state depends on the keypad:
+        // the old form gated on a value it never listened to, so the button
+        // stayed grey after the user had typed one.
+        action: ListenableBuilder(
+          listenable: _amountCtrl,
+          builder: (_, __) => SpendoButton(
+            label: 'Lưu',
+            busy: _saving,
+            onPressed: _amountCtrl.hasValue ? _submit : null,
+          ),
+        ),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: cs.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Row(
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 8),
               children: [
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(LucideIcons.x),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  style: IconButton.styleFrom(
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                SpendoSegmented<LoanType>(
+                  value: _type,
+                  onChanged: (next) => setState(() => _type = next),
+                  expand: true,
+                  height: 34,
+                  options: const [
+                    (value: LoanType.borrowed, label: 'Tôi đang vay'),
+                    (value: LoanType.lent, label: 'Tôi cho vay'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _titleCtrl,
+                  focusNode: _titleFocus,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.next,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Tên khoản vay',
+                    hintText: 'Vay mua xe…',
+                    errorText: _titleError,
                   ),
                 ),
-                Expanded(
-                  child: Text(
-                    _isEdit ? 'Chỉnh sửa khoản vay' : 'Thêm khoản vay',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _contactCtrl,
+                  textCapitalization: TextCapitalization.words,
+                  style: const TextStyle(fontSize: 15),
+                  decoration: InputDecoration(
+                    labelText: _type == LoanType.borrowed
+                        ? 'Người cho vay'
+                        : 'Người vay',
                   ),
                 ),
-                const SizedBox(width: 40),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Loại
-            Row(
-              children: LoanType.values.map((t) {
-                final selected = t == _type;
-                final color = t == LoanType.borrowed
-                    ? Colors.red.shade400
-                    : Colors.green.shade500;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: t == LoanType.borrowed ? 6 : 0,
-                    ),
-                    child: GestureDetector(
-                      onTap: () => setState(() {
-                        _type = t;
-                        _colorHex = t == LoanType.borrowed
-                            ? AppColors.palette[0]
-                            : AppColors.palette[12];
-                      }),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? color.withValues(alpha: 0.12)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: selected ? color : cs.outlineVariant,
-                            width: 0.8,
-                          ),
-                        ),
-                        child: Text(
-                          t.label,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: selected ? color : cs.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-
-            // Tên khoản vay
-            TextField(
-              controller: _titleCtrl,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'Tên khoản vay (vd: Vay mua xe)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Tên người liên quan
-            TextField(
-              controller: _contactCtrl,
-              decoration: InputDecoration(
-                labelText:
-                    'Người ${_type == LoanType.borrowed ? 'cho vay' : 'vay'}',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Ngày hết hạn
-            GestureDetector(
-              onTap: _pickDueDate,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: cs.outline, width: 0.8),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Icon(
-                      LucideIcons.calendarDays,
-                      size: 16,
-                      color: cs.onSurfaceVariant,
+                    // Start date used to be fixed at creation time, with no
+                    // way to record a loan taken out last week.
+                    SpendoChip.meta(
+                      label: 'Bắt đầu: ${_dateLabel(_startDate)}',
+                      icon: LucideIcons.calendar,
+                      onTap: _pickStartDate,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _dueDate == null
-                          ? 'Ngày hết hạn (tuỳ chọn)'
-                          : 'Hạn: ${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _dueDate == null
-                            ? cs.onSurfaceVariant
-                            : cs.onSurface,
-                      ),
+                    SpendoChip.meta(
+                      label: _dueDate == null
+                          ? 'Không hạn'
+                          : 'Hạn: ${_dateLabel(_dueDate!)}',
+                      icon: LucideIcons.clock,
+                      onTap: _pickDueDate,
                     ),
-                    const Spacer(),
                     if (_dueDate != null)
-                      GestureDetector(
+                      SpendoChip.meta(
+                        label: 'Bỏ hạn',
+                        icon: LucideIcons.x,
                         onTap: () => setState(() => _dueDate = null),
-                        child: Icon(
-                          LucideIcons.x,
-                          size: 16,
-                          color: cs.onSurfaceVariant,
-                        ),
                       ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Ghi chú
-            TextField(
-              controller: _noteCtrl,
-              decoration: InputDecoration(
-                labelText: 'Ghi chú (tuỳ chọn)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Số tiền
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ListenableBuilder(
-                  listenable: _amountCtrl,
-                  builder: (_, __) => Text(
-                    _amountCtrl.formatted,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
-                      color: accentColor,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text('₫',
-                    style:
-                        TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
-              ],
-            ),
-            const Divider(height: 12, thickness: 0.5),
-
-            ListenableBuilder(
-              listenable: _amountCtrl,
-              builder: (_, __) => Numpad(onKey: _amountCtrl.press),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
-              child: ListenableBuilder(
-                listenable: _amountCtrl,
-                builder: (_, __) => SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed:
-                        _loading || !_amountCtrl.hasValue || _titleCtrl.text.trim().isEmpty
-                            ? null
-                            : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: accentColor,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 16),
+                Column(
+                  children: [
+                    Text(
+                      'Số tiền',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurfaceVariant,
                       ),
                     ),
-                    child: _loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            _isEdit ? 'Lưu thay đổi' : 'Thêm khoản vay',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
+                    ListenableBuilder(
+                      listenable: _amountCtrl,
+                      builder: (_, __) => Text(
+                        '${_amountCtrl.formatted} ₫',
+                        style: theme.textTheme.displaySmall?.copyWith(
+                          fontSize: 32,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (!keyboardOpen)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: ListenableBuilder(
+                listenable: _amountCtrl,
+                builder: (_, __) => SpendoNumpad(
+                  onKey: _amountCtrl.press,
+                  onLongPressDelete: _amountCtrl.reset,
                 ),
               ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                'Đóng bàn phím để nhập số tiền',
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+              ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
+
+/// Palette entry each side starts on. The form no longer offers a colour
+/// picker — the row's colour comes from the loan's side, not a free choice.
+String _defaultColorFor(LoanType type) =>
+    type == LoanType.borrowed ? AppColors.palette[0] : AppColors.palette[12];
+
+String _dateLabel(DateTime date) =>
+    '${date.day}/${date.month}/${date.year}';

@@ -15,6 +15,49 @@ final activeLoansProvider = Provider.autoDispose<List<Loan>>((ref) {
       .toList() ?? [];
 });
 
+/// Which side of the ledger the list is showing.
+enum LoanFilter {
+  all,
+  borrowed,
+  lent;
+
+  String get label => switch (this) {
+    LoanFilter.all => 'Tất cả',
+    LoanFilter.borrowed => 'Đang vay',
+    LoanFilter.lent => 'Cho vay',
+  };
+
+  bool matches(Loan loan) => switch (this) {
+    LoanFilter.all => true,
+    LoanFilter.borrowed => loan.type == LoanType.borrowed,
+    LoanFilter.lent => loan.type == LoanType.lent,
+  };
+
+  static LoanFilter fromQuery(String? value) => switch (value) {
+    'borrowed' => LoanFilter.borrowed,
+    'lent' => LoanFilter.lent,
+    _ => LoanFilter.all,
+  };
+}
+
+/// The list screen's segmented filter.
+///
+/// The audit found the filter reachable only through a query parameter from a
+/// screen that no longer exists, so the list itself had no way to narrow.
+final loanFilterProvider = StateProvider<LoanFilter>((_) => LoanFilter.all);
+
+/// How much has been paid against each loan, keyed by loan id.
+final paidByLoanProvider = StreamProvider<Map<String, int>>((ref) {
+  return ref.watch(loanRepoProvider).watchPaidByLoan();
+});
+
+/// What is still owed on [loan] — never below zero, and never above the
+/// principal, so an overpayment does not read as a negative balance.
+int remainingOf(Loan loan, Map<String, int> paidByLoan) {
+  final paid = paidByLoan[loan.id] ?? 0;
+  return (loan.principal - paid).clamp(0, loan.principal);
+}
+
 /// Summary cho Home — dùng stream để tính remaining (principal - paid).
 class LoanSummary {
   final int count;

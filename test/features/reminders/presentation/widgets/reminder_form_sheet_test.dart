@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:spendo/core/theme/app_theme.dart';
 import 'package:spendo/features/categories/domain/category.dart';
 import 'package:spendo/features/categories/presentation/providers/category_provider.dart';
+import 'package:spendo/features/reminders/domain/recurring_reminder.dart';
 import 'package:spendo/features/reminders/presentation/widgets/reminder_form_sheet.dart';
 import 'package:spendo/shared/widgets/spendo/spendo.dart';
 
@@ -112,7 +113,9 @@ void main() {
     );
 
     expect(find.text('Tiền nước'), findsOneWidget);
-    expect(find.text('100000'), findsOneWidget);
+    // The amount now runs through the keypad, so it arrives formatted rather
+    // than as the raw digits the system keyboard used to leave.
+    expect(find.text('100.000 ₫'), findsOneWidget);
   });
 
   testWidgets('the category chips use the shared chip, not raw category red', (
@@ -130,5 +133,65 @@ void main() {
     // the category's own #FF6B6B made a chosen chip look like an error on the
     // dark surface.
     expect(chip.selected, isTrue);
+  });
+
+  testWidgets('the amount runs through the keypad, not the system keyboard', (
+    tester,
+  ) async {
+    await _openOverAnotherSheet(
+      tester,
+      AppTheme.light(AppColorScheme.roseDefault),
+    );
+
+    // Tapping the amount swaps the fields for the keypad, so the two never
+    // stack the way the audit found them.
+    expect(find.byType(SpendoNumpad), findsNothing);
+    await tester.tap(find.text('100.000 ₫'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SpendoNumpad), findsOneWidget);
+
+    await tester.tap(find.descendant(
+      of: find.byType(SpendoNumpad),
+      matching: find.text('000'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('100.000.000 ₫'), findsOneWidget);
+  });
+
+  testWidgets('a preset carries its warn-before value into the form', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          categoriesProvider.overrideWith((ref) => Stream.value(_categories)),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(AppColorScheme.roseDefault),
+          home: const Scaffold(
+            body: ReminderFormSheet(
+              // 72 hours; the form rounds down to the option it can show.
+              preset: ReminderPreset(
+                title: 'Tiền điện',
+                iconName: 'home',
+                suggestedAmount: 300000,
+                frequency: ReminderFrequency.monthly,
+                defaultWarnBeforeHours: 72,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The model has carried warnBeforeHours all along, but the form had no
+    // control for it — so every preset's value was dropped on the way in.
+    final segmented = tester.widget<SpendoSegmented<WarnBefore>>(
+      find.byType(SpendoSegmented<WarnBefore>),
+    );
+    expect(segmented.value, WarnBefore.twoDays);
   });
 }

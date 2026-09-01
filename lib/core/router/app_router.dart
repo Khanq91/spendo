@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
+import '../../features/loan/presentation/screens/loan_detail_screen.dart';
 import '../../features/loan/presentation/screens/loan_list_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/stats/presentation/screens/stats_screen.dart';
@@ -54,6 +55,13 @@ final appRouter = GoRouter(
         final filterType = state.uri.queryParameters['type'];
         return LoanListScreen(filterType: filterType);
       },
+    ),
+    // The detail screen used to be reached by a bare Navigator.push, so it
+    // had no URL and could not be deep-linked or restored.
+    GoRoute(
+      path: '/loans/:id',
+      builder: (_, state) =>
+          LoanDetailScreen(loanId: state.pathParameters['id']!),
     ),
   ],
 );

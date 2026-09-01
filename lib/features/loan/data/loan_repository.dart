@@ -93,6 +93,25 @@ class LoanRepository {
         .map((rows) => rows.map(LoanPayment.fromMap).toList());
   }
 
+  /// Total paid per loan, keyed by loan id.
+  ///
+  /// The list shows what is left rather than the principal it started at
+  /// (`15-loan-list.md` §L), which needs every loan's payments at once — one
+  /// query instead of a stream per row.
+  Stream<Map<String, int>> watchPaidByLoan() {
+    return db
+        .watch(
+          'SELECT loan_id, COALESCE(SUM(CAST(amount AS INTEGER)), 0) '
+          'AS total_paid FROM loan_payments GROUP BY loan_id',
+        )
+        .map(
+          (rows) => {
+            for (final row in rows)
+              row['loan_id'] as String: row['total_paid'] as int,
+          },
+        );
+  }
+
   Future<int> getTotalPaid(String loanId) async {
     final row = await db.get(
       'SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) as total FROM loan_payments WHERE loan_id = ?',
