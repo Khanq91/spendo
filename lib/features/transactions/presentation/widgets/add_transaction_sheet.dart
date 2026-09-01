@@ -18,6 +18,31 @@ import '../../../../shared/widgets/motion/motion.dart';
 import '../screens/note_picker_screen.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+/// Opens the add/edit transaction sheet.
+///
+/// The single entry point for every caller — the FAB, the Home shortcuts and
+/// the notification deep link — so the sheet's presentation stays in one
+/// place instead of being re-specified at each call site.
+Future<void> showAddTransactionSheet(
+  BuildContext context, {
+  Transaction? existing,
+  String? preselectedCategoryId,
+  String? prefillNote,
+  int? prefillAmount,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => AddTransactionSheet(
+      existing: existing,
+      preselectedCategoryId: preselectedCategoryId,
+      prefillNote: prefillNote,
+      prefillAmount: prefillAmount,
+    ),
+  );
+}
+
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final Transaction? existing;
   final String? preselectedCategoryId;

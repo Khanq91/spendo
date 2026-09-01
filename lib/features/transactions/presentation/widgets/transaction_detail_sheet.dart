@@ -192,15 +192,7 @@ class TransactionDetailSheet extends ConsumerWidget {
 
   void _openEdit(BuildContext context) {
     Navigator.of(context).pop();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => AddTransactionSheet(existing: transaction),
-    );
+    showAddTransactionSheet(context, existing: transaction);
   }
 }
 

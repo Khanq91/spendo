@@ -62,6 +62,12 @@ void initNotificationNavigatorKey() {
   NotificationService.navigatorKey = _routerNavigatorKey;
 }
 
+/// Landing page for the `/add` deep link fired by a reminder notification.
+///
+/// In-app callers open the sheet directly with `showAddTransactionSheet`;
+/// this exists because a notification can launch the app cold, when there is
+/// no context to present a sheet from yet. It shows the shell underneath and
+/// returns to it once the sheet closes.
 class _AddTransactionPage extends StatefulWidget {
   final String? categoryId;
   final String? prefillNote;
@@ -83,18 +89,11 @@ class _AddTransactionPageState extends State<_AddTransactionPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (_) => AddTransactionSheet(
-          preselectedCategoryId: widget.categoryId,
-          prefillNote: widget.prefillNote,
-          prefillAmount: widget.prefillAmount,
-        ),
+      await showAddTransactionSheet(
+        context,
+        preselectedCategoryId: widget.categoryId,
+        prefillNote: widget.prefillNote,
+        prefillAmount: widget.prefillAmount,
       );
       if (mounted) context.go('/');
     });

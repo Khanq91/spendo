@@ -6,6 +6,7 @@ import '../../../budget/presentation/screens/budget_screen.dart';
 import '../../../budget/presentation/screens/category_budget_screen.dart';
 import '../../../budget/presentation/widgets/budget_type_sheet.dart';
 import 'feature_grid.dart';
+import '../../../transactions/presentation/widgets/add_transaction_sheet.dart';
 
 class FeatureSection {
   final String title;
@@ -23,7 +24,7 @@ List<FeatureGridAction> buildHomeFeatureActions(BuildContext context) {
       label: 'Thêm',
       icon: LucideIcons.circlePlus,
       color: const Color(0xFF16A34A),
-      onTap: () => context.push('/add'),
+      onTap: () => showAddTransactionSheet(context),
     ),
     FeatureGridAction(
       label: 'Giao dịch',
@@ -79,7 +80,7 @@ List<FeatureSection> buildAllFeatureSections(BuildContext context) {
           label: 'Thêm giao dịch',
           icon: LucideIcons.circlePlus,
           color: const Color(0xFF16A34A),
-          onTap: () => context.push('/add'),
+          onTap: () => showAddTransactionSheet(context),
         ),
         FeatureGridAction(
           label: 'Giao dịch',
