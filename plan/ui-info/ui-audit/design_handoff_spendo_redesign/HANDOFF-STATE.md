@@ -38,14 +38,14 @@ Cấm rải hex trong widget, mọi màu lấy qua `ColorScheme` + `context.spen
 |---|---|---|
 | 0 — Nền theme & hạ tầng | ✅ xong | `ae1b508` |
 | 1 — Shell & component dùng chung | ✅ xong | `be499de` |
-| 2 — Home + Add (màn 01, 02, 02b) | ⬜ tiếp theo | |
-| 3 — Giao dịch & PeriodPicker | ⬜ | |
+| 2 — Home + Add (màn 01, 02, 02b) | ✅ xong | `1e9322f` |
+| 3 — Giao dịch & PeriodPicker | ⬜ tiếp theo | |
 | 4 — Ví & Hạn mức | ⬜ | |
 | 5 — Thống kê, Vay, Nhắc nhở | ⬜ | |
 | 6 — Cài đặt & trang con | ⬜ | |
 | 7 — Khởi động + Dark pass + QA | ⬜ | |
 
-Baseline hiện tại: `flutter analyze` sạch · **63 test pass** · debug APK build được.
+Baseline hiện tại: `flutter analyze` sạch · **77 test pass** · debug APK build được.
 
 ---
 
@@ -107,7 +107,43 @@ trong `app_theme.dart` giờ khai báo tường minh `brandColor` / `onBrandColo
 ramp primary cho từng lựa chọn; **bộ surface cream/nâu dùng chung cho cả 5**.
 Có test khoá hành vi này (`test/core/theme/app_theme_test.dart`).
 
-### 2.4 `AppTheme.incomeColor/expenseColor/expenseAltColor` — còn nợ
+### 2.4 Phase 2 — chọn tháng ở Home tạm dùng MonthPickerSheet
+
+Mockup 01 bỏ 2 nút `‹ ›` và chip "Hôm nay", chỉ còn `Tháng 8/2026 ▾`. Đã làm
+đúng mockup: label mở `MonthPickerSheet` **hiện có**.
+
+Phase 3 dựng `PeriodPickerSheet` (màn 24) → thay vào đúng chỗ đó
+(`_HomeTitleBar._pickMonth` trong `home_screen.dart`). `month_selector.dart`
+**vẫn còn** vì Giao dịch (Phase 3) và Chi tiết ví (Phase 4) đang dùng; xoá khi
+2 màn đó chuyển sang PeriodPicker.
+
+### 2.5 Phase 2 — `shellTabProvider` thay `setState` trong AppShell
+
+Nút "Xem tất cả" ở Home phải chuyển sang **tab** Giao dịch, không push route
+thứ hai. Tab index của `AppShell` giờ nằm ở
+`lib/shared/providers/shell_tab_provider.dart` (`ShellTab` enum + StateProvider)
+thay vì state nội bộ.
+
+Phase 5 dùng lại chỗ này cho "legend tap → tab Giao dịch đã lọc".
+
+### 2.6 Phase 2 — sửa 2 file ngoài phạm vi màn
+
+Cần thiết để đạt tiêu chí nghiệm thu, không đụng logic:
+
+- `TransactionRepository.update()` giờ lưu cả `created_at` (trước không lưu) —
+  để chip ngày trong sheet có nghĩa khi **sửa** giao dịch. Phase 3 (màn Chi
+  tiết, "Ngày sửa được") dùng lại.
+- `ReminderFormSheet` nhận thêm `prefillTitle` / `prefillAmount` — cho chip
+  "Lặp lại" mở form đã điền sẵn theo giao dịch đang nhập.
+
+### 2.7 Phase 2 — `Numpad` thành alias mỏng của `SpendoNumpad`
+
+`numpad.dart` cũ còn **5 màn** dùng (budget ×2, loan ×2, wallet form) thuộc
+Phase 4–5. Không xoá; đổi thành wrapper 1 dòng gọi `SpendoNumpad`, nên 5 màn đó
+có bàn phím theo token ngay mà không phải redesign sớm. Phase 4–5 khi động vào
+thì đổi call-site sang `SpendoNumpad` rồi xoá file.
+
+### 2.8 `AppTheme.incomeColor/expenseColor/expenseAltColor` — còn nợ
 
 Phase 0 giữ 3 hằng static này (đã trỏ sang giá trị token mới) vì có **53
 call-site / 16 file** dùng chúng ngoài widget tree. Cách đúng là
@@ -115,6 +151,9 @@ call-site / 16 file** dùng chúng ngoài widget tree. Cách đúng là
 
 **Việc còn tồn:** mỗi phase 2–6 khi động vào màn nào thì chuyển call-site của
 màn đó sang `context.spendo`. Phase 7 quét nốt phần còn lại rồi xoá 3 hằng.
+
+Sau Phase 2: **45 chỗ / 11 file** (từ 53/16). Các file còn lại đều thuộc màn
+của Phase 3–6.
 
 ---
 
@@ -140,11 +179,20 @@ meta) · `SpendoSegmented` (Chi|Thu) · `SpendoCard` · `SpendoSectionHeader` ·
 `SpendoNumpad` · `SpendoIconTile` / `SpendoCategoryTile` (có biến thể
 `.add` nét đứt) · `SpendoTransactionRow` / `SpendoDayHeader` ·
 `SpendoSettingsGroup` / `SpendoSettingsRow` · `SpendoBottomNav` · `SpendoFab` /
-`SpendoExtendedFab`.
+`SpendoExtendedFab` · `DottedBorderBox` (viền nét đứt bo góc — CTA hạn mức,
+ô "+" thêm ví).
 
-> ⚠️ **Component đã dựng nhưng CHƯA lắp vào màn nào** (trừ shell). Đây chính là
-> việc của phase 2–6: thay widget private trong từng màn bằng các component
-> này. Nếu thấy màn nào còn tự vẽ drag-handle / chip / empty state → thay.
+> Phase 2 đã lắp bộ này vào màn 01/02/02b. Phase 3–6 làm tương tự cho màn của
+> mình: thấy màn nào còn tự vẽ drag-handle / chip / empty state → thay.
+
+### 3.4 Thứ khác Phase 2 dựng, phase sau dùng lại
+
+| Thứ | Ở đâu | Dùng khi |
+|---|---|---|
+| `shellTabProvider` / `ShellTab` | `lib/shared/providers/shell_tab_provider.dart` | cần chuyển **tab** thay vì push route (mục 2.5) |
+| `showBudgetTypeSheet(context)` | `budget/…/widgets/budget_type_sheet.dart` | mở sheet hạn mức — 1 nơi duy nhất |
+| `loadNoteHistory` / `mergeNoteSuggestions` / `kDefaultNotes` | `transactions/domain/note_suggestions.dart` | gợi ý ghi chú (sheet Thêm + màn 02b dùng chung) |
+| `SpendoSheet.showModal` | `spendo_sheet.dart` | mở bottom sheet đã có token sẵn |
 
 ### 3.3 Motion — giữ nguyên, chỉ đổi màu
 
@@ -159,12 +207,40 @@ tôn trọng reduce-motion.
 
 | Việc | Quy mô hiện tại |
 |---|---|
-| Hex hard-code ngoài `core/theme/` | **55** chỗ / 9 file (nặng nhất: `home_feature_actions.dart` 26 — màn này Phase 2 xoá) |
+| Hex hard-code ngoài `core/theme/` | **25** chỗ (từ 55 — `home_feature_actions.dart` đã xoá ở Phase 2) |
 | `Colors.white/grey/red/orange/…` cố định (không đổi theo dark) | ~100 chỗ |
-| `AppTheme.incomeColor/…` → `context.spendo` | 53 chỗ / 16 file |
+| `AppTheme.incomeColor/…` → `context.spendo` | **45** chỗ / 11 file (từ 53/16) |
+| `numpad.dart` (alias) → gọi thẳng `SpendoNumpad` rồi xoá | 5 call-site, Phase 4–5 (mục 2.7) |
+| `month_selector.dart` → `PeriodPickerSheet` rồi xoá | 2 call-site, Phase 3–4 (mục 2.4) |
+| `TransactionDetailSheet` chưa dựng trên `SpendoSheet` (chưa có nền riêng) | Phase 3 |
 | Splash | Phase 0 mới đổi màu sang token; redesign thật ở Phase 7 |
 | 2 widget Android native `widget_layout_*.xml` | chưa đổi màu — Phase 7 |
-| Route `/features` (AllFeatures) + `/stats` `/settings` | AllFeatures bị xoá ở Phase 2; lúc đó rà lại route thừa |
+| Route `/stats` `/settings` trùng tab của shell | rà khi Phase 6 làm Cài đặt (`/features` + AllFeatures đã xoá ở Phase 2) |
+
+---
+
+## 4b. Phase 2 đã đụng file nào
+
+**Thêm:** `home/…/widgets/home_balance_header.dart`, `home_budget_card.dart`,
+`home_shortcuts.dart`, `home_wallet_strip.dart` ·
+`transactions/domain/note_suggestions.dart` ·
+`shared/providers/shell_tab_provider.dart`
+
+**Viết lại:** `home/…/screens/home_screen.dart` ·
+`transactions/…/widgets/add_transaction_sheet.dart` ·
+`transactions/…/screens/note_picker_screen.dart` ·
+`transactions/…/widgets/transaction_list_item.dart`
+
+**Sửa:** `app_router.dart` (bỏ `/features`) · `app_bottom_nav.dart` (dùng
+`shellTabProvider`) · `spendo_tiles.dart` (thêm `DottedBorderBox`, sửa tràn ở
+`SpendoTransactionRow` + `SpendoDayHeader`) · `grouped_transaction_sliver.dart` ·
+`budget_type_sheet.dart` (thêm `showBudgetTypeSheet`) · `reminder_form_sheet.dart`
+(2 tham số prefill) · `transaction_repository.dart` (`update` lưu `created_at`) ·
+`numpad.dart` (thành alias)
+
+**Xoá:** `all_features_screen.dart` · `summary_card.dart` · `feature_grid.dart` ·
+`home_feature_actions.dart` · `wallet_card_home.dart` (+ test carousel của nó —
+hành vi carousel đã bị thay)
 
 ---
 
