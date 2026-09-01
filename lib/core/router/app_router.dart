@@ -3,7 +3,13 @@ import 'package:go_router/go_router.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/loan/presentation/screens/loan_detail_screen.dart';
 import '../../features/loan/presentation/screens/loan_list_screen.dart';
+import '../../features/categories/presentation/screens/categories_screen.dart';
+import '../../features/settings/presentation/screens/appearance_screen.dart';
+import '../../features/settings/presentation/screens/backup_screen.dart';
+import '../../features/settings/presentation/screens/bank_screen.dart';
+import '../../features/settings/presentation/screens/notifications_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/widget_screen.dart';
 import '../../features/stats/presentation/screens/stats_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
@@ -26,6 +32,26 @@ final appRouter = GoRouter(
     ),
     GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),
     GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+    // Phase 6 split the 1366-line Settings list into a hub plus one page per
+    // group; every row below used to be a section or a sheet in that list.
+    GoRoute(
+      path: '/settings/categories',
+      builder: (_, __) => const CategoriesScreen(),
+    ),
+    GoRoute(
+      path: '/settings/appearance',
+      builder: (_, __) => const AppearanceScreen(),
+    ),
+    GoRoute(path: '/settings/backup', builder: (_, __) => const BackupScreen()),
+    GoRoute(path: '/settings/bank', builder: (_, __) => const BankScreen()),
+    GoRoute(
+      path: '/settings/widget',
+      builder: (_, __) => const WidgetScreen(),
+    ),
+    GoRoute(
+      path: '/settings/notifications',
+      builder: (_, __) => const NotificationsScreen(),
+    ),
     GoRoute(
       path: '/add',
       builder: (context, state) {

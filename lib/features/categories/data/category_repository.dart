@@ -99,6 +99,64 @@ class CategoryRepository {
     await WidgetSync.syncCategories();
   }
 
+  /// Re-inserts a deleted category with its original id and sort order.
+  ///
+  /// Backs the Hoàn tác on the Danh mục page: [add] mints a fresh uuid, which
+  /// would orphan anything that still referenced the old one.
+  Future<void> restore(Category category) async {
+    await _database.execute(
+      'INSERT INTO categories(id, name, color_hex, icon_name, is_default, is_income, sort_order) '
+      'VALUES(?, ?, ?, ?, ?, ?, ?)',
+      [
+        category.id,
+        category.name,
+        category.colorHex,
+        category.iconName,
+        category.isDefault ? 1 : 0,
+        category.isIncome ? 1 : 0,
+        category.sortOrder,
+      ],
+    );
+
+    await WidgetSync.syncCategories();
+  }
+
+  /// Rewrites `sort_order` so the categories land in the given order.
+  ///
+  /// [orderedIds] must hold every id of one side (expense or income); the
+  /// column already existed but nothing ever wrote to it after creation, so
+  /// the grid in Thêm giao dịch was stuck in insertion order.
+  Future<void> reorder(List<String> orderedIds) async {
+    if (orderedIds.isEmpty) return;
+
+    await _database.writeTransaction((transaction) async {
+      for (var i = 0; i < orderedIds.length; i++) {
+        await transaction.execute(
+          'UPDATE categories SET sort_order=? WHERE id=?',
+          [i, orderedIds[i]],
+        );
+      }
+    });
+
+    await WidgetSync.syncCategories();
+  }
+
+  /// Number of transactions per category id, so the list can say what a
+  /// category is actually holding before you try to delete it.
+  Stream<Map<String, int>> watchTransactionCounts() {
+    return _database
+        .watch(
+          'SELECT category_id, COUNT(*) as cnt FROM transactions '
+          'GROUP BY category_id',
+        )
+        .map(
+          (rows) => {
+            for (final row in rows)
+              row['category_id'] as String: row['cnt'] as int,
+          },
+        );
+  }
+
   Future<void> delete(String id) async {
     // Không xoá nếu còn giao dịch đang dùng category này
     final usage = await _database.get(

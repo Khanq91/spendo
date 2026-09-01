@@ -107,21 +107,11 @@ enum AppColorScheme {
 // ---------------------------------------------------------------------------
 
 class AppTheme {
-  // ------------------------------------------------------------------
-  // Semantic colours — meaning (income / expense), not brand.
-  //
-  // These are the light-mode token values. Widgets that can reach a
-  // BuildContext should prefer `context.spendo.income` / `.expense`, which
-  // also resolve correctly in dark mode; these constants remain for the
-  // call sites that build styles outside the widget tree.
-  // ------------------------------------------------------------------
-  static const incomeColor = Color(0xFF5A7230);
-  static const expenseColor = Color(0xFFB23A2E);
-
-  /// Destructive actions. Same hue family as [expenseColor] but the M3
-  /// `error` role — kept separate so "spent money" and "something went
-  /// wrong" stay distinguishable.
-  static const expenseAltColor = Color(0xFFBA1A1A);
+  // Semantic colours live on the SpendoColors theme extension:
+  // `context.spendo.income` / `.expense` / `.warning`, which resolve in dark
+  // mode too. The old light-only `incomeColor` / `expenseColor` /
+  // `expenseAltColor` constants were removed in Phase 6 once the last call
+  // site moved off them.
 
   // ------------------------------------------------------------------
   // Shared shape tokens (01-tokens.md — "Hình khối & spacing").

@@ -284,15 +284,45 @@ final List<ScreenshotStep> _steps = [
       await _go('/settings');
     },
   ),
+  // Phase 6 split the Settings list into a hub plus one page per group, so
+  // this step opens a sub-page instead of scrolling the old 2000px list.
   ScreenshotStep(
-    id: '19_settings_integrations',
-    title: 'Tich hop va backup',
+    id: '19_settings_categories',
+    title: 'Danh muc',
     description:
-        'Phan cai dat ve Google Drive, SePay, widget va cac tien ich du lieu.',
+        'Trang danh muc rieng: Chi|Thu, so giao dich moi dong, keo sap xep.',
     action: (tester) async {
       await _closeModalIfAny(tester);
-      await _go('/settings');
-      await _scrollPrimary(tester, const Offset(0, -650));
+      await _go('/settings/categories');
+    },
+  ),
+  ScreenshotStep(
+    id: '19b_settings_appearance',
+    title: 'Giao dien',
+    description:
+        'Che do sang/toi, 5 mau chu dao va che do do hoa voi xem truoc truc tiep.',
+    action: (tester) async {
+      await _closeModalIfAny(tester);
+      await _go('/settings/appearance');
+    },
+  ),
+  ScreenshotStep(
+    id: '19c_settings_backup',
+    title: 'Sao luu va dong bo',
+    description:
+        'Google Drive, backup JSON va bao cao CSV gom trong mot trang.',
+    action: (tester) async {
+      await _closeModalIfAny(tester);
+      await _go('/settings/backup');
+    },
+  ),
+  ScreenshotStep(
+    id: '19d_settings_widget',
+    title: 'Widget man hinh chinh',
+    description: 'Xem truoc widget 2x2 va bon slot ghim danh muc.',
+    action: (tester) async {
+      await _closeModalIfAny(tester);
+      await _go('/settings/widget');
     },
   ),
   ScreenshotStep(
@@ -332,12 +362,6 @@ Future<void> _showSheet(WidgetTester tester, Widget child) async {
     isScrollControlled: true,
     builder: (_) => child,
   );
-}
-
-Future<void> _scrollPrimary(WidgetTester tester, Offset offset) async {
-  final scrollable = find.byType(Scrollable).last;
-  await tester.drag(scrollable, offset);
-  await _settle(tester);
 }
 
 Future<void> _closeModalIfAny(WidgetTester tester) async {

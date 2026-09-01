@@ -103,7 +103,7 @@ class SpendoCategoryTile extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (_isAdd)
-              _DashedCircle(
+              SpendoDashedCircle(
                 size: 46,
                 color: context.spendo.dashedOutline,
                 child: Icon(
@@ -226,8 +226,13 @@ class _DashedRectPainter extends CustomPainter {
       old.strokeWidth != strokeWidth;
 }
 
-class _DashedCircle extends StatelessWidget {
-  const _DashedCircle({
+/// A circle drawn with the dashed "add" outline.
+///
+/// Same affordance as [SpendoCategoryTile.add], exposed because the widget
+/// slot rows need it at a smaller size.
+class SpendoDashedCircle extends StatelessWidget {
+  const SpendoDashedCircle({
+    super.key,
     required this.size,
     required this.color,
     required this.child,
@@ -504,66 +509,112 @@ class SpendoSettingsRow extends StatelessWidget {
     super.key,
     required this.icon,
     required this.label,
+    this.subtitle,
+    this.subtitleColor,
     this.trailingText,
     this.trailing,
     this.onTap,
+    this.enabled = true,
+    this.showChevron,
   });
 
   final IconData icon;
   final String label;
+
+  /// Second line under [label] ("Toàn bộ dữ liệu, khôi phục được").
+  final String? subtitle;
+
+  /// Overrides the muted subtitle colour — used for the "Đang đồng bộ" state.
+  final Color? subtitleColor;
 
   /// Muted value shown before the chevron ("12", "Drive · 2 giờ trước").
   final String? trailingText;
   final Widget? trailing;
   final VoidCallback? onTap;
 
+  /// Greys the row out and drops the tap without removing it from the group,
+  /// so a row that is temporarily busy keeps its place.
+  final bool enabled;
+
+  /// Defaults to "chevron when the row navigates". Rows that act in place —
+  /// a toggle, a value picker — pass `false`.
+  final bool? showChevron;
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final active = enabled && onTap != null;
+    final chevron = showChevron ?? (onTap != null);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 49),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: cs.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+        onTap: active ? onTap : null,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.45,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: cs.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 18, color: cs.onSecondaryContainer),
                 ),
-                child: Icon(icon, size: 18, color: cs.onSecondaryContainer),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (subtitle != null)
+                        Text(
+                          subtitle!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: subtitleColor != null
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: subtitleColor ?? cs.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-              ),
-              if (trailingText != null)
-                Text(
-                  trailingText!,
-                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-                ),
-              if (trailing != null) trailing!,
-              if (onTap != null) ...[
-                const SizedBox(width: 6),
-                Icon(
-                  LucideIcons.chevronRight,
-                  size: 17,
-                  color: cs.onSurfaceVariant,
-                ),
+                if (trailingText != null) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    trailingText!,
+                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                  ),
+                ],
+                if (trailing != null) trailing!,
+                if (chevron) ...[
+                  const SizedBox(width: 6),
+                  Icon(
+                    LucideIcons.chevronRight,
+                    size: 17,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

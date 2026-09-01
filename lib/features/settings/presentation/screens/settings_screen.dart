@@ -1,1365 +1,276 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/notifications/notification_provider.dart';
-import '../../../../core/notifications/notification_service.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/visual_mode_provider.dart';
-import '../../../../core/utils/backup_service.dart';
-import '../../../../core/utils/category_icons.dart';
-import '../../../../core/utils/export_service.dart';
-import '../../../../shared/widgets/visual_mode_picker.dart';
-import '../../../../shared/widgets/motion/motion.dart';
-import '../../../categories/domain/category.dart';
-import '../../../categories/data/category_repository.dart';
-import '../../../categories/presentation/providers/category_provider.dart';
-import '../../../categories/presentation/widgets/category_form_sheet.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/theme/theme_provider.dart';
-import '../../../transactions/presentation/providers/transaction_provider.dart';
-import '../widgets/widget_pin_section.dart';
-import '../widgets/gdrive_backup_section.dart';
-import '../widgets/sepay_connection_section.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../../core/notifications/notification_provider.dart';
+import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/theme/visual_mode_provider.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../categories/presentation/providers/category_provider.dart';
+import '../../../loan/presentation/providers/loan_provider.dart';
+import '../../../reminders/presentation/providers/reminder_provider.dart';
+import '../../../wallets/presentation/providers/wallet_provider.dart';
+import '../providers/gdrive_provider.dart';
+import '../providers/sepay_provider.dart';
+import '../providers/widget_pin_provider.dart';
+
+/// Screen 05 of the redesign — the Settings hub.
+///
+/// The old screen was a 1366-line flat list of nine unrelated groups with no
+/// second level of navigation, and buried Danh mục — a core entity — at the
+/// bottom inside an expansion tile (`20-settings.md` §L). Everything now sits
+/// behind three grouped cards, each row a page of its own.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final allCats = categoriesAsync.valueOrNull ?? [];
-    final expenseCats = allCats.where((c) => !c.isIncome).toList();
-    final incomeCats = allCats.where((c) => c.isIncome).toList();
-    final cs = Theme.of(context).colorScheme;
-    final surface = cs.surface;
     final isFancy = ref.watch(visualModeProvider) == AppVisualMode.fancy;
-    final bottomContentPadding =
-        isFancy ? MediaQuery.paddingOf(context).bottom + 16 : 0.0;
+    final bottomPadding =
+        (isFancy ? MediaQuery.paddingOf(context).bottom : 0.0) + 24;
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: const Text(
-          'Cài đặt',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-      ),
-      body: ListView(
-        padding: EdgeInsets.only(bottom: bottomContentPadding),
-        children: [
-          // ── Export báo cáo ───────────────────────────────────────────────
-          _SectionHeader(title: 'Xuất báo cáo'),
-          _ExportTile(
-            label: 'Tháng này',
-            subtitle: 'Xuất giao dịch tháng hiện tại dạng CSV',
-            onTap: () => _export(context, ExportRange.thisMonth),
-          ),
-          _ExportTile(
-            label: '3 tháng gần đây',
-            subtitle: 'Xuất giao dịch 3 tháng gần nhất dạng CSV',
-            onTap: () => _export(context, ExportRange.threeMonths),
-          ),
-          _ExportTile(
-            label: 'Tất cả',
-            subtitle: 'Toàn bộ lịch sử giao dịch dạng CSV',
-            onTap: () => _export(context, ExportRange.all),
-          ),
-
-          const SizedBox(height: 8),
-
-          // ── Backup & Restore ─────────────────────────────────────────────
-          _SectionHeader(title: 'Sao lưu & khôi phục'),
-          Material(
-            color: surface,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      LucideIcons.hardDriveDownload,
-                      size: 18,
-                      color: Color(0xFF6C63FF),
-                    ),
-                  ),
-                  title: const Text(
-                    'Xuất backup toàn bộ',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  subtitle: Text(
-                    'Lưu toàn bộ dữ liệu ra file JSON để khôi phục sau',
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                  ),
-                  trailing: Icon(
-                    LucideIcons.chevronRight,
-                    size: 18,
-                    color: cs.onSurfaceVariant,
-                  ),
-                  onTap: () => _exportBackup(context),
-                ),
-                Divider(height: 1, indent: 16, color: cs.outlineVariant),
-                ListTile(
-                  leading: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      LucideIcons.hardDriveUpload,
-                      size: 18,
-                      color: Color(0xFF6C63FF),
-                    ),
-                  ),
-                  title: const Text(
-                    'Khôi phục từ backup',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  subtitle: Text(
-                    'Nhập file JSON backup để khôi phục dữ liệu',
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                  ),
-                  trailing: Icon(
-                    LucideIcons.chevronRight,
-                    size: 18,
-                    color: cs.onSurfaceVariant,
-                  ),
-                  onTap: () => _restore(context, ref),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-          _SectionHeader(title: 'Kết nối ngân hàng tự động'),
-          const SepayConnectionSection(),
-
-          const SizedBox(height: 8),
-
-          // ── GDrive Backup ────────────────────────────────────────────────
-          _SectionHeader(title: 'Sao lưu Google Drive'),
-          const GDriveBackupSection(),
-
-          const SizedBox(height: 8),
-
-          // ── Theme ────────────────────────────────────────────────────────
-          _SectionHeader(title: 'Giao diện'),
-          Consumer(
-            builder: (context, ref, _) {
-              final mode = ref.watch(themeModeProvider);
-              final visualMode = ref.watch(visualModeProvider);
-              return Material(
-                color: surface,
-                child: Column(
-                  children: [
-                    _ThemeTile(
-                      label: 'Theo hệ thống',
-                      icon: LucideIcons.monitor,
-                      selected: mode == ThemeMode.system,
-                      onTap:
-                          () => ref
-                              .read(themeProvider.notifier)
-                              .setMode(ThemeMode.system),
-                    ),
-                    _ThemeTile(
-                      label: 'Sáng',
-                      icon: LucideIcons.sun,
-                      selected: mode == ThemeMode.light,
-                      onTap:
-                          () => ref
-                              .read(themeProvider.notifier)
-                              .setMode(ThemeMode.light),
-                    ),
-                    _ThemeTile(
-                      label: 'Tối',
-                      icon: LucideIcons.moon,
-                      selected: mode == ThemeMode.dark,
-                      onTap:
-                          () => ref
-                              .read(themeProvider.notifier)
-                              .setMode(ThemeMode.dark),
-                    ),
-                    Divider(
-                      height: 1,
-                      indent: 16,
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                    ListTile(
-                      leading: Icon(
-                        LucideIcons.sparkles,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      title: const Text(
-                        'Đồ họa',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        visualMode == AppVisualMode.fancy
-                            ? 'Xịn xò'
-                            : 'Bình thường',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      trailing: Icon(
-                        LucideIcons.chevronRight,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (_) => const _VisualModeSheet(),
-                        );
-                      },
-                    ),
-                    Divider(
-                      height: 1,
-                      indent: 16,
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                    ListTile(
-                      leading: Icon(
-                        LucideIcons.palette,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      title: const Text(
-                        'Màu chủ đạo',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color:
-                                  ref.watch(themeProvider).colorScheme.swatch,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            LucideIcons.chevronRight,
-                            size: 18,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (_) => const _ThemeColorSheet(),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-
-          // ── Notifications ────────────────────────────────────────────────
-          _SectionHeader(title: 'Thông báo'),
-          Consumer(
-            builder: (context, ref, _) {
-              final enabled = ref.watch(notificationEnabledProvider);
-              final hour = ref.watch(notificationHourProvider);
-              final minute = ref.watch(notificationMinuteProvider);
-              final cs = Theme.of(context).colorScheme;
-
-              return Material(
-                color: surface,
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: Icon(
-                        LucideIcons.bell,
-                        size: 18,
-                        color:
-                            enabled
-                                ? Theme.of(context).colorScheme.primary
-                                : cs.onSurfaceVariant,
-                      ),
-                      title: const Text(
-                        'Nhắc nhập chi tiêu',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        'Mỗi ngày lúc ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                      trailing: Switch(
-                        value: enabled,
-                        activeThumbColor: Theme.of(context).colorScheme.primary,
-                        onChanged: (val) async {
-                          if (val) {
-                            final granted =
-                                await NotificationService.requestPermission();
-                            if (!granted) return;
-                          }
-                          ref
-                              .read(notificationEnabledProvider.notifier)
-                              .toggle(val, hour: hour, minute: minute);
-                        },
-                      ),
-                    ),
-                    if (enabled)
-                      ListTile(
-                        leading: Icon(
-                          LucideIcons.clock,
-                          size: 18,
-                          color: cs.onSurfaceVariant,
-                        ),
-                        title: const Text(
-                          'Giờ nhắc nhở',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        trailing: Text(
-                          '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        onTap: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay(hour: hour, minute: minute),
-                          );
-                          if (picked != null) {
-                            await ref
-                                .read(notificationHourProvider.notifier)
-                                .set(picked.hour);
-                            await ref
-                                .read(notificationMinuteProvider.notifier)
-                                .set(picked.minute);
-                            await NotificationService.scheduleDailyReminder(
-                              hour: picked.hour,
-                              minute: picked.minute,
-                            );
-                          }
-                        },
-                      ),
-                    if (enabled)
-                      ListTile(
-                        leading: Icon(
-                          LucideIcons.bellRing,
-                          size: 18,
-                          color: cs.onSurfaceVariant,
-                        ),
-                        title: const Text(
-                          'Gửi thông báo thử',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          'Hiện sau 5 giây',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                        trailing: Icon(
-                          LucideIcons.chevronRight,
-                          size: 18,
-                          color: cs.onSurfaceVariant,
-                        ),
-                        onTap: () async {
-                          await NotificationService.sendTestNotification();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Thông báo sẽ hiện sau 5 giây'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-
-          // ── Recurring reminders ──────────────────────────────────────────
-          _SectionHeader(title: 'Nhắc chi tiêu định kỳ'),
-          ListTile(
-            tileColor: surface,
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const SpendoScreenHeader(title: 'Cài đặt'),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.only(bottom: bottomPadding),
+                children: [
+                  const _Label('DỮ LIỆU'),
+                  _dataGroup(context, ref),
+                  const _Label('KẾT NỐI'),
+                  _connectionGroup(context, ref),
+                  const _Label('ỨNG DỤNG'),
+                  _appGroup(context, ref),
+                  const SizedBox(height: 20),
+                  const _Footer(),
+                ],
               ),
-              child: Icon(
-                LucideIcons.bellRing,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            title: const Text(
-              'Quản lý nhắc nhở',
-              style: TextStyle(fontSize: 14),
-            ),
-            subtitle: Text(
-              'Nhắc mua đồ và ghi chi tiêu định kỳ',
-              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-            ),
-            trailing: Icon(
-              LucideIcons.chevronRight,
-              size: 18,
-              color: cs.onSurfaceVariant,
-            ),
-            onTap: () => context.push('/reminders'),
-          ),
-          const SizedBox(height: 8),
-
-          // ── Widget pin ───────────────────────────────────────────────────
-          _SectionHeader(title: 'Widget màn hình chính'),
-          Container(
-            color: surface,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: const Material(
-              color: Colors.transparent,
-              child: WidgetPinSection(),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // ── Categories ───────────────────────────────────────────────────
-          _SectionHeader(title: 'Danh mục'),
-          _CategoriesExpansionTile(
-            expenseCats: expenseCats,
-            incomeCats: incomeCats,
-            onAddExpense: () => _openForm(context, isIncome: false),
-            onAddIncome: () => _openForm(context, isIncome: true),
-            onEdit: (cat) => _openEditForm(context, cat),
-            onDelete: (cat) => _confirmDelete(context, cat),
-          ),
-
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
-
-  void _openForm(BuildContext context, {required bool isIncome}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => CategoryFormSheet(isIncome: isIncome),
-    );
-  }
-
-  void _openEditForm(BuildContext context, Category cat) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => CategoryFormSheet(existing: cat, isIncome: cat.isIncome),
-    );
-  }
-
-  Future<void> _confirmDelete(BuildContext context, Category cat) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Xoá danh mục?'),
-            content: Text(
-              'Xoá "${cat.name}"?\nDanh mục đang có giao dịch sẽ không thể xoá.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Huỷ'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.expenseAltColor,
-                ),
-                child: const Text('Xoá'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirm == true && context.mounted) {
-      try {
-        await CategoryRepository().delete(cat.id);
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: AppTheme.expenseAltColor,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _export(BuildContext context, ExportRange range) async {
-    try {
-      await ExportService.exportCSV(range);
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Lỗi xuất file: $e')));
-      }
-    }
-  }
-
-  // ── Backup export ─────────────────────────────────────────────────────────
-
-  Future<void> _exportBackup(BuildContext context) async {
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        useRootNavigator: true,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-
-      final result = await BackupService.exportBackup();
-
-      if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-
-      final parts = <String>[
-        '${result.transactions} giao dịch',
-        '${result.categories} danh mục',
-        if (result.reminders > 0) '${result.reminders} nhắc nhở',
-        if (result.categoryBudgets > 0) '${result.categoryBudgets} hạn mức',
-        if (result.monthlyBudgets > 0)
-          '${result.monthlyBudgets} ngân sách tháng',
-        if (result.wallets > 0) '${result.wallets} nguồn tiền',
-        if (result.loans > 0) '${result.loans} khoản vay',
-        if (result.loanPayments > 0) '${result.loanPayments} lần thanh toán',
-      ];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✅ Đã xuất ${parts.join(', ')}'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } catch (e) {
-      if (context.mounted) {
-        try {
-          Navigator.of(context, rootNavigator: true).pop();
-        } catch (_) {}
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Lỗi xuất backup: $e'),
-            backgroundColor: AppTheme.expenseAltColor,
-          ),
-        );
-      }
-    }
-  }
-
-  // ── Backup restore ────────────────────────────────────────────────────────
-
-  Future<void> _restore(BuildContext context, WidgetRef ref) async {
-    try {
-      // 1. Chọn file JSON
-      final filePath = await BackupService.pickBackupFile();
-      if (filePath == null) return;
-
-      if (!context.mounted) return;
-      await Future.delayed(Duration.zero);
-      if (!context.mounted) return;
-
-      // 2. Loading
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        useRootNavigator: true,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-
-      // 3. Preview
-      final preview = await BackupService.previewRestore(filePath);
-
-      if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-
-      // 4. Lỗi nghiêm trọng
-      if (preview.categoriesAdded == 0 &&
-          preview.transactionsAdded == 0 &&
-          preview.remindersAdded == 0 &&
-          preview.budgetsAdded == 0 &&
-          preview.monthlyBudgetsAdded == 0 &&
-          preview.walletsAdded == 0 &&
-          preview.loansAdded == 0 &&
-          preview.loanPaymentsAdded == 0 &&
-          preview.errors.isNotEmpty) {
-        _showError(context, preview.errors.first);
-        return;
-      }
-
-      // 5. Confirm dialog
-      final confirmed = await showDialog<bool>(
-        context: context,
-        useRootNavigator: true,
-        builder: (ctx) => _RestorePreviewDialog(preview: preview),
-      );
-
-      if (confirmed != true || !context.mounted) return;
-
-      // 6. Restore thật
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        useRootNavigator: true,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-
-      final result = await BackupService.restore(filePath);
-
-      if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
-
-      // 7. Invalidate providers
-      ref.invalidate(transactionsProvider);
-      ref.invalidate(categoriesProvider);
-
-      // 8. Kết quả
-      final added = <String>[
-        if (result.transactionsAdded > 0)
-          '${result.transactionsAdded} giao dịch',
-        if (result.categoriesAdded > 0) '${result.categoriesAdded} danh mục',
-        if (result.remindersAdded > 0) '${result.remindersAdded} nhắc nhở',
-        if (result.budgetsAdded > 0) '${result.budgetsAdded} hạn mức',
-        if (result.walletsAdded > 0) '${result.walletsAdded} nguồn tiền',
-        if (result.monthlyBudgetsAdded > 0)
-          '${result.monthlyBudgetsAdded} ngân sách tháng',
-        if (result.loansAdded > 0) '${result.loansAdded} khoản vay',
-        if (result.loanPaymentsAdded > 0)
-          '${result.loanPaymentsAdded} lần thanh toán',
-      ];
-      final skipped =
-          result.transactionsSkipped +
-          result.categoriesSkipped +
-          result.remindersSkipped +
-          result.budgetsSkipped +
-          result.walletsSkipped +
-          result.monthlyBudgetsSkipped +
-          result.loansSkipped +
-          result.loanPaymentsSkipped;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '✅ Đã khôi phục ${added.join(', ')}'
-            '${skipped > 0 ? ' · bỏ qua $skipped trùng' : ''}',
-          ),
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    } catch (e) {
-      if (context.mounted) {
-        try {
-          Navigator.of(context, rootNavigator: true).pop();
-        } catch (_) {}
-        _showError(context, e.toString());
-      }
-    }
-  }
-
-  void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('❌ $message'),
-        backgroundColor: AppTheme.expenseAltColor,
-      ),
-    );
-  }
-}
-
-// ── Restore preview dialog ────────────────────────────────────────────────────
-
-class _RestorePreviewDialog extends StatelessWidget {
-  final RestoreResult preview;
-  const _RestorePreviewDialog({required this.preview});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final hasAnything =
-        preview.categoriesAdded > 0 ||
-        preview.transactionsAdded > 0 ||
-        preview.remindersAdded > 0 ||
-        preview.budgetsAdded > 0 ||
-        preview.walletsAdded > 0 ||
-        preview.monthlyBudgetsAdded > 0 ||
-        preview.loansAdded > 0 ||
-        preview.loanPaymentsAdded > 0;
-
-    return AlertDialog(
-      title: Row(
-        children: [
-          const Icon(
-            LucideIcons.hardDriveUpload,
-            size: 20,
-            color: Color(0xFF6C63FF),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Xác nhận khôi phục',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (preview.transactionsAdded > 0)
-            _PreviewRow(
-              icon: LucideIcons.circlePlus,
-              color: const Color(0xFF6C63FF),
-              text: '${preview.transactionsAdded} giao dịch mới sẽ được thêm',
-            ),
-          if (preview.categoriesAdded > 0)
-            _PreviewRow(
-              icon: LucideIcons.tag,
-              color: Colors.orange,
-              text: '${preview.categoriesAdded} danh mục mới sẽ được tạo',
-            ),
-          if (preview.remindersAdded > 0)
-            _PreviewRow(
-              icon: LucideIcons.bellRing,
-              color: Theme.of(context).colorScheme.primary,
-              text: '${preview.remindersAdded} nhắc nhở sẽ được khôi phục',
-            ),
-          if (preview.budgetsAdded > 0)
-            _PreviewRow(
-              icon: LucideIcons.wallet,
-              color: AppTheme.incomeColor,
-              text:
-                  '${preview.budgetsAdded} hạn mức danh mục sẽ được khôi phục',
-            ),
-          if (preview.walletsAdded > 0)
-            _PreviewRow(
-              icon: LucideIcons.wallet,
-              color: const Color(0xFF4ECDC4),
-              text: '${preview.walletsAdded} nguồn tiền sẽ được khôi phục',
-            ),
-          if (preview.monthlyBudgetsAdded > 0)
-            _PreviewRow(
-              icon: LucideIcons.calendarDays,
-              color: AppTheme.incomeColor,
-              text:
-                  '${preview.monthlyBudgetsAdded} ngân sách tháng sẽ được khôi phục',
-            ),
-          if (preview.loansAdded > 0)
-            _PreviewRow(
-              icon: LucideIcons.handCoins,
-              color: const Color(0xFF6C63FF),
-              text: '${preview.loansAdded} khoản vay sẽ được khôi phục',
-            ),
-          if (preview.loanPaymentsAdded > 0)
-            _PreviewRow(
-              icon: LucideIcons.receiptText,
-              color: const Color(0xFF4ECDC4),
-              text:
-                  '${preview.loanPaymentsAdded} lần thanh toán sẽ được khôi phục',
-            ),
-          if (preview.walletsSkipped > 0)
-            _PreviewRow(
-              icon: LucideIcons.circleArrowRight,
-              color: cs.onSurfaceVariant,
-              text: '${preview.walletsSkipped} nguồn tiền đã tồn tại → bỏ qua',
-            ),
-          if (preview.transactionsSkipped > 0)
-            _PreviewRow(
-              icon: LucideIcons.circleArrowRight,
-              color: cs.onSurfaceVariant,
-              text:
-                  '${preview.transactionsSkipped} giao dịch đã tồn tại → bỏ qua',
-            ),
-          if (preview.categoriesSkipped > 0)
-            _PreviewRow(
-              icon: LucideIcons.circleArrowRight,
-              color: cs.onSurfaceVariant,
-              text: '${preview.categoriesSkipped} danh mục đã tồn tại → bỏ qua',
-            ),
-          if (preview.errors.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _PreviewRow(
-              icon: LucideIcons.triangleAlert,
-              color: AppTheme.expenseAltColor,
-              text: '${preview.errors.length} mục bị lỗi (sẽ bỏ qua)',
             ),
           ],
-          if (!hasAnything) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Tất cả dữ liệu trong backup đã tồn tại trên thiết bị này.',
-              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text('Huỷ', style: TextStyle(color: cs.onSurfaceVariant)),
         ),
-        FilledButton(
-          onPressed: hasAnything ? () => Navigator.pop(context, true) : null,
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF6C63FF),
-          ),
-          child: const Text('Khôi phục'),
+      ),
+    );
+  }
+
+  // ── Groups ─────────────────────────────────────────────────────────────────
+
+  Widget _dataGroup(BuildContext context, WidgetRef ref) {
+    final categories = ref.watch(categoriesProvider).valueOrNull;
+    final wallets = ref.watch(walletsProvider).valueOrNull;
+    final loans = ref.watch(loansProvider).valueOrNull;
+    final reminders = ref.watch(remindersProvider).valueOrNull;
+
+    return _Group(
+      children: [
+        SpendoSettingsRow(
+          icon: LucideIcons.tag,
+          label: 'Danh mục',
+          trailingText: _count(categories?.length),
+          onTap: () => context.push('/settings/categories'),
+        ),
+        SpendoSettingsRow(
+          icon: LucideIcons.wallet,
+          label: 'Nguồn tiền',
+          trailingText: _count(wallets?.length),
+          onTap: () => context.push('/wallets'),
+        ),
+        SpendoSettingsRow(
+          icon: LucideIcons.handCoins,
+          label: 'Khoản vay',
+          trailingText: _count(loans?.length),
+          onTap: () => context.push('/loans'),
+        ),
+        SpendoSettingsRow(
+          icon: LucideIcons.bellRing,
+          label: 'Nhắc nhở',
+          trailingText: _count(reminders?.length),
+          onTap: () => context.push('/reminders'),
         ),
       ],
     );
   }
+
+  Widget _connectionGroup(BuildContext context, WidgetRef ref) {
+    final drive = ref.watch(gdriveProvider);
+    final accounts = ref.watch(sepayAccountsProvider).valueOrNull;
+    final pinned = ref
+        .watch(widgetPinnedIdsProvider)
+        .where((id) => id.isNotEmpty)
+        .length;
+
+    return _Group(
+      children: [
+        SpendoSettingsRow(
+          icon: LucideIcons.cloud,
+          label: 'Sao lưu & đồng bộ',
+          trailingText: _backupSummary(drive),
+          onTap: () => context.push('/settings/backup'),
+        ),
+        SpendoSettingsRow(
+          icon: LucideIcons.landmark,
+          label: 'Ngân hàng tự động',
+          trailingText: accounts == null
+              ? null
+              : accounts.isEmpty
+              ? 'Chưa bật'
+              : '${accounts.length} tài khoản',
+          onTap: () => context.push('/settings/bank'),
+        ),
+        SpendoSettingsRow(
+          icon: LucideIcons.smartphone,
+          label: 'Widget màn hình chính',
+          trailingText: '$pinned/4',
+          onTap: () => context.push('/settings/widget'),
+        ),
+      ],
+    );
+  }
+
+  Widget _appGroup(BuildContext context, WidgetRef ref) {
+    final scheme = ref.watch(themeProvider).colorScheme;
+    final mode = ref.watch(themeModeProvider);
+    final notifOn = ref.watch(notificationEnabledProvider);
+    final hour = ref.watch(notificationHourProvider);
+    final minute = ref.watch(notificationMinuteProvider);
+
+    return _Group(
+      children: [
+        SpendoSettingsRow(
+          icon: LucideIcons.palette,
+          label: 'Giao diện',
+          trailingText: _modeLabel(mode),
+          trailing: Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: scheme.brandColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          onTap: () => context.push('/settings/appearance'),
+        ),
+        SpendoSettingsRow(
+          icon: LucideIcons.bell,
+          label: 'Thông báo',
+          trailingText: notifOn
+              ? 'Mỗi ngày · ${hour.toString().padLeft(2, '0')}'
+                    ':${minute.toString().padLeft(2, '0')}'
+              : 'Đã tắt',
+          onTap: () => context.push('/settings/notifications'),
+        ),
+      ],
+    );
+  }
+
+  // ── Trailing summaries ─────────────────────────────────────────────────────
+
+  static String? _count(int? value) => value?.toString();
+
+  static String _modeLabel(ThemeMode mode) => switch (mode) {
+    ThemeMode.system => 'Hệ thống',
+    ThemeMode.light => 'Sáng',
+    ThemeMode.dark => 'Tối',
+  };
+
+  static String _backupSummary(GDriveState drive) {
+    if (!drive.isSignedIn) return 'Chưa bật';
+    final at = drive.lastBackupTime;
+    if (at == null) return 'Drive · chưa sao lưu';
+
+    final diff = DateTime.now().difference(at);
+    final when = switch (diff) {
+      _ when diff.inMinutes < 60 => 'vừa xong',
+      _ when diff.inHours < 24 => '${diff.inHours} giờ trước',
+      _ => '${diff.inDays} ngày trước',
+    };
+    return 'Drive · $when';
+  }
 }
 
-class _PreviewRow extends StatelessWidget {
-  final IconData icon;
-  final Color color;
+class _Group extends StatelessWidget {
+  const _Group({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SpendoSettingsGroup(children: children),
+    );
+  }
+}
+
+class _Label extends StatelessWidget {
+  const _Label(this.text);
+
   final String text;
 
-  const _PreviewRow({
-    required this.icon,
-    required this.color,
-    required this.text,
-  });
-
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      // Tight on purpose: three groups plus the footer have to land inside a
+      // 360×640 screen, which the old flat list missed by ~1400px.
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+      child: SpendoSectionHeader(label: text, padding: EdgeInsets.zero),
+    );
+  }
+}
+
+/// Version + tagline, so "which build am I on" no longer needs the Play Store.
+class _Footer extends StatefulWidget {
+  const _Footer();
+
+  @override
+  State<_Footer> createState() => _FooterState();
+}
+
+class _FooterState extends State<_Footer> {
+  String? _version;
+
+  @override
+  void initState() {
+    super.initState();
+    // The version is a nicety, not a reason to fail the screen: on a platform
+    // that cannot answer, the tagline stands on its own.
+    PackageInfo.fromPlatform()
+        .then((info) {
+          if (mounted) setState(() => _version = info.version);
+        })
+        .catchError((_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 16, color: color),
+          Icon(LucideIcons.sprout, size: 14, color: cs.onSurfaceVariant),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Reusable widgets ──────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurfaceVariant,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
-class _ExportTile extends StatelessWidget {
-  final String label;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ExportTile({
-    required this.label,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          LucideIcons.download,
-          size: 18,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
-      title: Text(label, style: const TextStyle(fontSize: 14)),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-      ),
-      trailing: Icon(
-        LucideIcons.chevronRight,
-        size: 18,
-        color: cs.onSurfaceVariant,
-      ),
-      onTap: onTap,
-    );
-  }
-}
-
-class _CategoryTile extends StatelessWidget {
-  final Category category;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  const _CategoryTile({
-    required this.category,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: category.color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          categoryIcon(category.iconName),
-          size: 18,
-          color: category.color,
-        ),
-      ),
-      title: Text(category.name, style: const TextStyle(fontSize: 14)),
-      subtitle:
-          category.isDefault
-              ? Text(
-                'Mặc định',
-                style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-              )
-              : null,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: Icon(
-              LucideIcons.pencil,
-              size: 16,
-              color: cs.onSurfaceVariant,
-            ),
-            onPressed: onEdit,
-            visualDensity: VisualDensity.compact,
-          ),
-          if (!category.isDefault)
-            IconButton(
-              icon: Icon(
-                LucideIcons.trash2,
-                size: 16,
-                color: AppTheme.expenseAltColor,
-              ),
-              onPressed: onDelete,
-              visualDensity: VisualDensity.compact,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ThemeTile extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ThemeTile({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: Icon(
-        icon,
-        size: 18,
-        color:
-            selected
-                ? Theme.of(context).colorScheme.primary
-                : cs.onSurfaceVariant,
-      ),
-      title: Text(label, style: const TextStyle(fontSize: 14)),
-      trailing:
-          selected
-              ? Icon(
-                LucideIcons.check,
-                size: 16,
-                color: Theme.of(context).colorScheme.primary,
-              )
-              : null,
-      onTap: onTap,
-    );
-  }
-}
-
-// ── Collapsible categories tile ───────────────────────────────────────────────
-
-class _CategoriesExpansionTile extends StatefulWidget {
-  final List<Category> expenseCats;
-  final List<Category> incomeCats;
-  final VoidCallback onAddExpense;
-  final VoidCallback onAddIncome;
-  final void Function(Category) onEdit;
-  final void Function(Category) onDelete;
-
-  const _CategoriesExpansionTile({
-    required this.expenseCats,
-    required this.incomeCats,
-    required this.onAddExpense,
-    required this.onAddIncome,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  @override
-  State<_CategoriesExpansionTile> createState() =>
-      _CategoriesExpansionTileState();
-}
-
-class _CategoriesExpansionTileState extends State<_CategoriesExpansionTile> {
-  bool _expanded = false;
-  int _tab = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final cats = _tab == 0 ? widget.expenseCats : widget.incomeCats;
-    final total = widget.expenseCats.length + widget.incomeCats.length;
-
-    return Column(
-      children: [
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Container(
-            color: cs.surface,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    LucideIcons.tag,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Danh mục thu chi',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        '$total danh mục · ${widget.expenseCats.length} chi, ${widget.incomeCats.length} thu',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AnimatedRotation(
-                  turns: _expanded ? 0.5 : 0,
-                  duration: appMotion.whenMotionAllowed(
-                    context,
-                    appMotion.listDuration,
-                  ),
-                  curve: appMotion.curveStandard,
-                  child: Icon(
-                    LucideIcons.chevronDown,
-                    size: 20,
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        ClipRect(
-          child: AnimatedSize(
-            alignment: Alignment.topCenter,
-            duration: appMotion.whenMotionAllowed(
-              context,
-              appMotion.listDuration,
-            ),
-            curve: appMotion.curveLayout,
-            child:
-                _expanded
-                    ? Container(
-                      color: cs.surface,
-                      child: Column(
-                        children: [
-                          const Divider(height: 1),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
-                            child: Row(
-                              children: [
-                                _TabChip(
-                                  label:
-                                      'Chi (${widget.expenseCats.length})',
-                                  selected: _tab == 0,
-                                  onTap: () => setState(() => _tab = 0),
-                                ),
-                                const SizedBox(width: 8),
-                                _TabChip(
-                                  label:
-                                      'Thu (${widget.incomeCats.length})',
-                                  selected: _tab == 1,
-                                  onTap: () => setState(() => _tab = 1),
-                                ),
-                                const Spacer(),
-                                TextButton.icon(
-                                  onPressed:
-                                      _tab == 0
-                                          ? widget.onAddExpense
-                                          : widget.onAddIncome,
-                                  icon: const Icon(LucideIcons.plus, size: 15),
-                                  label: const Text(
-                                    'Thêm',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    foregroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ...cats.map(
-                            (cat) => _CategoryTile(
-                              category: cat,
-                              onEdit: () => widget.onEdit(cat),
-                              onDelete: () => widget.onDelete(cat),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                      ),
-                    )
-                    : const SizedBox(width: double.infinity),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TabChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _TabChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: SizedBox(
-          height: 48,
-          child: Center(
-            child: AnimatedContainer(
-              duration: appMotion.whenMotionAllowed(
-                context,
-                appMotion.tapUpDuration,
-              ),
-              curve: appMotion.curveStandard,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color:
-                    selected
-                        ? Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.12)
-                        : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color:
-                      selected
-                          ? Theme.of(context).colorScheme.primary
-                          : cs.outlineVariant,
-                  width: 0.8,
-                ),
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color:
-                      selected
-                          ? Theme.of(context).colorScheme.primary
-                          : cs.onSurfaceVariant,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VisualModeSheet extends ConsumerWidget {
-  const _VisualModeSheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedMode = ref.watch(visualModeProvider);
-    final cs = Theme.of(context).colorScheme;
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Chọn đồ họa',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Hiệu ứng chỉ thay đổi phần trình bày, không ảnh hưởng dữ liệu.',
+          Flexible(
+            child: Text(
+              _version == null
+                  ? 'Spendo · Your money, clearly.'
+                  : 'Spendo v$_version · Your money, clearly.',
+              textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
-            const SizedBox(height: 14),
-            VisualModePicker(
-              selectedMode: selectedMode,
-              onChanged: (mode) async {
-                await ref.read(visualModeProvider.notifier).setMode(mode);
-                if (context.mounted) Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ThemeColorSheet extends ConsumerWidget {
-  const _ThemeColorSheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentScheme = ref.watch(themeProvider).colorScheme;
-    final cs = Theme.of(context).colorScheme;
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Text(
-                'Chọn màu chủ đạo',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...AppColorScheme.values.map((scheme) {
-              final isSelected = currentScheme == scheme;
-              return ListTile(
-                leading: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: scheme.swatch,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                title: Text(scheme.label, style: const TextStyle(fontSize: 14)),
-                trailing:
-                    isSelected
-                        ? Icon(LucideIcons.check, size: 16, color: cs.primary)
-                        : null,
-                onTap: () {
-                  ref.read(themeProvider.notifier).setColorScheme(scheme);
-                  Navigator.pop(context);
-                },
-              );
-            }),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
