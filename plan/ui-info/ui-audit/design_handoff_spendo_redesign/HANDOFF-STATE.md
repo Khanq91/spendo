@@ -45,7 +45,10 @@ Cấm rải hex trong widget, mọi màu lấy qua `ColorScheme` + `context.spen
 | 6 — Cài đặt & trang con | ⬜ | |
 | 7 — Khởi động + Dark pass + QA | ⬜ | |
 
-Baseline hiện tại: `flutter analyze` sạch · **119 test pass** · debug APK build được.
+Baseline hiện tại: `flutter analyze` sạch · **131 test pass** · debug APK build được.
+
+> Sau Phase 3 có 1 commit sửa lỗi UI phát hiện khi chạy thật (`6eb95fa`) —
+> xem mục 2.9.
 
 ---
 
@@ -154,6 +157,38 @@ Phase 4–5 khi làm màn có xoá (ví, khoản vay, nhắc nhở) nên dùng c
   Chip strip cũ chỉ giữ được 1 danh mục và trộn thu/chi cùng hàng.
 - `activeCount` = số bộ lọc đang áp (badge trên nút phễu). Từ khoá **không**
   tính vì ô tìm kiếm đã tự hiện chữ đang gõ.
+
+### 2.9 Chip — CHỈ MỘT kiểu: nền đặc
+
+Spec `02-components.md` cho phép chip gợi ý dùng "viền 1px **HOẶC** nền
+surfaceContainer" → tôi đã chọn lệch nhau ở mỗi màn, ra 3 kiểu cho cùng một
+thứ. Trên nền tối chip viền gần như biến mất.
+
+**Đã chốt:** mọi `SpendoChip` đều **nền đặc**, cao 34 (meta 36), không viền.
+Chỉ `selected` phân biệt (primaryContainer). `SpendoChipKind.suggestion` giờ
+là alias của `filter`, giữ lại để call-site nói rõ ý.
+
+Có test khoá ở `test/shared/widgets/spendo/spendo_chip_test.dart` (chạy cả
+light + dark).
+
+⚠️ **Đừng dùng màu thô của danh mục/ví cho nền hay chữ chip.** Màu riêng chỉ
+đặt ở **icon** (`SpendoIconTile`, `SpendoCategoryTile`). Lý do: danh mục màu
+đỏ (`#FF6B6B`) làm chip đang chọn đọc thành báo lỗi ở dark mode.
+
+Phase 4–6 còn 3 bản chip riêng phải thay khi động tới màn:
+`loan_detail_screen.dart:_MetaChip` · `settings_screen.dart:_TabChip` ·
+`wallet_detail_screen.dart:_FilterChip`.
+
+### 2.10 `SpendoSheet.showModal` tự bọc nền
+
+`showModal` đặt `backgroundColor: Colors.transparent` vì `SpendoSheet` tự vẽ
+nền bo góc. Hệ quả: truyền vào widget **không phải** `SpendoSheet` → sheet
+trong suốt, nhìn xuyên xuống sheet phía dưới (đúng lỗi `ReminderFormSheet` khi
+bấm "Lặp lại").
+
+`showModal` giờ tự bọc `_SheetSurface` cho content chưa phải `SpendoSheet` →
+màn chưa tới lượt redesign vẫn có nền đúng. Khi tới lượt thì dựng hẳn trên
+`SpendoSheet` để có luôn drag handle + padding bàn phím.
 
 ### 2.5 Phase 2 — `shellTabProvider` thay `setState` trong AppShell
 
