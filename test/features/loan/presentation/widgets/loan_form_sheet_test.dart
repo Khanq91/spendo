@@ -119,4 +119,35 @@ void main() {
     expect(find.text('Vay mua xe'), findsOneWidget);
     expect(find.text('5.000.000 ₫'), findsOneWidget);
   });
+
+  testWidgets('a new loan can be set to repay in instalments', (tester) async {
+    await _pump(tester);
+
+    expect(find.text('Trả tự do'), findsOneWidget);
+    expect(find.text('Trả theo đợt'), findsOneWidget);
+  });
+
+  testWidgets('editing does not offer the mode — that lives on the loan', (
+    tester,
+  ) async {
+    // Switching an existing loan between modes means building or dropping a
+    // schedule, which belongs beside the schedule itself.
+    await _pump(
+      tester,
+      existing: Loan(
+        id: 'l1',
+        title: 'Vay mua xe',
+        type: LoanType.borrowed,
+        principal: 5000000,
+        contactName: 'Anh A',
+        startDate: DateTime(2026, 8),
+        colorHex: '#FF6B6B',
+        isClosed: false,
+        repaymentMode: RepaymentMode.installment,
+      ),
+    );
+
+    expect(find.text('Trả tự do'), findsNothing);
+    expect(find.text('Trả theo đợt'), findsNothing);
+  });
 }

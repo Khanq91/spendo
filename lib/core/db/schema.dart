@@ -64,11 +64,20 @@ const schema = Schema([
     Column.text('note'),
     Column.text('color_hex'),
     Column.integer('is_closed'),
+    Column.text('repayment_mode'),  // 'free' | 'installment' — nullable = free
+    Column.text('funding_transaction_id'), // nullable — GD ghi tiền gốc vào ví
+  ]),
+  Table.localOnly('loan_installments', [
+    Column.text('loan_id'),
+    Column.integer('seq'),      // 1-based — hiển thị "Đợt 3/12"
+    Column.text('amount'),
+    Column.text('due_date'),    // ISO, chỉ phần ngày
   ]),
   Table.localOnly('loan_payments', [
     Column.text('loan_id'),
     Column.text('amount'),
     Column.text('paid_at'),
     Column.text('note'),
+    Column.text('transaction_id'), // nullable — GD sinh ra từ thanh toán
   ]),
 ]);

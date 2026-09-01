@@ -23,6 +23,7 @@ class BackupResult {
   final int wallets;
   final int loans;
   final int loanPayments;
+  final int loanInstallments;
   final List<String> errors;
 
   const BackupResult({
@@ -34,6 +35,7 @@ class BackupResult {
     this.wallets = 0,
     this.loans = 0,
     this.loanPayments = 0,
+    this.loanInstallments = 0,
     this.errors = const [],
   });
 }
@@ -55,6 +57,8 @@ class RestoreResult {
   final int loansSkipped;
   final int loanPaymentsAdded;
   final int loanPaymentsSkipped;
+  final int loanInstallmentsAdded;
+  final int loanInstallmentsSkipped;
   final List<String> errors;
 
   const RestoreResult({
@@ -74,13 +78,15 @@ class RestoreResult {
     this.loansSkipped = 0,
     this.loanPaymentsAdded = 0,
     this.loanPaymentsSkipped = 0,
+    this.loanInstallmentsAdded = 0,
+    this.loanInstallmentsSkipped = 0,
     this.errors = const [],
   });
 }
 
 // ── Version ───────────────────────────────────────────────────────────────────
 
-const _kBackupVersion = 4;
+const _kBackupVersion = 5;
 const _kBackupAppTag = 'spendo';
 
 typedef _SqlExecutor = Future<void> Function(
@@ -124,6 +130,7 @@ class BackupService {
       wallets: (await walletRepo.getAllIncludingArchived()).length,
       loans: (await loanRepo.getAll()).length,
       loanPayments: (await loanRepo.getAllPayments()).length,
+      loanInstallments: (await loanRepo.getAllInstallments()).length,
     );
   }
 
@@ -138,6 +145,7 @@ class BackupService {
 
     final loans = await loanRepo.getAll();
     final loanPayments = await loanRepo.getAllPayments();
+    final loanInstallments = await loanRepo.getAllInstallments();
     final categories = await catRepo.getAll();
     final transactions = await txRepo.getAll();
     final reminders = await reminderRepo.getAll();
@@ -226,6 +234,8 @@ class BackupService {
             'note': l.note,
             'color_hex': l.colorHex,
             'is_closed': l.isClosed,
+            'repayment_mode': l.repaymentMode.name,
+            'funding_transaction_id': l.fundingTransactionId,
           }).toList(),
       'loan_payments': loanPayments
           .map((p) => {
@@ -234,6 +244,16 @@ class BackupService {
                 'amount': p.amount,
                 'paid_at': p.paidAt.toIso8601String(),
                 'note': p.note,
+                'transaction_id': p.transactionId,
+              })
+          .toList(),
+      'loan_installments': loanInstallments
+          .map((i) => {
+                'id': i.id,
+                'loan_id': i.loanId,
+                'seq': i.seq,
+                'amount': i.amount,
+                'due_date': i.dueDate.toIso8601String(),
               })
           .toList(),
     };
@@ -317,6 +337,7 @@ class BackupService {
     final rawCats = payload.categories;
     final rawLoans = payload.loans;
     final rawLoanPayments = payload.loanPayments;
+    final rawLoanInstallments = payload.loanInstallments;
     final rawTxs = payload.transactions;
     final rawReminders = payload.reminders;
     final rawBudgets = payload.categoryBudgets;
@@ -329,6 +350,9 @@ class BackupService {
     final existingWalletIds = await _getExistingWalletIds(readRows);
     final existingLoanIds = await _getExistingLoanIds(readRows);
     final existingLoanPaymentIds = await _getExistingLoanPaymentIds(readRows);
+    final existingLoanInstallmentIds = await _getExistingLoanInstallmentIds(
+      readRows,
+    );
     final existingMonthlyBudgetIds = await _getExistingMonthlyBudgetIds(readRows);
     final existingMonthlyBudgetMonths = await _getExistingMonthlyBudgetMonths(readRows);
 
@@ -339,6 +363,7 @@ class BackupService {
     int walletsAdded = 0, walletsSkipped = 0;
     int loansAdded = 0, loansSkipped = 0;
     int loanPaymentsAdded = 0, loanPaymentsSkipped = 0;
+    int loanInstallmentsAdded = 0, loanInstallmentsSkipped = 0;
     int monthlyBudgetsAdded = 0, monthlyBudgetsSkipped = 0;
     final errors = <String>[];
 
@@ -385,6 +410,29 @@ class BackupService {
       if (!dryRun) {
         await _insertLoanPayment(payment, execute!);
         existingLoanPaymentIds.add(id);
+      }
+    }
+
+    for (final installment in rawLoanInstallments) {
+      final id = installment['id'] as String?;
+      final loanId = installment['loan_id'] as String?;
+      if (id == null || id.isEmpty) {
+        errors.add('Đợt trả góp thiếu id');
+        continue;
+      }
+      if (loanId == null || !validLoanIds.contains(loanId)) {
+        errors.add('Đợt trả góp có khoản vay không hợp lệ — bỏ qua');
+        loanInstallmentsSkipped++;
+        continue;
+      }
+      if (existingLoanInstallmentIds.contains(id)) {
+        loanInstallmentsSkipped++;
+        continue;
+      }
+      loanInstallmentsAdded++;
+      if (!dryRun) {
+        await _insertLoanInstallment(installment, execute!);
+        existingLoanInstallmentIds.add(id);
       }
     }
 
@@ -550,6 +598,8 @@ class BackupService {
       loansSkipped: loansSkipped,
       loanPaymentsAdded: loanPaymentsAdded,
       loanPaymentsSkipped: loanPaymentsSkipped,
+      loanInstallmentsAdded: loanInstallmentsAdded,
+      loanInstallmentsSkipped: loanInstallmentsSkipped,
       errors: errors,
     );
   }
@@ -743,20 +793,51 @@ class BackupService {
     return rows.map((r) => r['id'] as String).toSet();
   }
 
+  static Future<Set<String>> _getExistingLoanInstallmentIds([
+    _RowReader? readRows,
+  ]) async {
+    final rows = readRows == null
+        ? await db.getAll('SELECT id FROM loan_installments')
+        : await readRows('SELECT id FROM loan_installments');
+    return rows.map((r) => r['id'] as String).toSet();
+  }
+
   static Future<void> _insertLoan(
     Map<String, dynamic> l,
     _SqlExecutor execute,
   ) async {
     await execute(
       '''INSERT INTO loans(id, title, type, principal, contact_name,
-           start_date, due_date, note, color_hex, is_closed)
-         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+           start_date, due_date, note, color_hex, is_closed, repayment_mode,
+           funding_transaction_id)
+         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
       [
         l['id'], l['title'], l['type'],
         (l['principal'] as int).toString(),
         l['contact_name'] ?? '',
         l['start_date'], l['due_date'], l['note'],
         l['color_hex'], (l['is_closed'] as bool) ? 1 : 0,
+        // A backup written before schedules existed carries neither field;
+        // both are nullable and a missing mode reads as free repayment.
+        l['repayment_mode'],
+        l['funding_transaction_id'],
+      ],
+    );
+  }
+
+  static Future<void> _insertLoanInstallment(
+    Map<String, dynamic> installment,
+    _SqlExecutor execute,
+  ) async {
+    await execute(
+      '''INSERT INTO loan_installments(id, loan_id, seq, amount, due_date)
+         VALUES(?, ?, ?, ?, ?)''',
+      [
+        installment['id'] as String,
+        installment['loan_id'] as String,
+        installment['seq'] as int,
+        (installment['amount'] as int).toString(),
+        installment['due_date'] as String,
       ],
     );
   }
@@ -766,14 +847,16 @@ class BackupService {
     _SqlExecutor execute,
   ) async {
     await execute(
-      '''INSERT INTO loan_payments(id, loan_id, amount, paid_at, note)
-         VALUES(?, ?, ?, ?, ?)''',
+      '''INSERT INTO loan_payments(id, loan_id, amount, paid_at, note,
+           transaction_id)
+         VALUES(?, ?, ?, ?, ?, ?)''',
       [
         payment['id'] as String,
         payment['loan_id'] as String,
         (payment['amount'] as int).toString(),
         payment['paid_at'] as String,
         payment['note'] as String?,
+        payment['transaction_id'] as String?,
       ],
     );
   }
@@ -785,6 +868,7 @@ class _RestorePayload {
     required this.categories,
     required this.loans,
     required this.loanPayments,
+    required this.loanInstallments,
     required this.transactions,
     required this.reminders,
     required this.categoryBudgets,
@@ -809,6 +893,7 @@ class _RestorePayload {
     final categories = _rows(data, 'categories', required: true);
     final loans = _rows(data, 'loans');
     final loanPayments = _rows(data, 'loan_payments');
+    final loanInstallments = _rows(data, 'loan_installments');
     final transactions = _rows(data, 'transactions', required: true);
     final reminders = _rows(data, 'recurring_reminders');
     final categoryBudgets = _rows(data, 'category_budgets');
@@ -846,6 +931,10 @@ class _RestorePayload {
       'contact_name': String,
       'due_date': String,
       'note': String,
+      // Absent in every backup written before schedules; nullable, so an old
+      // file restores with a free-repayment loan and no funding transaction.
+      'repayment_mode': String,
+      'funding_transaction_id': String,
     });
     _validateDates(loans, 'loans', 'start_date');
     _validateDates(loans, 'loans', 'due_date', nullable: true);
@@ -855,8 +944,19 @@ class _RestorePayload {
       'amount': int,
       'paid_at': String,
     });
-    _validateNullableRows(loanPayments, 'loan_payments', {'note': String});
+    _validateNullableRows(loanPayments, 'loan_payments', {
+      'note': String,
+      'transaction_id': String,
+    });
     _validateDates(loanPayments, 'loan_payments', 'paid_at');
+    _validateRows(loanInstallments, 'loan_installments', {
+      'id': String,
+      'loan_id': String,
+      'seq': int,
+      'amount': int,
+      'due_date': String,
+    });
+    _validateDates(loanInstallments, 'loan_installments', 'due_date');
     _validateRows(transactions, 'transactions', {
       'id': String,
       'amount': int,
@@ -902,6 +1002,7 @@ class _RestorePayload {
       categories: categories,
       loans: loans,
       loanPayments: loanPayments,
+      loanInstallments: loanInstallments,
       transactions: transactions,
       reminders: reminders,
       categoryBudgets: categoryBudgets,
@@ -913,6 +1014,7 @@ class _RestorePayload {
   final List<Map<String, dynamic>> categories;
   final List<Map<String, dynamic>> loans;
   final List<Map<String, dynamic>> loanPayments;
+  final List<Map<String, dynamic>> loanInstallments;
   final List<Map<String, dynamic>> transactions;
   final List<Map<String, dynamic>> reminders;
   final List<Map<String, dynamic>> categoryBudgets;

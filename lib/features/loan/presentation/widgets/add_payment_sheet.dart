@@ -5,6 +5,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../data/loan_repository.dart';
+import '../../domain/installment_status.dart';
 import '../../domain/loan.dart';
 
 /// Records a payment against [loan].
@@ -15,10 +16,17 @@ Future<void> showAddPaymentSheet(
   BuildContext context, {
   required Loan loan,
   required int remaining,
+  InstallmentProgress? installment,
+  int installmentCount = 0,
 }) {
   return SpendoSheet.showModal<void>(
     context: context,
-    builder: (_) => AddPaymentSheet(loan: loan, remaining: remaining),
+    builder: (_) => AddPaymentSheet(
+      loan: loan,
+      remaining: remaining,
+      installment: installment,
+      installmentCount: installmentCount,
+    ),
   );
 }
 
@@ -27,6 +35,8 @@ class AddPaymentSheet extends StatefulWidget {
     super.key,
     required this.loan,
     required this.remaining,
+    this.installment,
+    this.installmentCount = 0,
   });
 
   final Loan loan;
@@ -34,6 +44,16 @@ class AddPaymentSheet extends StatefulWidget {
   /// What is still owed, used for the "Trả hết" shortcut and the over-payment
   /// warning — the old sheet let any amount through with no hint of the limit.
   final int remaining;
+
+  /// The instalment being paid, when the sheet was opened from a schedule.
+  ///
+  /// It only seeds the amount and a caption: a payment is never tied to an
+  /// instalment in the data (PLAN §2.2), so the user is free to pay more, less
+  /// or two instalments at once and the waterfall still adds up.
+  final InstallmentProgress? installment;
+
+  /// How many instalments the schedule has — the "12" of "Đợt 3/12".
+  final int installmentCount;
 
   @override
   State<AddPaymentSheet> createState() => _AddPaymentSheetState();
@@ -47,6 +67,13 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   /// entered a day late was recorded on the wrong day.
   DateTime _paidAt = DateTime.now();
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final shortfall = widget.installment?.shortfall ?? 0;
+    if (shortfall > 0) _amountCtrl.prefill(shortfall.toString());
+  }
 
   @override
   void dispose() {
@@ -93,6 +120,18 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
     }
   }
 
+  /// Names the instalment being paid when there is one, so the amount that
+  /// arrived pre-filled is not a mystery.
+  String _caption() {
+    final entry = widget.installment;
+    if (entry == null) {
+      return 'Còn lại ${formatVND(widget.remaining)} · ${widget.loan.title}';
+    }
+    final due = entry.installment.dueDate;
+    return 'Đợt ${entry.installment.seq}/${widget.installmentCount} · '
+        'hạn ${due.day}/${due.month} · còn ${formatVND(entry.shortfall)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -109,7 +148,7 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Còn lại ${formatVND(widget.remaining)} · ${widget.loan.title}',
+            _caption(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -156,9 +195,8 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
               const SizedBox(width: 8),
               if (widget.remaining > 0)
                 SpendoChip.meta(
-                  label: 'Trả hết',
-                  onTap: () =>
-                      _amountCtrl.prefill(widget.remaining.toString()),
+                  label: widget.installment == null ? 'Trả hết' : 'Đủ đợt này',
+                  onTap: () => _amountCtrl.prefill(widget.remaining.toString()),
                 ),
             ],
           ),

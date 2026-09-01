@@ -7,16 +7,28 @@ import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../data/loan_repository.dart';
 import '../../domain/loan.dart';
+import '../screens/installment_schedule_screen.dart';
 
 /// Opens the loan form. The single place the sheet is presented.
+///
+/// A new loan set to repay in instalments carries straight on to the schedule
+/// screen, which is pushed from here rather than from inside the sheet: by the
+/// time the sheet has closed, its own context is gone.
 Future<void> showLoanFormSheet(
   BuildContext context, {
   Loan? existing,
   LoanType? initialType,
-}) {
-  return SpendoSheet.showModal<void>(
+}) async {
+  final created = await SpendoSheet.showModal<Loan>(
     context: context,
     builder: (_) => LoanFormSheet(existing: existing, initialType: initialType),
+  );
+  if (created == null || !context.mounted) return;
+
+  await openInstallmentSchedule(
+    context,
+    loan: created,
+    target: created.principal,
   );
 }
 
@@ -38,6 +50,7 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
   final _amountCtrl = AmountInputController();
 
   late LoanType _type;
+  late RepaymentMode _mode;
   late DateTime _startDate;
   DateTime? _dueDate;
   bool _saving = false;
@@ -53,11 +66,15 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
       _titleCtrl.text = existing.title;
       _contactCtrl.text = existing.contactName;
       _type = existing.type;
+      _mode = existing.repaymentMode;
       _startDate = existing.startDate;
       _dueDate = existing.dueDate;
       _amountCtrl.prefill(existing.principal.toString());
     } else {
       _type = widget.initialType ?? LoanType.borrowed;
+      // Free repayment is what every loan did before schedules existed, and
+      // what most of them still want.
+      _mode = RepaymentMode.free;
       _startDate = DateTime.now();
     }
     _titleCtrl.addListener(_onTitleChanged);
@@ -136,13 +153,24 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
         note: existing?.note,
         colorHex: existing?.colorHex ?? _defaultColorFor(_type),
         isClosed: existing?.isClosed ?? false,
+        // A loan only becomes `installment` once a schedule is actually saved,
+        // so backing out of the schedule screen leaves a working free loan
+        // rather than one that claims a schedule it does not have.
+        repaymentMode: _isEdit ? existing!.repaymentMode : RepaymentMode.free,
+        fundingTransactionId: existing?.fundingTransactionId,
       );
       if (_isEdit) {
         await repo.update(loan);
-      } else {
-        await repo.add(loan);
+        navigator.pop();
+        return;
       }
-      navigator.pop();
+
+      final id = await repo.add(loan);
+      // Only an instalment loan hands a loan back; anything else closes with
+      // nothing, so the caller knows not to push the schedule screen.
+      navigator.pop(
+        _mode == RepaymentMode.installment ? loan.copyWithId(id) : null,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -190,6 +218,24 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
                     (value: LoanType.lent, label: 'Tôi cho vay'),
                   ],
                 ),
+                if (!_isEdit) ...[
+                  const SizedBox(height: 10),
+                  // Only offered when creating: changing a live loan's mode
+                  // means building or dropping a schedule, which belongs on
+                  // the detail screen where the schedule itself lives.
+                  Row(
+                    children: [
+                      for (final option in RepaymentMode.values) ...[
+                        SpendoChip(
+                          label: option.label,
+                          selected: option == _mode,
+                          onTap: () => setState(() => _mode = option),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextField(
                   controller: _titleCtrl,

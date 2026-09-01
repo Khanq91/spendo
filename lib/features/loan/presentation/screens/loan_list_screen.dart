@@ -7,6 +7,7 @@ import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../domain/installment_status.dart';
 import '../../domain/loan.dart';
 import '../providers/loan_provider.dart';
 import '../widgets/add_payment_sheet.dart';
@@ -40,6 +41,7 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
     final loansAsync = ref.watch(loansProvider);
     final paidAsync = ref.watch(paidByLoanProvider);
     final filter = ref.watch(loanFilterProvider);
+    final progressByLoan = ref.watch(progressByLoanProvider);
 
     final hasInitialError = loansAsync.hasError && !loansAsync.hasValue;
     final isLoading = loansAsync.isLoading && !loansAsync.hasValue;
@@ -113,7 +115,13 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
                       ),
                     for (var i = 0; i < active.length; i++) ...[
                       if (i > 0) const _LoanDivider(),
-                      _LoanTile(loan: active[i], paid: paid[active[i].id] ?? 0),
+                      _LoanTile(
+                        loan: active[i],
+                        paid: paid[active[i].id] ?? 0,
+                        progress:
+                            progressByLoan[active[i].id] ??
+                            const <InstallmentProgress>[],
+                      ),
                     ],
                     if (closed.isNotEmpty) _ClosedSection(loans: closed),
                   ],
@@ -247,10 +255,17 @@ class _TotalCell extends StatelessWidget {
 // ── Loan row ─────────────────────────────────────────────────────────────────
 
 class _LoanTile extends StatelessWidget {
-  const _LoanTile({required this.loan, required this.paid});
+  const _LoanTile({
+    required this.loan,
+    required this.paid,
+    this.progress = const [],
+  });
 
   final Loan loan;
   final int paid;
+
+  /// The loan's schedule state, empty for a free-repayment loan.
+  final List<InstallmentProgress> progress;
 
   @override
   Widget build(BuildContext context) {
@@ -259,7 +274,7 @@ class _LoanTile extends StatelessWidget {
     final isBorrowed = loan.type == LoanType.borrowed;
     final sideColor = isBorrowed ? theme.spendo.expense : theme.spendo.income;
     final remaining = remainingOf(loan, {loan.id: paid});
-    final progress = loan.principal > 0 ? paid / loan.principal : 0.0;
+    final paidRatio = loan.principal > 0 ? paid / loan.principal : 0.0;
 
     return PressableScale(
       deferTapToChild: true,
@@ -296,7 +311,7 @@ class _LoanTile extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 1),
-                          _LoanSubtitle(loan: loan),
+                          _LoanSubtitle(loan: loan, progress: progress),
                         ],
                       ),
                     ),
@@ -341,7 +356,7 @@ class _LoanTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: SpendoProgressBar(
-                          value: progress,
+                          value: paidRatio,
                           height: 6,
                           // Repayment progress is good news; the 85% amber and
                           // over-limit red the budget bars use would read as a
@@ -351,7 +366,7 @@ class _LoanTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        '${(progress * 100).clamp(0, 100).round()}%',
+                        '${(paidRatio * 100).clamp(0, 100).round()}%',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -362,11 +377,16 @@ class _LoanTile extends StatelessWidget {
                       const SizedBox(width: 10),
                       SpendoChip(
                         label: 'Trả',
-                        onTap: () => showAddPaymentSheet(
-                          context,
-                          loan: loan,
-                          remaining: remaining,
-                        ),
+                        onTap: () {
+                          final next = nextUnsettled(progress);
+                          showAddPaymentSheet(
+                            context,
+                            loan: loan,
+                            remaining: next?.shortfall ?? remaining,
+                            installment: next,
+                            installmentCount: progress.length,
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -380,27 +400,34 @@ class _LoanTile extends StatelessWidget {
   }
 }
 
-/// `Anh A · Hạn 30/8 · Còn 3 ngày` — the parts that exist, in that order.
+/// `Anh A · Hạn 30/8 · Còn 3 ngày`, or `Đợt 5/12 · 15/10 · Quá hạn` once the
+/// loan repays on a schedule — the parts that exist, in that order.
 class _LoanSubtitle extends StatelessWidget {
-  const _LoanSubtitle({required this.loan});
+  const _LoanSubtitle({required this.loan, this.progress = const []});
 
   final Loan loan;
+  final List<InstallmentProgress> progress;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final status = loan.status;
-    final warn =
-        status == LoanStatus.overdue || status == LoanStatus.upcoming;
+    final next = nextUnsettled(progress);
+    final label = loanStatusLabel(loan, progress: progress);
+    final warn = label != null;
 
     final parts = <String>[
       if (loan.contactName.isNotEmpty) loan.contactName,
-      if (loan.dueDate != null)
+      if (next != null)
+        // A schedule answers "when next" better than the loan's own due date,
+        // which says only when the whole thing is meant to be over.
+        'Đợt ${next.installment.seq}/${progress.length} · '
+            '${next.installment.dueDate.day}/${next.installment.dueDate.month}'
+      else if (loan.dueDate != null)
         'Hạn ${loan.dueDate!.day}/${loan.dueDate!.month}'
       else
         'Không hạn',
-      if (loanStatusLabel(loan) != null) loanStatusLabel(loan)!,
+      if (label != null) label,
     ];
 
     return Text(
@@ -416,9 +443,14 @@ class _LoanSubtitle extends StatelessWidget {
 }
 
 /// `Quá hạn` / `Còn N ngày`, or null when the loan needs no flag.
-String? loanStatusLabel(Loan loan) {
-  final due = loan.dueDate;
-  if (due == null || loan.isClosed) return null;
+///
+/// With [progress] the date judged is the next unpaid instalment's, not the
+/// loan's — a twelve-month loan is late the moment an instalment is, long
+/// before its own due date arrives.
+String? loanStatusLabel(Loan loan, {List<InstallmentProgress> progress = const []}) {
+  if (loan.isClosed) return null;
+  final due = effectiveDueDate(loan, progress);
+  if (due == null) return null;
 
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);

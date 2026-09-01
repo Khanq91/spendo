@@ -43,11 +43,13 @@ final _loans = [
 ProviderContainer _container({
   List<Loan>? loans,
   Map<String, int> paid = const {'borrow': 1000000},
+  Map<String, List<LoanInstallment>> schedules = const {},
 }) {
   return ProviderContainer(
     overrides: [
       loansProvider.overrideWith((ref) => Stream.value(loans ?? _loans)),
       paidByLoanProvider.overrideWith((ref) => Stream.value(paid)),
+      installmentsByLoanProvider.overrideWith((ref) => Stream.value(schedules)),
     ],
   );
 }
@@ -161,5 +163,112 @@ void main() {
     expect(find.text('Không tải được khoản vay'), findsOneWidget);
     expect(find.text('Thử lại'), findsOneWidget);
     expect(find.textContaining('db down'), findsNothing);
+  });
+
+  testWidgets('a scheduled loan is subtitled by its next instalment', (
+    tester,
+  ) async {
+    final due = DateTime.now().add(const Duration(days: 4));
+    final container = _container(
+      loans: [
+        Loan(
+          id: 'borrow',
+          title: 'Vay mua xe',
+          type: LoanType.borrowed,
+          principal: 9000000,
+          contactName: 'Anh A',
+          startDate: DateTime(2026, 8),
+          // The loan's own due date is a year out; the instalment is days
+          // away, and that is what the row has to say.
+          dueDate: DateTime.now().add(const Duration(days: 300)),
+          colorHex: '#B23A2E',
+          isClosed: false,
+          repaymentMode: RepaymentMode.installment,
+        ),
+      ],
+      paid: const {'borrow': 3000000},
+      schedules: {
+        'borrow': [
+          LoanInstallment(
+            id: 'i1',
+            loanId: 'borrow',
+            seq: 1,
+            amount: 3000000,
+            dueDate: DateTime.now().subtract(const Duration(days: 20)),
+          ),
+          LoanInstallment(
+            id: 'i2',
+            loanId: 'borrow',
+            seq: 2,
+            amount: 3000000,
+            dueDate: due,
+          ),
+          LoanInstallment(
+            id: 'i3',
+            loanId: 'borrow',
+            seq: 3,
+            amount: 3000000,
+            dueDate: DateTime.now().add(const Duration(days: 40)),
+          ),
+        ],
+      },
+    );
+    addTearDown(container.dispose);
+
+    await _pump(tester, container);
+
+    expect(
+      find.textContaining('Đợt 2/3 · ${due.day}/${due.month}'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Còn 4 ngày'), findsOneWidget);
+  });
+
+  testWidgets('an overdue instalment flags the row, not the loan due date', (
+    tester,
+  ) async {
+    final container = _container(
+      loans: [
+        Loan(
+          id: 'borrow',
+          title: 'Vay mua xe',
+          type: LoanType.borrowed,
+          principal: 9000000,
+          contactName: '',
+          startDate: DateTime(2026, 8),
+          dueDate: DateTime.now().add(const Duration(days: 300)),
+          colorHex: '#B23A2E',
+          isClosed: false,
+          repaymentMode: RepaymentMode.installment,
+        ),
+      ],
+      paid: const {},
+      schedules: {
+        'borrow': [
+          LoanInstallment(
+            id: 'i1',
+            loanId: 'borrow',
+            seq: 1,
+            amount: 9000000,
+            dueDate: DateTime.now().subtract(const Duration(days: 2)),
+          ),
+        ],
+      },
+    );
+    addTearDown(container.dispose);
+
+    await _pump(tester, container);
+
+    expect(find.textContaining('Quá hạn'), findsOneWidget);
+  });
+
+  testWidgets('a free loan keeps the subtitle it always had', (tester) async {
+    final container = _container();
+    addTearDown(container.dispose);
+
+    await _pump(tester, container);
+
+    expect(find.textContaining('Đợt'), findsNothing);
+    expect(find.textContaining('Không hạn'), findsOneWidget);
   });
 }

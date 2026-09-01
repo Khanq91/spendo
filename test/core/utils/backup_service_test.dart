@@ -36,7 +36,7 @@ void main() {
     await tempDirectory.delete(recursive: true);
   });
 
-  test('backup v4 round-trip preserves local financial data', () async {
+  test('backup v5 round-trip preserves local financial data', () async {
     await database.execute('''INSERT INTO categories(
       id, name, color_hex, icon_name, is_default, is_income, sort_order
     ) VALUES(
@@ -52,11 +52,15 @@ void main() {
     );
     await database.execute('''INSERT INTO loans(
            id, title, type, principal, contact_name, start_date, due_date,
-           note, color_hex, is_closed
+           note, color_hex, is_closed, repayment_mode
          ) VALUES(
            'loan-1', 'Khoản vay', 'borrowed', '1000000', 'An',
-           '2026-07-01T00:00:00.000', NULL, NULL, '#123456', 0
+           '2026-07-01T00:00:00.000', NULL, NULL, '#123456', 0, 'installment'
          )''');
+    await database.execute(
+      '''INSERT INTO loan_installments(id, loan_id, seq, amount, due_date)
+         VALUES('inst-1', 'loan-1', 1, '400000', '2026-08-01T00:00:00.000')''',
+    );
     await database.execute(
       '''INSERT INTO loan_payments(id, loan_id, amount, paid_at, note)
          VALUES(
@@ -68,12 +72,15 @@ void main() {
     final jsonString = await BackupService.exportBackupAsString();
     final payload = jsonDecode(jsonString) as Map<String, dynamic>;
 
-    expect(payload['version'], 4);
+    expect(payload['version'], 5);
     expect((payload['wallets'] as List).single['is_archived'], isTrue);
     expect((payload['categories'] as List).single['is_default'], isTrue);
     expect((payload['budgets'] as List).single['month'], '2026-07');
     expect((payload['loan_payments'] as List).single['loan_id'], 'loan-1');
+    expect((payload['loans'] as List).single['repayment_mode'], 'installment');
+    expect((payload['loan_installments'] as List).single['seq'], 1);
 
+    await database.execute('DELETE FROM loan_installments');
     await database.execute('DELETE FROM loan_payments');
     await database.execute('DELETE FROM loans');
     await database.execute('DELETE FROM budgets');
@@ -88,6 +95,7 @@ void main() {
     expect(result.monthlyBudgetsAdded, 1);
     expect(result.loansAdded, 1);
     expect(result.loanPaymentsAdded, 1);
+    expect(result.loanInstallmentsAdded, 1);
     expect(result.errors, isEmpty);
     expect(
       (await database.get('SELECT is_archived FROM wallets'))['is_archived'],
@@ -105,6 +113,83 @@ void main() {
       (await database.get('SELECT is_default FROM categories'))['is_default'],
       1,
     );
+    expect(
+      (await database.get(
+        'SELECT amount, seq FROM loan_installments',
+      ))['amount'],
+      '400000',
+    );
+    expect(
+      (await database.get(
+        'SELECT repayment_mode FROM loans',
+      ))['repayment_mode'],
+      'installment',
+    );
+  });
+
+  test('a backup written before schedules restores as a free loan', () async {
+    await database.execute('DELETE FROM loan_installments');
+    await database.execute('DELETE FROM loan_payments');
+    await database.execute('DELETE FROM loans');
+
+    // v4 knew nothing of repayment_mode, funding_transaction_id or
+    // loan_installments; those loans have to come back as free repayment
+    // rather than being rejected for the fields they cannot have.
+    final backupFile = File(p.join(tempDirectory.path, 'backup-v4-loan.json'));
+    await backupFile.writeAsString(
+      jsonEncode({
+        'version': 4,
+        'app': 'spendo',
+        'categories': <Object>[],
+        'transactions': <Object>[],
+        'loans': [
+          {
+            'id': 'loan-old',
+            'title': 'Vay cũ',
+            'type': 'borrowed',
+            'principal': 2000000,
+            'contact_name': 'Bình',
+            'start_date': '2026-01-01T00:00:00.000',
+            'due_date': null,
+            'note': null,
+            'color_hex': '#123456',
+            'is_closed': false,
+          },
+        ],
+        'loan_payments': [
+          {
+            'id': 'payment-old',
+            'loan_id': 'loan-old',
+            'amount': 500000,
+            'paid_at': '2026-02-01T00:00:00.000',
+            'note': null,
+          },
+        ],
+      }),
+      encoding: utf8,
+    );
+
+    final result = await BackupService.restore(backupFile.path);
+
+    expect(result.errors, isEmpty);
+    expect(result.loansAdded, 1);
+    expect(result.loanPaymentsAdded, 1);
+    expect(result.loanInstallmentsAdded, 0);
+    expect(
+      (await database.get(
+        "SELECT repayment_mode FROM loans WHERE id = 'loan-old'",
+      ))['repayment_mode'],
+      isNull,
+    );
+    expect(
+      (await database.get(
+        "SELECT transaction_id FROM loan_payments WHERE id = 'payment-old'",
+      ))['transaction_id'],
+      isNull,
+    );
+
+    await database.execute('DELETE FROM loan_payments');
+    await database.execute('DELETE FROM loans');
   });
 
   test('backup versions before v4 remain readable without new lists', () async {
@@ -125,6 +210,7 @@ void main() {
     expect(result.monthlyBudgetsAdded, 0);
     expect(result.loansAdded, 0);
     expect(result.loanPaymentsAdded, 0);
+    expect(result.loanInstallmentsAdded, 0);
   });
 
   test('restore repairs duplicate category references before returning', () async {

@@ -347,6 +347,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         if (result.wallets > 0) '${result.wallets} nguồn tiền',
         if (result.loans > 0) '${result.loans} khoản vay',
         if (result.loanPayments > 0) '${result.loanPayments} lần thanh toán',
+        if (result.loanInstallments > 0)
+          '${result.loanInstallments} đợt trả góp',
       ];
       _snack('Đã xuất ${parts.join(', ')}');
     } catch (error) {
@@ -463,6 +465,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       if (result.loansAdded > 0) '${result.loansAdded} khoản vay',
       if (result.loanPaymentsAdded > 0)
         '${result.loanPaymentsAdded} lần thanh toán',
+      if (result.loanInstallmentsAdded > 0)
+        '${result.loanInstallmentsAdded} đợt trả góp',
     ];
     final skipped = _skippedCount(result);
     if (added.isEmpty) return 'Không có gì mới để khôi phục';
@@ -479,7 +483,8 @@ bool _hasAnything(RestoreResult r) =>
     r.walletsAdded > 0 ||
     r.monthlyBudgetsAdded > 0 ||
     r.loansAdded > 0 ||
-    r.loanPaymentsAdded > 0;
+    r.loanPaymentsAdded > 0 ||
+    r.loanInstallmentsAdded > 0;
 
 int _skippedCount(RestoreResult r) =>
     r.transactionsSkipped +
@@ -489,7 +494,8 @@ int _skippedCount(RestoreResult r) =>
     r.walletsSkipped +
     r.monthlyBudgetsSkipped +
     r.loansSkipped +
-    r.loanPaymentsSkipped;
+    r.loanPaymentsSkipped +
+    r.loanInstallmentsSkipped;
 
 // ── Status card ──────────────────────────────────────────────────────────────
 
@@ -707,6 +713,11 @@ class _RestorePreviewSheet extends StatelessWidget {
       icon: LucideIcons.banknote,
       label: 'lần thanh toán',
       count: (r) => r.loanPaymentsAdded,
+    ),
+    (
+      icon: LucideIcons.calendarRange,
+      label: 'đợt trả góp',
+      count: (r) => r.loanInstallmentsAdded,
     ),
   ];
 }
