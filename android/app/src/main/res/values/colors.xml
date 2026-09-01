@@ -1,8 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Match Dart SplashScreen bgColor for light mode -->
-    <color name="launch_bg_light">#FFFAF5FF</color>
+<!--
+  Light values of the Spendo design tokens (01-tokens.md). The night variant
+  in values-night/colors.xml carries the dark ones, so the launch screen and
+  both home-screen widgets follow the system theme instead of staying cream.
 
-    <!-- Default fallback for dark mode color -->
-    <color name="launch_bg_dark">#FF0F0A12</color>
+  Keep these in step with lib/core/theme/app_theme.dart and spendo_colors.dart.
+-->
+<resources>
+    <!-- Launch screen background — matches ColorScheme.surface. -->
+    <color name="launch_bg_light">#FFFAF1E8</color>
+    <color name="launch_bg_dark">#FF1C140C</color>
+
+    <!-- Home-screen widget surfaces. -->
+    <color name="widget_bg">#FFFFFDF9</color>
+    <color name="widget_stroke">#FFDCC9AF</color>
+    <color name="widget_cat_bg">#FFF5E9DA</color>
+
+    <!-- Text and brand. -->
+    <color name="widget_brand">#FFF06292</color>
+    <color name="widget_on_brand">#FF551D30</color>
+    <color name="widget_on_surface">#FF221A12</color>
+    <color name="widget_on_surface_variant">#FF57493B</color>
+
+    <!-- Filled action ("+ Thêm chi tiêu") — primary, not brand. -->
+    <color name="widget_button_bg">#FF8C4A5E</color>
+    <color name="widget_on_button">#FFFFFFFF</color>
 </resources>

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../features/onboarding/presentation/onboarding_prefs.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/spendo_colors.dart';
 import '../../core/theme/theme_provider.dart';
@@ -13,12 +15,21 @@ typedef InitCallback =
 
 class SplashScreen extends ConsumerStatefulWidget {
   final InitCallback onInit;
-  final Widget nextScreen;
+
+  /// Where to go once init finishes and onboarding has been answered.
+  ///
+  /// Takes over from the old `StartupGate`, which rendered a bare white
+  /// `Scaffold` + spinner between the splash and its destination — a light
+  /// flash between two screens that both had their own background
+  /// (`02-startup-gate.md` §J). The preference is read while init is already
+  /// running, so by the time the splash fades the answer is in hand.
+  final Widget Function(BuildContext context, bool onboardingCompleted)
+  nextScreenBuilder;
 
   const SplashScreen({
     super.key,
     required this.onInit,
-    required this.nextScreen,
+    required this.nextScreenBuilder,
   });
 
   @override
@@ -42,7 +53,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late final Animation<double> _exitOpacity;
 
   double _progress = 0.0;
-  String _statusMsg = 'Starting up…';
+  String _statusMsg = 'Đang khởi động…';
   bool _initDone = false;
   bool _isInitializing = false;
   bool _hasInitError = false;
@@ -68,12 +79,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 
+  /// Read while init runs, so the destination is known before the fade.
+  late final Future<bool> _onboardingCompleted = _loadOnboardingFlag();
+
   @override
   void initState() {
     super.initState();
     _loadVersion();
     _setupAnimations();
     _entryCtrl.forward().then((_) => _startInit());
+  }
+
+  Future<bool> _loadOnboardingFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(onboardingCompletedPrefsKey) ?? false;
+    } catch (_) {
+      // Unreadable preferences must not strand the user on the splash; the
+      // worst case is seeing the two welcome pages once more.
+      return false;
+    }
   }
 
   Future<void> _loadVersion() async {
@@ -169,7 +194,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       _isInitializing = true;
       _hasInitError = false;
       _progress = 0.0;
-      _statusMsg = 'Starting up…';
+      _statusMsg = 'Đang khởi động…';
     });
 
     try {
@@ -197,12 +222,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     setState(() {
       _isInitializing = false;
       _progress = 1.0;
-      _statusMsg = 'Ready!';
+      _statusMsg = 'Sẵn sàng.';
       _initDone = true;
     });
 
     _pulseCtrl.stop();
     await Future.delayed(const Duration(milliseconds: 500));
+
+    // Resolved before the fade so nothing has to render a spinner in between.
+    final completed = await _onboardingCompleted;
 
     if (!mounted) return;
     await _exitCtrl.forward();
@@ -210,7 +238,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => widget.nextScreen,
+        pageBuilder: (context, __, ___) =>
+            widget.nextScreenBuilder(context, completed),
         transitionsBuilder:
             (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 350),

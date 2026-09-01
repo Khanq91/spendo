@@ -17,7 +17,7 @@ import 'core/services/gdrive_background_backup.dart';
 import 'core/theme/app_glass_policy.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/utils/widget_sync.dart';
-import 'features/onboarding/presentation/startup_gate.dart';
+import 'features/onboarding/presentation/welcome_screen.dart';
 import 'features/reminders/data/reminder_repository.dart';
 import 'shared/widgets/splash_screen.dart';
 
@@ -88,7 +88,10 @@ class _AppRoot extends ConsumerWidget {
       ],
       home: SplashScreen(
         onInit: _initServices,
-        nextScreen: const StartupGate(),
+        // The splash reads the onboarding flag itself while init runs, so
+        // there is no intermediate gate screen to flash through.
+        nextScreenBuilder: (_, completed) =>
+            completed ? const SpendoApp() : const WelcomeScreen(),
       ),
     );
   }
@@ -97,26 +100,26 @@ class _AppRoot extends ConsumerWidget {
 Future<void> _initServices(
   void Function(double progress, String message) report,
 ) async {
-  report(0.0, 'Initializing…');
+  report(0.0, 'Đang khởi động…');
   await Future.delayed(const Duration(milliseconds: 100));
 
   // 1. Supabase
-  report(0.05, 'Connecting to cloud…');
+  report(0.05, 'Đang kết nối máy chủ…');
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseAnonKey,
   );
 
   // 2. Local database
-  report(0.35, 'Opening database…');
+  report(0.35, 'Đang mở dữ liệu…');
   await openDatabase();
 
   // 3. Notifications
-  report(0.65, 'Setting up notifications…');
+  report(0.65, 'Đang bật thông báo…');
   await NotificationService.init();
 
   // 4. Schedule recurring reminders
-  report(0.80, 'Scheduling reminders…');
+  report(0.80, 'Đang đặt lịch nhắc…');
   try {
     final reminders = await ReminderRepository().getAll().timeout(
       const Duration(seconds: 5),
@@ -129,9 +132,9 @@ Future<void> _initServices(
   }
 
   // 5. Home widgets sync
-  report(0.90, 'Syncing widgets…');
+  report(0.90, 'Đang cập nhật widget…');
   await WidgetSync.syncCategories();
 
-  report(1.0, 'All done!');
+  report(1.0, 'Xong.');
   await Future.delayed(const Duration(milliseconds: 200));
 }

@@ -25,12 +25,21 @@ class VisualModeNotifier extends StateNotifier<AppVisualMode> {
     _load();
   }
 
+  /// Set once the user picks a mode, so the initial read cannot overwrite it.
+  ///
+  /// Reading preferences is asynchronous: a choice made in the first moments
+  /// after launch — picking "Xịn xò" on the welcome page, say — used to be
+  /// silently reverted when [_load] resolved a beat later.
+  bool _chosen = false;
+
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_chosen || !mounted) return;
     state = AppVisualMode.fromName(prefs.getString(appVisualModePrefsKey));
   }
 
   Future<void> setMode(AppVisualMode mode) async {
+    _chosen = true;
     state = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(appVisualModePrefsKey, mode.name);

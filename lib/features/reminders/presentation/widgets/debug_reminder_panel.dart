@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../../core/db/powersync_db.dart';
+import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/notifications/reminder_notification_service.dart';
 import '../../domain/recurring_reminder.dart';
 
@@ -71,7 +72,10 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } finally {
@@ -119,14 +123,16 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final warning = theme.spendo.warning;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.5), width: 1),
+        border: Border.all(color: warning.withValues(alpha: 0.5), width: 1),
         borderRadius: BorderRadius.circular(12),
-        color: Colors.orange.withValues(alpha: 0.06),
+        color: warning.withValues(alpha: 0.06),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,9 +141,9 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
             child: Row(
               children: [
-                const Icon(LucideIcons.bug, size: 16, color: Colors.orange),
+                Icon(LucideIcons.bug, size: 16, color: warning),
                 const SizedBox(width: 6),
-                const Flexible(
+                Flexible(
                   child: Text(
                     'DEBUG — Test notification',
                     maxLines: 1,
@@ -145,7 +151,7 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Colors.orange,
+                      color: warning,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -153,7 +159,7 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
               ],
             ),
           ),
-          const Divider(height: 1, color: Colors.orange),
+          Divider(height: 1, color: warning),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -215,13 +221,13 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
                               decoration: BoxDecoration(
                                 color:
                                     selected
-                                        ? Colors.orange.withValues(alpha: 0.2)
+                                        ? warning.withValues(alpha: 0.2)
                                         : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color:
                                       selected
-                                          ? Colors.orange
+                                          ? warning
                                           : cs.outlineVariant,
                                   width: 0.8,
                                 ),
@@ -236,7 +242,7 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
                                           : FontWeight.w400,
                                   color:
                                       selected
-                                          ? Colors.orange
+                                          ? warning
                                           : cs.onSurfaceVariant,
                                 ),
                               ),
@@ -278,7 +284,7 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
                   child: FilledButton.icon(
                     onPressed: _firing || _selected == null ? null : _fireNow,
                     style: FilledButton.styleFrom(
-                      backgroundColor: Colors.orange,
+                      backgroundColor: warning,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -286,12 +292,12 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
                     ),
                     icon:
                         _firing
-                            ? const SizedBox(
+                            ? SizedBox(
                               width: 14,
                               height: 14,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: cs.onPrimary,
                               ),
                             )
                             : const Icon(LucideIcons.bellRing, size: 16),
@@ -315,7 +321,7 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
                       );
                     }
                   },
-                  style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+                  style: FilledButton.styleFrom(backgroundColor: cs.tertiary),
                   icon: const Icon(LucideIcons.flaskConical, size: 16),
                   label: const Text('Seed habit test data'),
                 ),

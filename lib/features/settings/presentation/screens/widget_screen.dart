@@ -14,9 +14,13 @@ import '../providers/widget_pin_provider.dart';
 /// Screen 23 of the redesign — `/settings/widget`.
 ///
 /// The old section packed four 75px cards into one row, each clearable only
-/// through a 12px `×` in its corner (`29-widget-pin-picker-sheet.md` §L). The
-/// page shows what the widget will actually look like and gives each slot a
-/// full row with a real "Bỏ ghim" button.
+/// through a 12px `×` in its corner (`29-widget-pin-picker-sheet.md` §L).
+///
+/// The page shows what the widget will actually look like, and each slot gets
+/// a full row. There is no "clear" any more: all four slots always hold a
+/// category and tapping a row swaps it, which is both simpler to explain and
+/// the reason the native side no longer needs a fallback. A slot is blank only
+/// when the user has fewer than four expense categories.
 class WidgetScreen extends ConsumerWidget {
   const WidgetScreen({super.key});
 
@@ -24,13 +28,9 @@ class WidgetScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pinnedIds = ref.watch(widgetPinnedIdsProvider);
     final categories = ref.watch(expenseCategoriesProvider);
-    final byId = {for (final c in categories) c.id: c};
-
-    final slots = List<String>.from(pinnedIds);
-    while (slots.length < 4) {
-      slots.add('');
-    }
-    final pinned = [for (final id in slots) byId[id]];
+    // The same resolver the sync uses, so this preview cannot disagree with
+    // what actually lands on the home screen.
+    final pinned = resolveWidgetSlots(pinnedIds, categories);
 
     return Scaffold(
       body: SafeArea(
@@ -55,7 +55,7 @@ class WidgetScreen extends ConsumerWidget {
                             category: pinned[i],
                             usedIds: {
                               for (var j = 0; j < 4; j++)
-                                if (j != i && slots[j].isNotEmpty) slots[j],
+                                if (j != i && pinned[j] != null) pinned[j]!.id,
                             },
                             categories: categories,
                           ),
@@ -155,7 +155,7 @@ class _PreviewCell extends StatelessWidget {
               Icon(LucideIcons.plus, size: 14, color: cs.onSurfaceVariant),
               const SizedBox(height: 4),
               Text(
-                'Trống',
+                'Ghi nhanh',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -260,33 +260,43 @@ class _SlotRow extends ConsumerWidget {
                 ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  category?.name ?? 'Chọn danh mục…',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: category != null
-                        ? cs.onSurface
-                        : cs.onSurfaceVariant,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      category?.name ?? 'Chưa đủ danh mục',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: category != null
+                            ? cs.onSurface
+                            : cs.onSurfaceVariant,
+                      ),
+                    ),
+                    if (category == null)
+                      Text(
+                        'Ô này mở Thêm giao dịch để trống',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              if (category != null) ...[
-                const SizedBox(width: 8),
-                // Replaces the 12px `×` in the card corner — a real tap target
-                // that says what it does.
-                SpendoChip(
-                  label: 'Bỏ ghim',
-                  onTap: () async {
-                    await ref
-                        .read(widgetPinnedIdsProvider.notifier)
-                        .clearSlot(index);
-                    await WidgetSync.syncCategories();
-                  },
-                ),
-              ],
+              const SizedBox(width: 6),
+              // Every slot always holds a category, so there is nothing to
+              // clear — tapping the row swaps it for another one.
+              Icon(
+                LucideIcons.chevronRight,
+                size: 17,
+                color: cs.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -392,8 +402,9 @@ class _Hint extends StatelessWidget {
         color: cs.surfaceContainerLowest,
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         child: Text(
-          'Ghim bao nhiêu dùng bấy nhiêu — slot trống hiện "+" trên widget. '
-          'Chỉ danh mục chi mới ghim được.',
+          'Bốn ô luôn có danh mục — chạm một ô để đổi sang danh mục khác. '
+          'Nếu bạn có ít hơn 4 danh mục chi, ô thừa mở Thêm giao dịch để '
+          'trống. Chỉ danh mục chi mới ghim được.',
           style: TextStyle(
             fontSize: 12,
             height: 1.5,

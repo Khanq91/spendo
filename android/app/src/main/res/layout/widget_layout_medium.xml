@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:text="Spendo"
         android:textSize="12sp"
-        android:textColor="#F06292"
+        android:textColor="@color/widget_brand"
         android:textStyle="bold"
         android:layout_marginBottom="10dp"/>
 
@@ -42,7 +42,7 @@
                 android:layout_height="wrap_content"
                 android:text="Ăn uống"
                 android:textSize="10sp"
-                android:textColor="#666666"
+                android:textColor="@color/widget_on_surface_variant"
                 android:layout_marginTop="2dp"/>
         </LinearLayout>
 
@@ -66,7 +66,7 @@
                 android:layout_height="wrap_content"
                 android:text="Di chuyển"
                 android:textSize="10sp"
-                android:textColor="#666666"
+                android:textColor="@color/widget_on_surface_variant"
                 android:layout_marginTop="2dp"/>
         </LinearLayout>
 
@@ -90,7 +90,7 @@
                 android:layout_height="wrap_content"
                 android:text="Mua sắm"
                 android:textSize="10sp"
-                android:textColor="#666666"
+                android:textColor="@color/widget_on_surface_variant"
                 android:layout_marginTop="2dp"/>
         </LinearLayout>
 
@@ -114,7 +114,7 @@
                 android:layout_height="wrap_content"
                 android:text="Học tập"
                 android:textSize="10sp"
-                android:textColor="#666666"
+                android:textColor="@color/widget_on_surface_variant"
                 android:layout_marginTop="2dp"/>
         </LinearLayout>
 

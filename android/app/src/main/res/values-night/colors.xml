@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dark values of the same tokens. Only the names defined here are overridden;
+  anything absent falls back to values/colors.xml.
+
+  Per 01-tokens.md the dark rule is: brand keeps its hue with #551D30 on top,
+  primary lightens to #E9A4B5 with dark text, and depth comes from surface
+  steps rather than shadow.
+-->
 <resources>
-    <!-- Match Dart SplashScreen bgColor for dark mode: Color(0xFF0F0A12) -->
-    <color name="launch_bg_dark">#FF0F0A12</color>
+    <!-- launch_bg_* are not overridden here: values-night/styles.xml already
+         points the window background at launch_bg_dark. -->
+
+    <color name="widget_bg">#FF251B10</color>
+    <color name="widget_stroke">#FF55442F</color>
+    <color name="widget_cat_bg">#FF2B2013</color>
+
+    <color name="widget_brand">#FFF06292</color>
+    <color name="widget_on_brand">#FF551D30</color>
+    <color name="widget_on_surface">#FFF0E4D3</color>
+    <color name="widget_on_surface_variant">#FFC9B79F</color>
+
+    <color name="widget_button_bg">#FFE9A4B5</color>
+    <color name="widget_on_button">#FF4A2231</color>
 </resources>

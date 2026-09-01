@@ -51,35 +51,35 @@ class SpendoWidgetMedium : AppWidgetProvider() {
 
             data class CatData(val id: String, val name: String, val emoji: String)
 
-            val cats = mutableListOf<CatData>()
+            // Four positional slots. A slot may be blank when the user has
+            // fewer than four expense categories; it stays in place so the
+            // grid does not reshuffle.
+            val cats = MutableList(4) { CatData("", "", "") }
             if (catsJson != null) {
                 try {
                     val arr = JSONArray(catsJson)
                     for (i in 0 until minOf(arr.length(), 4)) {
                         val obj = arr.getJSONObject(i)
-                        cats.add(CatData(
-                            obj.getString("id"),
-                            obj.getString("name"),
-                            obj.getString("emoji")
-                        ))
+                        cats[i] = CatData(
+                            obj.optString("id", ""),
+                            obj.optString("name", ""),
+                            obj.optString("emoji", "")
+                        )
                     }
                 } catch (_: Exception) {}
             }
 
-            // Fallback nếu chưa có data
-            val defaults = listOf(
-                CatData("", "Ăn uống", "🍜"),
-                CatData("", "Di chuyển", "🚗"),
-                CatData("", "Mua sắm", "🛍️"),
-                CatData("", "Học tập", "📚"),
-            )
-            val displayCats = if (cats.size >= 4) cats else defaults
-
-            // Gán UI + intent cho từng category
+            // Gán UI + intent cho từng slot
             for (i in 0..3) {
-                val cat = displayCats[i]
-                views.setTextViewText(CAT_ICON_IDS[i], cat.emoji)
-                views.setTextViewText(CAT_NAME_IDS[i], cat.name)
+                val cat = cats[i]
+                val isEmpty = cat.name.isEmpty()
+
+                // An empty slot reads as an invitation, not as a category the
+                // user never chose. The old build fell back to four hard-coded
+                // names whenever fewer than four came through, so a user with
+                // two categories saw two that were not theirs.
+                views.setTextViewText(CAT_ICON_IDS[i], if (isEmpty) "+" else cat.emoji)
+                views.setTextViewText(CAT_NAME_IDS[i], if (isEmpty) "Ghi nhanh" else cat.name)
 
                 val uri = if (cat.id.isNotEmpty())
                     Uri.parse("spendo:///add?category_id=${cat.id}")
