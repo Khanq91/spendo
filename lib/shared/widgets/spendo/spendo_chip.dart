@@ -5,14 +5,19 @@ import '../motion/motion.dart';
 
 /// The pill shapes that used to be re-implemented per screen
 /// (`06-inconsistencies.md` counted seven variants).
+/// Every chip is a filled pill: an outline-only variant reads as absent on the
+/// dark surfaces, and mixing the two made the same affordance look like two
+/// different controls across screens.
 enum SpendoChipKind {
-  /// Filter row. Selected = primaryContainer, otherwise surfaceContainer.
+  /// Something to pick — a filter, a note suggestion, a period preset.
+  /// Selected = primaryContainer, otherwise surfaceContainer.
   filter,
 
-  /// Tappable hint, e.g. the note suggestions. Outlined by default.
+  /// Alias of [filter], kept so call sites can say what they mean.
   suggestion,
 
   /// Read-out of a chosen value (date · wallet · repeat) inside a sheet.
+  /// Sits one step lower so it reads as a value, not a choice.
   meta,
 }
 
@@ -64,27 +69,14 @@ class SpendoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final (Color background, Color foreground, BorderSide side) = switch (kind) {
-      SpendoChipKind.filter => selected
-          ? (cs.primaryContainer, cs.onPrimaryContainer, BorderSide.none)
-          : (cs.surfaceContainer, cs.onSurfaceVariant, BorderSide.none),
-      SpendoChipKind.suggestion => (
-        Colors.transparent,
-        cs.onSurface,
-        BorderSide(color: cs.outlineVariant),
-      ),
-      SpendoChipKind.meta => (
-        cs.surfaceContainerLow,
-        cs.onSurface,
-        BorderSide.none,
-      ),
+    final (Color background, Color foreground) = switch (kind) {
+      SpendoChipKind.filter || SpendoChipKind.suggestion => selected
+          ? (cs.primaryContainer, cs.onPrimaryContainer)
+          : (cs.surfaceContainer, cs.onSurface),
+      SpendoChipKind.meta => (cs.surfaceContainerLow, cs.onSurface),
     };
 
-    final height = switch (kind) {
-      SpendoChipKind.filter => 34.0,
-      SpendoChipKind.suggestion => 34.0,
-      SpendoChipKind.meta => 36.0,
-    };
+    final height = kind == SpendoChipKind.meta ? 36.0 : 34.0;
 
     final content = Row(
       mainAxisSize: MainAxisSize.min,
@@ -94,12 +86,16 @@ class SpendoChip extends StatelessWidget {
           Icon(icon, size: 15, color: foreground),
           const SizedBox(width: 6),
         ],
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: kind == SpendoChipKind.filter ? 12.5 : 13,
-            fontWeight: FontWeight.w600,
-            color: foreground,
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: kind == SpendoChipKind.meta ? 12.5 : 13,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              color: foreground,
+            ),
           ),
         ),
         if (onDeleted != null) ...[
@@ -114,12 +110,9 @@ class SpendoChip extends StatelessWidget {
 
     final chip = Container(
       height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       alignment: Alignment.center,
-      decoration: ShapeDecoration(
-        color: background,
-        shape: StadiumBorder(side: side),
-      ),
+      decoration: ShapeDecoration(color: background, shape: const StadiumBorder()),
       child: content,
     );
 

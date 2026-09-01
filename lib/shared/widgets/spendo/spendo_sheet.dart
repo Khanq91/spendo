@@ -45,6 +45,11 @@ class SpendoSheet extends StatelessWidget {
   final bool showDragHandle;
 
   /// Opens [builder] as a modal sheet already wearing the sheet tokens.
+  ///
+  /// The barrier is transparent because [SpendoSheet] paints its own rounded
+  /// background. A [builder] that returns anything else would therefore render
+  /// with no background at all, so it is wrapped here — screens still on their
+  /// pre-redesign layout get the sheet surface without being rewritten first.
   static Future<T?> showModal<T>({
     required BuildContext context,
     required WidgetBuilder builder,
@@ -54,7 +59,10 @@ class SpendoSheet extends StatelessWidget {
       context: context,
       isScrollControlled: isScrollControlled,
       backgroundColor: Colors.transparent,
-      builder: builder,
+      builder: (context) {
+        final child = builder(context);
+        return child is SpendoSheet ? child : _SheetSurface(child: child);
+      },
     );
   }
 
@@ -85,6 +93,28 @@ class SpendoSheet extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The rounded sheet background on its own, for content that is not yet a
+/// [SpendoSheet].
+class _SheetSurface extends StatelessWidget {
+  const _SheetSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppTheme.radiusSheet),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
     );
   }
 }

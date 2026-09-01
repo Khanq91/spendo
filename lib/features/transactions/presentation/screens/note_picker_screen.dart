@@ -218,7 +218,7 @@ class _NotePickerScreenState extends State<NotePickerScreen> {
                       runSpacing: 8,
                       children: [
                         for (final suggestion in suggestions)
-                          _SuggestionChip(
+                          SpendoChip.suggestion(
                             label: suggestion,
                             onTap: () {
                               setState(() {
@@ -234,42 +234,6 @@ class _NotePickerScreenState extends State<NotePickerScreen> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Filled pill — screen 02b's suggestion variant, per `02-components.md`.
-class _SuggestionChip extends StatelessWidget {
-  const _SuggestionChip({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Material(
-      color: cs.surfaceContainer,
-      shape: const StadiumBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.sizeOf(context).width - 32,
-          ),
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-        ),
       ),
     );
   }

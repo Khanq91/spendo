@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/category_icons.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../domain/recurring_reminder.dart';
 import '../providers/reminder_provider.dart';
@@ -220,54 +221,18 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
             ),
             const SizedBox(height: 8),
             SizedBox(
-              height: 40,
+              height: 34,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: allCats.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
                   final cat = allCats[i];
-                  final selected = cat.id == _categoryId;
-                  return GestureDetector(
+                  return SpendoChip(
+                    label: cat.name,
+                    icon: categoryIcon(cat.iconName),
+                    selected: cat.id == _categoryId,
                     onTap: () => setState(() => _categoryId = cat.id),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            selected
-                                ? cat.color.withValues(alpha: 0.15)
-                                : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: selected ? cat.color : cs.outlineVariant,
-                          width: 0.8,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            categoryIcon(cat.iconName),
-                            size: 14,
-                            color: selected ? cat.color : cs.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            cat.name,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: selected ? cat.color : cs.onSurfaceVariant,
-                              fontWeight:
-                                  selected ? FontWeight.w600 : FontWeight.w400,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   );
                 },
               ),
