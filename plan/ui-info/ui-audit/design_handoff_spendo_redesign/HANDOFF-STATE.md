@@ -41,11 +41,11 @@ Cấm rải hex trong widget, mọi màu lấy qua `ColorScheme` + `context.spen
 | 2 — Home + Add (màn 01, 02, 02b) | ✅ xong | `1e9322f` |
 | 3 — Giao dịch & PeriodPicker | ✅ xong | `0bd474a` |
 | 4 — Ví & Hạn mức | ✅ xong | `37ee086` |
-| 5 — Thống kê, Vay, Nhắc nhở | ⬜ tiếp theo | |
-| 6 — Cài đặt & trang con | ⬜ | |
+| 5 — Thống kê, Vay, Nhắc nhở | ✅ xong | `eb30303` + `583d7d0` |
+| 6 — Cài đặt & trang con | ⬜ tiếp theo | |
 | 7 — Khởi động + Dark pass + QA | ⬜ | |
 
-Baseline hiện tại: `flutter analyze` sạch · **150 test pass** · debug APK build được.
+Baseline hiện tại: `flutter analyze` sạch · **177 test pass** · debug APK build được.
 
 > Sau Phase 3 có 1 commit sửa lỗi UI phát hiện khi chạy thật (`6eb95fa`) —
 > xem mục 2.9.
@@ -174,11 +174,10 @@ light + dark).
 đặt ở **icon** (`SpendoIconTile`, `SpendoCategoryTile`). Lý do: danh mục màu
 đỏ (`#FF6B6B`) làm chip đang chọn đọc thành báo lỗi ở dark mode.
 
-Còn 2 bản chip riêng phải thay khi động tới màn:
-`loan_detail_screen.dart:_MetaChip` (Phase 5) ·
-`settings_screen.dart:_TabChip` (Phase 6).
-`wallet_detail_screen.dart:_FilterChip` đã xoá ở Phase 4 (thay bằng
-`SpendoSegmented`).
+Còn **1** bản chip riêng: `settings_screen.dart:_TabChip` (Phase 6).
+`wallet_detail_screen.dart:_FilterChip` xoá ở Phase 4,
+`loan_detail_screen.dart:_MetaChip` xoá ở Phase 5 (đều thay bằng
+`SpendoSegmented` / `SpendoChip.meta`).
 
 ### 2.10 `SpendoSheet.showModal` tự bọc nền
 
@@ -276,6 +275,134 @@ dịch" ở Chi tiết ví ghi thẳng vào ví đang xem (`13-wallet-detail.md`
 cũ không có cách nào thêm giao dịch cho chính ví đang mở). Khi **sửa** giao
 dịch thì ví của giao dịch thắng.
 
+### 2.17 Phase 5 — Thống kê có toggle Chi|Thu, `statsPeriodProvider`
+
+Màn cũ hard-wire vào **chi**: pie bỏ qua thu, bar chỉ vẽ expense → tháng chỉ có
+lương báo "Chưa có dữ liệu" (`10-stats.md` §L).
+
+- `StatsSide` (enum `expense` | `income`) + `statsSideProvider` — segmented
+  Chi|Thu quyết định cả pie lẫn bar.
+- `statsDateRangeProvider` → **`statsPeriodProvider`**; header dùng
+  `SpendoPeriodStepper(allowCustomRange: true)`.
+- **Xoá**: `stats_time_selector.dart` và `typedef StatsDateRange = Period`
+  (nợ ở mục 2.4b đã trả).
+- `statsExpensesByCategoryProvider` → `statsByCategoryProvider` trả
+  `List<StatsSlice>` (`categoryId` + `amount` + `share`) đã sort giảm dần.
+
+AppBar + TabBar cũ chiếm 104px trước khi thấy số; giờ header 52 + segmented 30.
+
+### 2.18 Phase 5 — legend tap → tab Giao dịch đã lọc (drill-down)
+
+Theo mục 2.5 (`shellTabProvider`). Tap hàng legend **hoặc** múi pie:
+
+```
+transactionsPeriodProvider = kỳ của Stats
+transactionFilterProvider  = TransactionFilter(type: Chi|Thu, categoryIds: {id})
+shellTabProvider           = ShellTab.transactions
+```
+
+Đây là lý do `shellTabProvider` tồn tại — đừng push route `/transactions`.
+
+### 2.19 Phase 5 — `formatVND(amount, withSymbol: false)`
+
+Hàng summary Thống kê có 3 số cùng dòng; 3 chữ ₫ không vừa 360dp. Thêm tham số
+**có default `true`** nên mọi call-site cũ không đổi.
+
+### 2.20 Phase 5 — Khoản vay hiện SỐ CÒN LẠI + `loanFilterProvider`
+
+`15-loan-list.md` §L: tile hiện **principal** (số gốc) nên muốn biết còn nợ bao
+nhiêu phải vào chi tiết.
+
+- `LoanRepository.watchPaidByLoan()` — 1 query gom `SUM(amount)` theo `loan_id`,
+  không phải stream/dòng.
+- `paidByLoanProvider` + hàm `remainingOf(loan, paidByLoan)` (clamp 0..principal,
+  nên trả dư không ra số âm).
+- `LoanFilter` (Tất cả | Đang vay | Cho vay) + `loanFilterProvider` — segmented
+  **trong màn**. Query param `?type=` chỉ còn để seed giá trị ban đầu.
+- Header card tổng **Đang nợ / Được nợ** (tính trên remaining, bỏ loan closed).
+- Chip **"Trả"** ngay trên tile → `showAddPaymentSheet` (không cần vào chi tiết).
+
+⚠️ Progress bar khoản vay dùng **`cs.primary` cố định**, không dùng ngưỡng
+85%/vượt của `SpendoProgressBar`. Trả nợ càng nhiều càng tốt — màu cảnh báo ở
+đây đọc ngược nghĩa.
+
+### 2.21 Phase 5 — `/loans/:id` là route thật
+
+`LoanDetailScreen` cũ nhận **object `Loan`** qua `Navigator.push` → không URL,
+không deep-link, và loan bị xoá nơi khác vẫn render như còn sống.
+
+Giờ nhận `loanId`, tự tìm trong `loansProvider`; không thấy → báo "Khoản vay
+không còn tồn tại" (không spinner vô hạn).
+
+`loanPaymentsProvider(loanId)` khai báo **trong `loan_detail_screen.dart`**
+(family autoDispose) — nơi duy nhất dùng.
+
+### 2.22 Phase 5 — badge M3 thay emoji · ghi chú thanh toán hiện ra
+
+- `'🔴 Quá hạn'` / `'⚠️ Còn N ngày'` → `_StatusBadge` icon Lucide +
+  `context.spendo.warning`. Emoji không đổi theo dark mode và screen reader đọc
+  ra tên emoji.
+- `loanStatusLabel(loan)` (public trong `loan_list_screen.dart`) — list và
+  detail dùng chung, thêm mốc `'Đến hạn hôm nay'` (trước ra "Còn 0 ngày").
+- Ghi chú payment **hiện ở subtitle** (`ngày · ghi chú`) — model có, form nhập,
+  nhưng chưa bao giờ hiển thị.
+- Trả hết → nút đổi thành **"Đánh dấu tất toán"** (trước để loan mở, không gợi ý).
+- Tất toán có **Hoàn tác**; xoá loan **giữ dialog** (xoá kéo theo cả lịch sử
+  thanh toán, không undo được từ đâu).
+- Xoá payment = **vuốt trái** + Hoàn tác (`addPayment` lại nguyên `paidAt`/note).
+
+### 2.23 Phase 5 — `AddPaymentSheet` tách file, chọn được ngày
+
+Sheet cũ nằm trong `loan_detail_screen.dart`, `paidAt = DateTime.now()` cố định
+→ ghi bù hôm sau là sai ngày. Giờ:
+
+`loan/…/widgets/add_payment_sheet.dart` · `showAddPaymentSheet(context, loan:,
+remaining:)` — chip ngày, chip **"Trả hết"**, cảnh báo khi nhập quá số còn lại
+(cảnh báo, **không chặn** — trả dư là chuyện có thật).
+
+### 2.24 Phase 5 — Nhắc nhở: 1 hàng gợi ý, tile đủ thông tin, xoá có Hoàn tác
+
+- Tile cũ chỉ hiện quy tắc lặp; `nextTrigger` và `amountHint` có trong model mà
+  ẩn. Giờ: `Lần tới: Thứ 5, 5/9 · 20:00 · ~300.000 ₫`, tắt thì `Đã tắt · <lịch>`.
+- Chip **"Ghi ngay"** → `showAddTransactionSheet(preselectedCategoryId:,
+  prefillNote:, prefillAmount:)`.
+- **Preset + habit gộp 1 hàng chip** (trước là chip strip + list card = 2 hình
+  dạng cho cùng một việc). Habit dùng `SpendoChip(selected: true)` + icon
+  sparkles + `onDeleted` để bỏ qua.
+- **Xoá = vuốt trái + Hoàn tác** — trước là nơi duy nhất trong app xoá ngay
+  không hỏi, không undo.
+- Tiêu đề màn đổi `Nhắc chi tiêu định kỳ` → **`Nhắc nhở`**, khớp mọi lối vào.
+- `_DebugPanel` (~310 dòng, chỉ `kDebugMode`) tách ra
+  `widgets/debug_reminder_panel.dart`. Sửa luôn `id.substring(0, 8)` ném lỗi khi
+  id ngắn hơn 8 ký tự.
+
+### 2.25 Phase 5 — Form nhắc nhở: numpad + `warnBeforeHours` có UI
+
+- Số tiền gợi ý chuyển từ keyboard hệ thống (không format nghìn) sang
+  **`SpendoNumpad`**; tap ô số mới hiện numpad, nên numpad và keyboard không
+  chồng nhau.
+- **`WarnBefore`** (Tắt | 6 giờ | 1 ngày | 2 ngày) — model có
+  `warnBeforeHours`, preset có `defaultWarnBeforeHours`, nhưng form **không có
+  UI** nên giá trị preset bị bỏ. `WarnBefore.nearest(hours)` làm tròn xuống.
+- Tần suất + thứ trong tuần + nhắc trước đều dùng `SpendoSegmented` (trước là 4
+  kiểu chọn khác nhau trong 1 form).
+- Ngày trong tháng: `_DayOfMonthSheet` lưới 1–28 thay `DropdownButtonFormField`.
+- Có dòng đọc lại bằng tiếng Việt ("Nhắc … ngày 5 hàng tháng lúc 20:00, báo
+  trước 6 giờ").
+- `showReminderFormSheet(...)` là lối mở duy nhất (kể cả chip "Lặp lại" ở sheet
+  Thêm giao dịch).
+
+### 2.26 Phase 5 — form khoản vay: nút Lưu bám cả tên lẫn số
+
+`17-loan-form-sheet.md` §L: nút disable theo `_titleCtrl` nhưng **không
+addListener** → gõ tên xong nút vẫn xám.
+
+- `_titleCtrl.addListener` + nút Lưu bọc `ListenableBuilder(_amountCtrl)`.
+- Tên rỗng → lỗi inline (trước return im lặng).
+- **Ngày bắt đầu chọn được** (trước cố định lúc tạo).
+- `showDatePicker(firstDate: now)` cũ **ném lỗi** khi sửa loan có hạn quá khứ
+  (`initialDate < firstDate`) → `firstDate` lùi về `now.year - 10`.
+
 ### 2.5 Phase 2 — `shellTabProvider` thay `setState` trong AppShell
 
 Nút "Xem tất cả" ở Home phải chuyển sang **tab** Giao dịch, không push route
@@ -298,9 +425,8 @@ Cần thiết để đạt tiêu chí nghiệm thu, không đụng logic:
 ### 2.7 Phase 2 — `Numpad` thành alias mỏng của `SpendoNumpad`
 
 `numpad.dart` cũ là wrapper 1 dòng gọi `SpendoNumpad`, để màn chưa tới lượt có
-bàn phím theo token ngay. Phase 4 đã dọn 3/5 call-site (budget ×2 + wallet
-form). **Còn 2**: `loan_detail_screen.dart`, `loan_form_sheet.dart` — Phase 5
-đổi sang `SpendoNumpad` rồi xoá file.
+bàn phím theo token ngay. Phase 4 dọn 3/5 call-site, Phase 5 dọn 2 cái cuối
+(loan). **File đã xoá** — dùng thẳng `SpendoNumpad`.
 
 ### 2.8 `AppTheme.incomeColor/expenseColor/expenseAltColor` — còn nợ
 
@@ -311,9 +437,9 @@ call-site / 16 file** dùng chúng ngoài widget tree. Cách đúng là
 **Việc còn tồn:** mỗi phase 2–6 khi động vào màn nào thì chuyển call-site của
 màn đó sang `context.spendo`. Phase 7 quét nốt phần còn lại rồi xoá 3 hằng.
 
-Sau Phase 4: **27 chỗ / 6 file** (từ 53/16). Còn lại: `stats_screen` (9),
-`settings_screen` (8), `gdrive_backup_section` (4), `loan_detail_screen` (3),
-`sepay_connection_section` (2), `reminders_screen` (1) — đều thuộc Phase 5–6.
+Sau Phase 5: **14 chỗ / 3 file** (từ 53/16). Còn lại `settings_screen` (8),
+`gdrive_backup_section` (4), `sepay_connection_section` (2) — **tất cả thuộc
+Phase 6**. Xong Phase 6 là xoá được 3 hằng, không cần đợi Phase 7.
 
 ---
 
@@ -343,8 +469,9 @@ meta) · `SpendoSegmented` (Chi|Thu) · `SpendoCard` · `SpendoSectionHeader` ·
 ô "+" thêm ví) · `SpendoScreenHeader` / `SpendoHeaderIconButton` /
 `SpendoPeriodStepper` (hàng tiêu đề màn push — mục 2.15).
 
-> Phase 2–4 đã lắp bộ này vào màn 01–09. Phase 5–6 làm tương tự cho màn của
-> mình: thấy màn nào còn tự vẽ drag-handle / chip / empty state / AppBar → thay.
+> Phase 2–5 đã lắp bộ này vào màn 01–13 + form 16/17. Phase 6 làm tương tự cho
+> màn của mình: thấy màn nào còn tự vẽ drag-handle / chip / empty state / AppBar
+> → thay.
 
 ### 3.4 Thứ khác Phase 2 dựng, phase sau dùng lại
 
@@ -366,6 +493,14 @@ meta) · `SpendoSegmented` (Chi|Thu) · `SpendoCard` · `SpendoSectionHeader` ·
 | `SetBudgetSheet.show(...)` | `budget/…/widgets/` | sheet numpad nhập hạn mức (tháng + danh mục) |
 | `budgetPeriodProvider` + họ | `budget/…/providers/budget_page_provider.dart` | kỳ + số liệu của trang `/budget` (mục 2.12) |
 | `showAddTransactionSheet(preselectedWalletId:)` | `transactions/…/widgets/` | thêm giao dịch vào 1 ví cụ thể (mục 2.16) |
+| `formatVND(x, withSymbol: false)` | `core/utils/currency_formatter.dart` | bỏ ₫ khi 1 hàng có nhiều số (mục 2.19) |
+| `StatsSide` / `statsPeriodProvider` / `statsByCategoryProvider` | `stats/…/providers/` | Chi\|Thu + kỳ của Thống kê (mục 2.17) |
+| `paidByLoanProvider` + `remainingOf(loan, paid)` | `loan/…/providers/` | số còn lại của khoản vay (mục 2.20) |
+| `loanStatusLabel(loan)` | `loan/…/screens/loan_list_screen.dart` | `Quá hạn` / `Còn N ngày` — list + detail dùng chung |
+| `showAddPaymentSheet(context, loan:, remaining:)` | `loan/…/widgets/` | ghi nhận thanh toán (mục 2.23) |
+| `showLoanFormSheet(context, existing:, initialType:)` | `loan/…/widgets/` | mở form khoản vay — 1 nơi duy nhất |
+| `showReminderFormSheet(context, ...)` | `reminders/…/widgets/` | mở form nhắc nhở — 1 nơi duy nhất (mục 2.25) |
+| `WarnBefore` | `reminders/…/widgets/reminder_form_sheet.dart` | mức nhắc trước (mục 2.25) |
 
 ### 3.3 Motion — giữ nguyên, chỉ đổi màu
 
@@ -382,10 +517,10 @@ tôn trọng reduce-motion.
 |---|---|
 | Hex hard-code ngoài `core/theme/` | **20** chỗ (từ 55) — chỉ còn 3 file Cài đặt, Phase 6 |
 | `Colors.white/grey/red/orange/…` cố định (không đổi theo dark) | ~100 chỗ |
-| `AppTheme.incomeColor/…` → `context.spendo` | **27** chỗ / 6 file (từ 53/16) |
-| `numpad.dart` (alias) → gọi thẳng `SpendoNumpad` rồi xoá | **2** call-site (loan), Phase 5 (mục 2.7) |
+| `AppTheme.incomeColor/…` → `context.spendo` | **14** chỗ / 3 file (từ 53/16) — chỉ còn Cài đặt |
+| ~~`numpad.dart` (alias) → xoá~~ | ✅ xoá ở Phase 5 |
 | ~~`month_selector.dart` → xoá~~ | ✅ xoá ở Phase 4 |
-| `typedef StatsDateRange = Period` → dùng thẳng `Period` rồi xoá alias | Phase 5 (mục 2.4b) |
+| ~~`typedef StatsDateRange = Period` → xoá alias~~ | ✅ xoá ở Phase 5 (mục 2.17) |
 | Splash | Phase 0 mới đổi màu sang token; redesign thật ở Phase 7 |
 | 2 widget Android native `widget_layout_*.xml` | chưa đổi màu — Phase 7 |
 | Route `/stats` `/settings` trùng tab của shell | rà khi Phase 6 làm Cài đặt (`/features` + AllFeatures đã xoá ở Phase 2) |
@@ -466,6 +601,36 @@ hành vi carousel đã bị thay)
 `test/features/wallets/…/wallets_screen_test.dart` ·
 `…/wallet_detail_screen_test.dart` · `…/wallet_form_sheet_test.dart` ·
 `test/features/budget/…/budget_screen_test.dart` (131 → 150 test)
+
+---
+
+## 4e. Phase 5 đã đụng file nào
+
+Làm 2 commit: `eb30303` (Thống kê) + `583d7d0` (Vay + Nhắc nhở).
+
+**Thêm:** `loan/…/widgets/add_payment_sheet.dart` ·
+`reminders/…/widgets/debug_reminder_panel.dart`
+
+**Viết lại:** `stats/…/screens/stats_screen.dart` ·
+`stats/…/providers/stats_provider.dart` ·
+`loan/…/screens/loan_list_screen.dart` · `loan/…/screens/loan_detail_screen.dart` ·
+`loan/…/widgets/loan_form_sheet.dart` ·
+`reminders/…/screens/reminders_screen.dart` ·
+`reminders/…/widgets/reminder_form_sheet.dart`
+
+**Sửa:** `app_router.dart` (thêm `/loans/:id`) ·
+`core/utils/currency_formatter.dart` (`withSymbol`) ·
+`loan/data/loan_repository.dart` (`watchPaidByLoan`) ·
+`loan/…/providers/loan_provider.dart` (`LoanFilter`, `paidByLoanProvider`,
+`remainingOf`) · `add_transaction_sheet.dart` (gọi `showReminderFormSheet`)
+
+**Xoá:** `stats/…/widgets/stats_time_selector.dart` ·
+`transactions/…/widgets/numpad.dart`
+
+**Test mới:** `stats_screen_test.dart` (viết lại, 6 test) ·
+`loan_list_screen_test.dart` · `loan_detail_screen_test.dart` ·
+`loan_form_sheet_test.dart` (viết lại) · `reminders_screen_test.dart` ·
+`reminder_form_sheet_test.dart` (+2) — 150 → 177 test
 
 ## 5. Quy trình mỗi phase
 
