@@ -40,11 +40,8 @@ class TransactionListItem extends ConsumerWidget {
       amountText:
           '${transaction.isExpense ? '−' : '+'}${formatVND(transaction.amount)}',
       badge: transaction.isAutomatic ? const _AutomaticBadge() : null,
-      // Detail sheet draws no background of its own yet — it is rebuilt on
-      // SpendoSheet in phase 3, so it still rides the bottomSheetTheme here.
-      onTap: () => showModalBottomSheet<void>(
+      onTap: () => SpendoSheet.showModal<void>(
         context: context,
-        isScrollControlled: true,
         builder: (_) => TransactionDetailSheet(
           transaction: transaction,
           category: category,

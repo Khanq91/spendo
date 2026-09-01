@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../shared/domain/period.dart';
 import '../../../../shared/providers/shell_tab_provider.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
@@ -15,7 +16,6 @@ import '../widgets/home_balance_header.dart';
 import '../widgets/home_budget_card.dart';
 import '../widgets/home_shortcuts.dart';
 import '../widgets/home_wallet_strip.dart';
-import '../widgets/month_picker_sheet.dart';
 
 /// Screen 01 of the redesign.
 ///
@@ -111,13 +111,18 @@ class _HomeTitleBar extends ConsumerWidget {
   const _HomeTitleBar();
 
   Future<void> _pickMonth(BuildContext context, WidgetRef ref) async {
-    final picked = await showModalBottomSheet<DateTime>(
+    // Home is month-at-a-time, so the custom range is hidden here; the same
+    // sheet offers it on Giao dịch and Thống kê.
+    final picked = await PeriodPickerSheet.show(
       context: context,
-      builder: (_) =>
-          MonthPickerSheet(selected: ref.read(selectedMonthProvider)),
+      selected: Period.month(ref.read(selectedMonthProvider)),
+      allowCustomRange: false,
     );
     if (picked != null) {
-      ref.read(selectedMonthProvider.notifier).state = picked;
+      ref.read(selectedMonthProvider.notifier).state = DateTime(
+        picked.start.year,
+        picked.start.month,
+      );
     }
   }
 

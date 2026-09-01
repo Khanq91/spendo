@@ -1,237 +1,370 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../domain/transaction.dart';
-import '../../data/transaction_repository.dart';
-import '../../../categories/domain/category.dart';
-import '../../../wallets/presentation/providers/wallet_provider.dart';
+
+import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/category_icon.dart';
+import '../../../../shared/widgets/motion/motion.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../categories/domain/category.dart';
+import '../../../wallets/domain/wallet.dart';
+import '../../../wallets/presentation/providers/wallet_provider.dart';
+import '../../data/transaction_repository.dart';
+import '../../domain/transaction.dart';
 import 'add_transaction_sheet.dart';
+import 'delete_transaction_action.dart';
 
-class TransactionDetailSheet extends ConsumerWidget {
-  final Transaction transaction;
-  final Category? category;
-
+/// Screen 04 — one transaction in full, with the actions that act on it.
+class TransactionDetailSheet extends ConsumerStatefulWidget {
   const TransactionDetailSheet({
     super.key,
     required this.transaction,
     required this.category,
   });
 
+  final Transaction transaction;
+  final Category? category;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isExpense = transaction.isExpense;
-    final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
+  ConsumerState<TransactionDetailSheet> createState() =>
+      _TransactionDetailSheetState();
+}
 
-    // Lấy tên wallet nếu có
-    final wallets = ref.watch(walletsProvider).valueOrNull ?? [];
-    final wallet =
-        transaction.walletId != null
-            ? wallets.where((w) => w.id == transaction.walletId).firstOrNull
-            : null;
+class _TransactionDetailSheetState
+    extends ConsumerState<TransactionDetailSheet> {
+  late Transaction _transaction = widget.transaction;
+  bool _busy = false;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // drag handle
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+  /// Lets the user correct the timestamp without opening the edit sheet — the
+  /// audit noted the date was not editable anywhere at all.
+  Future<void> _editDate() async {
+    final current = _transaction.createdAt;
+    final now = DateTime.now();
 
-          // icon + category
-          CategoryIconWidget(category: category, size: 56, iconSize: 26),
-          const SizedBox(height: 8),
-          Text(
-            category?.name ?? 'Không rõ',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
+    final date = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 1, 12, 31),
+    );
+    if (date == null || !mounted) return;
 
-          // amount — respect visibility
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '${isExpense ? '-' : '+'}${formatVND(transaction.amount)}',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(current),
+    );
+    if (!mounted) return;
 
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 8),
-
-          // detail rows
-          _DetailRow(
-            icon: LucideIcons.calendarDays,
-            label: 'Ngày',
-            value:
-                '${formatDayHeader(transaction.createdAt)}, ${formatTime(transaction.createdAt)}',
-          ),
-          if (transaction.note != null && transaction.note!.isNotEmpty)
-            _DetailRow(
-              icon: LucideIcons.fileText,
-              label: 'Ghi chú',
-              value: transaction.note!,
-            ),
-          _DetailRow(
-            icon:
-                isExpense
-                    ? LucideIcons.arrowUpRight
-                    : LucideIcons.arrowDownLeft,
-            label: 'Loại',
-            value: isExpense ? 'Chi tiêu' : 'Thu nhập',
-            valueColor: color,
-          ),
-          _DetailRow(
-            icon: transaction.isAutomatic ? LucideIcons.zap : LucideIcons.pencil,
-            label: 'Nguồn',
-            value: transaction.isAutomatic ? 'SePay' : 'Thủ công',
-            valueColor:
-                transaction.isAutomatic ? const Color(0xFF1E88E5) : null,
-          ),
-          // Wallet row — chỉ hiện khi có wallet
-          if (wallet != null)
-            _DetailRow(
-              icon: LucideIcons.wallet,
-              label: 'Nguồn tiền',
-              value: wallet.name,
-              valueColor: wallet.color,
-            ),
-
-          const SizedBox(height: 20),
-
-          // action buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _confirmDelete(context, ref),
-                  icon: const Icon(LucideIcons.trash2, size: 16),
-                  label: const Text('Xoá'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.expenseColor,
-                    side: const BorderSide(
-                      color: AppTheme.expenseColor,
-                      width: 0.8,
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => _openEdit(context),
-                  icon: const Icon(LucideIcons.pencil, size: 16),
-                  label: const Text('Chỉnh sửa'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+    final updated = _copyWithDate(
+      _transaction,
+      DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time?.hour ?? current.hour,
+        time?.minute ?? current.minute,
       ),
     );
-  }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Xoá giao dịch?'),
-            content: const Text('Hành động này không thể hoàn tác.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Huỷ'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.expenseColor,
-                ),
-                child: const Text('Xoá'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirm == true && context.mounted) {
-      await TransactionRepository().delete(transaction.id);
-      if (context.mounted) Navigator.of(context).pop();
+    setState(() => _busy = true);
+    try {
+      await TransactionRepository().update(updated);
+      if (mounted) setState(() => _transaction = updated);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không đổi được ngày. Thử lại.')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
-  void _openEdit(BuildContext context) {
+  /// Opens the add sheet pre-filled with this transaction, so a repeating
+  /// expense is a couple of taps instead of a full re-entry.
+  void _duplicate() {
     Navigator.of(context).pop();
-    showAddTransactionSheet(context, existing: transaction);
+    showAddTransactionSheet(
+      context,
+      preselectedCategoryId: _transaction.categoryId,
+      prefillNote: _transaction.note,
+      prefillAmount: _transaction.amount,
+    );
+  }
+
+  void _edit() {
+    Navigator.of(context).pop();
+    showAddTransactionSheet(context, existing: _transaction);
+  }
+
+  Future<void> _delete() async {
+    Navigator.of(context).pop();
+    await deleteTransactionWithUndo(context, _transaction);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isExpense = _transaction.isExpense;
+    final amountColor = isExpense ? theme.spendo.expense : theme.spendo.income;
+
+    final wallets = ref.watch(walletsProvider).valueOrNull ?? const <Wallet>[];
+    final wallet = _transaction.walletId == null
+        ? null
+        : wallets.where((w) => w.id == _transaction.walletId).firstOrNull;
+
+    return SpendoSheet(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 14),
+            Center(
+              child: SpendoIconTile.category(
+                iconName: widget.category?.iconName,
+                color: widget.category?.color ?? cs.onSurfaceVariant,
+                size: 56,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.category?.name ?? 'Không rõ',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${isExpense ? '−' : '+'}${formatVND(_transaction.amount)}',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontSize: 30,
+                color: amountColor,
+              ),
+            ),
+            if (_transaction.isAutomatic) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: SpendoChip.meta(
+                  label: 'Tự động · SePay',
+                  icon: LucideIcons.zap,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Divider(height: 1, color: cs.outlineVariant),
+            const SizedBox(height: 6),
+            _DetailRow(
+              key: const ValueKey('detail_date_row'),
+              icon: LucideIcons.calendar,
+              label: 'Ngày',
+              value:
+                  '${formatDayHeader(_transaction.createdAt)}, '
+                  '${formatTime(_transaction.createdAt)}',
+              onEdit: _busy ? null : _editDate,
+            ),
+            if (_transaction.note != null && _transaction.note!.isNotEmpty)
+              _DetailRow(
+                icon: LucideIcons.fileText,
+                label: 'Ghi chú',
+                value: _transaction.note!,
+              ),
+            _DetailRow(
+              icon: isExpense
+                  ? LucideIcons.arrowUpRight
+                  : LucideIcons.arrowDownLeft,
+              label: 'Loại',
+              value: isExpense ? 'Chi tiêu' : 'Thu nhập',
+              valueColor: amountColor,
+            ),
+            if (wallet != null)
+              _DetailRow(
+                icon: LucideIcons.wallet,
+                label: 'Nguồn tiền',
+                value: wallet.name,
+                leadingDot: wallet.color,
+              )
+            else if (_transaction.walletId != null)
+              // The wallet exists but is archived, so it is not in the active
+              // list. Saying so beats hiding the row and implying no wallet.
+              const _DetailRow(
+                icon: LucideIcons.wallet,
+                label: 'Nguồn tiền',
+                value: 'Ví đã lưu trữ',
+              ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                _DeleteButton(onPressed: _busy ? null : _delete),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SpendoButton.secondary(
+                    label: 'Nhân bản',
+                    icon: LucideIcons.copy,
+                    expand: true,
+                    onPressed: _busy ? null : _duplicate,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SpendoButton(
+                    label: 'Chỉnh sửa',
+                    icon: LucideIcons.pencil,
+                    expand: true,
+                    onPressed: _busy ? null : _edit,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Round destructive button — the trash icon alone, so the two labelled
+/// actions keep the width.
+class _DeleteButton extends StatelessWidget {
+  const _DeleteButton({required this.onPressed});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Semantics(
+      button: true,
+      label: 'Xoá giao dịch',
+      child: PressableScale(
+        deferTapToChild: true,
+        child: Material(
+          color: Colors.transparent,
+          shape: CircleBorder(
+            side: BorderSide(color: cs.error.withValues(alpha: 0.45), width: 1.5),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Icon(LucideIcons.trash2, size: 19, color: cs.error),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
 class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.leadingDot,
+    this.onEdit,
+  });
+
   final IconData icon;
   final String label;
   final String value;
   final Color? valueColor;
 
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
+  /// Coloured dot before the value, used for the wallet.
+  final Color? leadingDot;
+
+  /// Shows a pencil affordance and makes the whole row tappable.
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+    final cs = Theme.of(context).colorScheme;
+
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.grey.shade400),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon, size: 17, color: cs.onSurfaceVariant),
+          ),
           const SizedBox(width: 10),
           Text(
             label,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: valueColor ?? Colors.grey.shade800,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (leadingDot != null) ...[
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: leadingDot,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Flexible(
+                  child: Text(
+                    value,
+                    // A long note wraps instead of overflowing, which the
+                    // audit flagged on the old fixed-height row.
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      height: 1.45,
+                      color: valueColor,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          if (onEdit != null) ...[
+            const SizedBox(width: 8),
+            Icon(LucideIcons.pencil, size: 15, color: cs.primary),
+          ],
         ],
+      ),
+    );
+
+    if (onEdit == null) return row;
+
+    return Semantics(
+      button: true,
+      label: 'Sửa $label',
+      child: GestureDetector(
+        onTap: onEdit,
+        behavior: HitTestBehavior.opaque,
+        child: row,
       ),
     );
   }
 }
+
+/// Rebuilds [Transaction] with a new timestamp — the model has no copyWith.
+Transaction _copyWithDate(Transaction t, DateTime createdAt) => Transaction(
+  id: t.id,
+  amount: t.amount,
+  type: t.type,
+  categoryId: t.categoryId,
+  note: t.note,
+  createdAt: createdAt,
+  walletId: t.walletId,
+  source: t.source,
+);

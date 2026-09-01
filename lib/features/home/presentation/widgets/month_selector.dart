@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/utils/date_helpers.dart';
-import 'month_picker_sheet.dart';
+import '../../../../shared/domain/period.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class MonthSelector extends StatelessWidget {
@@ -23,11 +24,17 @@ class MonthSelector extends StatelessWidget {
   }
 
   Future<void> _openPicker(BuildContext context) async {
-    final picked = await showModalBottomSheet<DateTime>(
+    // Month-only: this selector has no way to show a multi-month span.
+    // Phase 4 replaces the whole widget when Wallet detail — its last caller
+    // — is redesigned.
+    final picked = await PeriodPickerSheet.show(
       context: context,
-      builder: (_) => MonthPickerSheet(selected: month),
+      selected: Period.month(month),
+      allowCustomRange: false,
     );
-    if (picked != null) onMonthPicked(picked);
+    if (picked != null) {
+      onMonthPicked(DateTime(picked.start.year, picked.start.month));
+    }
   }
 
   @override

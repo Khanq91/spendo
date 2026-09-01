@@ -145,6 +145,8 @@ class SpendoSegmented<T> extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.expand = false,
+    this.height = 32,
+    this.horizontalPadding = 18,
   });
 
   final List<({T value, String label})> options;
@@ -153,6 +155,11 @@ class SpendoSegmented<T> extends StatelessWidget {
 
   /// Fill the available width instead of hugging the labels.
   final bool expand;
+
+  /// Option height. The default matches `02-components.md`; the transaction
+  /// list packs three options into a shared row and runs shorter.
+  final double height;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -177,9 +184,9 @@ class SpendoSegmented<T> extends StatelessWidget {
                 appMotion.tapUpDuration,
               ),
               curve: appMotion.curveStandard,
-              height: 32,
+              height: height,
               alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               decoration: ShapeDecoration(
                 color: isSelected ? cs.primaryContainer : Colors.transparent,
                 shape: const StadiumBorder(),
@@ -187,7 +194,7 @@ class SpendoSegmented<T> extends StatelessWidget {
               child: Text(
                 option.label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: height < 32 ? 12.5 : 13,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                   color: isSelected
                       ? cs.onPrimaryContainer

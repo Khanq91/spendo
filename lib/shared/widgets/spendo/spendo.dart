@@ -5,6 +5,7 @@
 /// `02-components.md`.
 library;
 
+export 'period_picker_sheet.dart';
 export 'spendo_button.dart';
 export 'spendo_chip.dart';
 export 'spendo_layout.dart';

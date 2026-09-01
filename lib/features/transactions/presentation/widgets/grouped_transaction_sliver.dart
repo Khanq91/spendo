@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
@@ -6,6 +7,7 @@ import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
 import '../../domain/transaction.dart';
+import 'delete_transaction_action.dart';
 import 'transaction_list_item.dart';
 
 enum GroupedTransactionStyle { plain, filledHeader }
@@ -17,12 +19,17 @@ class GroupedTransactionSliver extends StatelessWidget {
     required this.categoryMap,
     this.style = GroupedTransactionStyle.plain,
     this.animateItems = true,
+    this.dismissible = false,
   });
 
   final List<Transaction> transactions;
   final Map<String, Category> categoryMap;
   final GroupedTransactionStyle style;
   final bool animateItems;
+
+  /// Allow swiping a row away, with an undo snackbar. Off on Home, where the
+  /// list is a summary rather than the place you manage entries.
+  final bool dismissible;
 
   @override
   Widget build(BuildContext context) {
@@ -56,9 +63,13 @@ class GroupedTransactionSliver extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TransactionListItem(
-                      transaction: row.transaction,
-                      category: categoryMap[row.transaction.categoryId],
+                    _maybeDismissible(
+                      context,
+                      row.transaction,
+                      TransactionListItem(
+                        transaction: row.transaction,
+                        category: categoryMap[row.transaction.categoryId],
+                      ),
                     ),
                     if (style == GroupedTransactionStyle.filledHeader)
                       Divider(
@@ -79,6 +90,35 @@ class GroupedTransactionSliver extends StatelessWidget {
           return childIndexes[key.value];
         },
       ),
+    );
+  }
+
+  Widget _maybeDismissible(
+    BuildContext context,
+    Transaction transaction,
+    Widget child,
+  ) {
+    if (!dismissible) return child;
+
+    final cs = Theme.of(context).colorScheme;
+
+    return Dismissible(
+      key: ValueKey('dismiss_${transaction.id}'),
+      direction: DismissDirection.endToStart,
+      background: ColoredBox(
+        color: cs.error,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: Icon(LucideIcons.trash2, size: 21, color: cs.onError),
+          ),
+        ),
+      ),
+      // The row is gone as soon as it is swiped; the snackbar carries the undo,
+      // so there is no confirm step in the way.
+      onDismissed: (_) => deleteTransactionWithUndo(context, transaction),
+      child: child,
     );
   }
 }

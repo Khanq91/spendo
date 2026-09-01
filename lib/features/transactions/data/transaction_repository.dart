@@ -106,6 +106,29 @@ class TransactionRepository {
     await _database.execute('DELETE FROM transactions WHERE id=?', [id]);
   }
 
+  /// Puts a deleted transaction back, id and all.
+  ///
+  /// Deleting from the list is undoable, so the row has to come back as the
+  /// same record — re-adding through [add] would mint a new id and lose the
+  /// original timestamp.
+  Future<void> restore(Transaction t) async {
+    await _database.execute(
+      'INSERT OR REPLACE INTO transactions'
+      '(id, amount, type, category_id, note, created_at, wallet_id, source) '
+      'VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        t.id,
+        t.amount.toString(),
+        t.type,
+        t.categoryId,
+        t.note,
+        t.createdAt.millisecondsSinceEpoch.toString(),
+        t.walletId,
+        t.source,
+      ],
+    );
+  }
+
   Future<List<Transaction>> getRange({DateTime? from}) async {
     if (from == null) {
       final rows = await _database.getAll(
