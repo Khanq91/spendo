@@ -6,6 +6,9 @@ Việt hard-code, Material 3 + Riverpod + go_router) theo một design direction
 chốt. KHÔNG tự sáng tác style mới.
 
 NGUỒN SỰ THẬT, đọc theo thứ tự:
+0. design_handoff_spendo_redesign/HANDOFF-STATE.md — BẮT BUỘC đọc trước:
+   phase nào đã xong, và các quyết định đã chốt KHÁC spec bên dưới (font,
+   route /add…). Mâu thuẫn về những điểm đó: HANDOFF-STATE thắng.
 1. design_handoff_spendo_redesign/README.md   — phạm vi + quyết định đã chốt
 2. .../01-tokens.md                            — màu light+dark, chữ, hình khối
 3. .../02-components.md                        — widget dùng chung phải dựng
@@ -19,12 +22,18 @@ QUY TẮC:
 - Mọi màu/chữ/bo góc/spacing lấy từ 01-tokens.md qua ColorScheme +
   ThemeExtension; cấm hex rải trong widget.
 - Icon chỉ dùng Lucide, stroke 2.25. Số tiền luôn tabular figures.
+- Font: dùng bộ đã bundle trong assets/fonts (Plus Jakarta Sans + Baloo 2),
+  KHÔNG cài Figtree/Caprasimo — cả hai thiếu glyph tiếng Việt, xem
+  HANDOFF-STATE mục 2.1. Lấy tên qua AppTypography, không hard-code.
+- Dùng component sẵn ở lib/shared/widgets/spendo/ thay vì tự vẽ lại.
 - Giữ nguyên logic nghiệp vụ, provider, database; đây là redesign UI.
 - Giữ bộ motion lib/shared/widgets/motion/, chỉ đổi màu.
-- Làm đúng 1 phase mỗi lượt, theo thứ tự 0→7; xong phase thì build, tự kiểm
-  tra mục "Nghiệm thu" của phase đó, liệt kê file đã sửa, rồi dừng chờ duyệt.
+- Làm đúng 1 phase mỗi lượt, theo thứ tự 0→7; xong phase thì analyze + test +
+  build, tự kiểm tra mục "Nghiệm thu" của phase đó, liệt kê file đã sửa,
+  commit (giữ git status sạch), cập nhật bảng tiến độ trong HANDOFF-STATE,
+  rồi dừng chờ duyệt.
 - Gặp mâu thuẫn giữa audit và mockup: mockup (TO-BE) thắng; mâu thuẫn giữa
   mockup và tokens: tokens thắng. Điều gì không rõ → hỏi, kèm phương án đề xuất.
 
-Bắt đầu: Phase 0.
+Bắt đầu: phase kế tiếp theo bảng tiến độ trong HANDOFF-STATE.
 ```
