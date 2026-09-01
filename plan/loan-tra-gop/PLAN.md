@@ -38,7 +38,7 @@ hiển thị kế hoạch và nhắc nhở.
 
 | GĐ | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
-| 1 — Lịch trả góp | schema + màn tạo/sửa lịch + section Lịch trả ở Detail | ✅ xong | |
+| 1 — Lịch trả góp | schema + màn tạo/sửa lịch + section Lịch trả ở Detail | ✅ xong | `0f55624` |
 | 2 — Liên kết ví | payment/tiền gốc tạo transaction + 4 danh mục nợ | ⬜ chưa làm | |
 | 3 — Nhắc đợt đến hạn | notification 1 ngày trước + deep-link | ⬜ chưa làm | |
 
