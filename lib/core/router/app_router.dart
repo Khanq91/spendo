@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/home/presentation/screens/all_features_screen.dart';
 import '../../features/loan/presentation/screens/loan_list_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/stats/presentation/screens/stats_screen.dart';
@@ -19,7 +18,6 @@ final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
     GoRoute(path: '/', builder: (_, __) => const AppShell()),
-    GoRoute(path: '/features', builder: (_, __) => const AllFeaturesScreen()),
     GoRoute(
       path: '/transactions',
       builder: (_, __) => const TransactionsScreen(),

@@ -137,6 +137,95 @@ class SpendoCategoryTile extends StatelessWidget {
   }
 }
 
+/// Rounded rectangle drawn with the dashed "add" outline.
+///
+/// The dashed affordance appears both as a circle (the "Thêm" category cell)
+/// and as a box (the Home budget CTA, the empty wallet slot); both walk the
+/// same 5px dash / 4px gap rhythm.
+class DottedBorderBox extends StatelessWidget {
+  const DottedBorderBox({
+    super.key,
+    required this.child,
+    required this.color,
+    this.radius = 16,
+    this.strokeWidth = 1.5,
+  });
+
+  final Widget child;
+  final Color color;
+  final double radius;
+  final double strokeWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedRectPainter(
+        color: color,
+        radius: radius,
+        strokeWidth: strokeWidth,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _DashedRectPainter extends CustomPainter {
+  const _DashedRectPainter({
+    required this.color,
+    required this.radius,
+    required this.strokeWidth,
+  });
+
+  final Color color;
+  final double radius;
+  final double strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    final inset = strokeWidth / 2;
+    final outline = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            inset,
+            inset,
+            size.width - strokeWidth,
+            size.height - strokeWidth,
+          ),
+          Radius.circular(radius),
+        ),
+      );
+
+    const dash = 5.0;
+    const gap = 4.0;
+    for (final metric in outline.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = distance + dash;
+        canvas.drawPath(
+          metric.extractPath(
+            distance,
+            end > metric.length ? metric.length : end,
+          ),
+          paint,
+        );
+        distance = end + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRectPainter old) =>
+      old.color != color ||
+      old.radius != radius ||
+      old.strokeWidth != strokeWidth;
+}
+
 class _DashedCircle extends StatelessWidget {
   const _DashedCircle({
     required this.size,
@@ -241,14 +330,27 @@ class SpendoTransactionRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    // The badge rides beside the title rather than on the
+                    // trailing edge, so it can never squeeze the amount — a
+                    // ten-digit total plus a badge does not fit a 360dp row.
+                    if (badge != null) ...[
+                      const SizedBox(width: 6),
+                      badge!,
+                    ],
+                  ],
                 ),
                 if (subtitle != null)
                   Text(
@@ -263,14 +365,29 @@ class SpendoTransactionRow extends StatelessWidget {
               ],
             ),
           ),
-          if (badge != null) ...[badge!, const SizedBox(width: 8)],
-          Text(
-            amountText,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: amountColor,
-              fontFeatures: const [FontFeature.tabularFigures()],
+          const SizedBox(width: 8),
+          // The amount leads, but a ten-digit total on a 360dp row would
+          // leave the name no width at all — so it scales down rather than
+          // overflowing, and the name keeps at least its ellipsis.
+          Flexible(
+            flex: 0,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 150),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  amountText,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: amountColor,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -296,31 +413,40 @@ class SpendoDayHeader extends StatelessWidget {
     required this.label,
     required this.totalText,
     required this.totalIsIncome,
+    this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 6),
   });
 
   final String label;
   final String totalText;
   final bool totalIsIncome;
+  final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+      padding: padding,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurfaceVariant,
+          // The date label gives way first; the day's total must stay whole.
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             totalText,
+            maxLines: 1,
+            softWrap: false,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,

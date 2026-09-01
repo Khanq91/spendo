@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/transaction.dart';
-import '../../../categories/domain/category.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/category_icon.dart';
-import '../../../../shared/widgets/motion/motion.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../categories/domain/category.dart';
+import '../../domain/transaction.dart';
 import 'transaction_detail_sheet.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class TransactionListItem extends ConsumerWidget {
   final Transaction transaction;
@@ -20,101 +19,69 @@ class TransactionListItem extends ConsumerWidget {
     required this.category,
   });
 
+  /// `Ăn trưa · 12:30`, or just the time when there is no note.
+  String get _subtitle {
+    final note = transaction.note;
+    final time = formatTime(transaction.createdAt);
+    if (note == null || note.isEmpty) return time;
+    return '$note · $time';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isExpense = transaction.isExpense;
-    final color = isExpense ? AppTheme.expenseColor : AppTheme.incomeColor;
+    final cs = Theme.of(context).colorScheme;
 
-    return PressableScale(
-      onTap:
-          () => showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            builder:
-                (_) => TransactionDetailSheet(
-                  transaction: transaction,
-                  category: category,
-                ),
-          ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CategoryIconWidget(category: category),
-                if (transaction.isAutomatic)
-                  Positioned(
-                    bottom: -1,
-                    right: -1,
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E88E5),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.surface,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: const Icon(
-                        LucideIcons.zap,
-                        size: 8,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    category?.name ?? 'Không rõ',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (transaction.note != null && transaction.note!.isNotEmpty)
-                    Text(
-                      transaction.note!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  else
-                    Text(
-                      formatTime(transaction.createdAt),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade400,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Text(
-              '${isExpense ? '-' : '+'}${formatVND(transaction.amount)}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ],
+    return SpendoTransactionRow(
+      title: category?.name ?? 'Không rõ',
+      subtitle: _subtitle,
+      iconName: category?.iconName,
+      color: category?.color ?? cs.onSurfaceVariant,
+      isIncome: transaction.isIncome,
+      amountText:
+          '${transaction.isExpense ? '−' : '+'}${formatVND(transaction.amount)}',
+      badge: transaction.isAutomatic ? const _AutomaticBadge() : null,
+      // Detail sheet draws no background of its own yet — it is rebuilt on
+      // SpendoSheet in phase 3, so it still rides the bottomSheetTheme here.
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => TransactionDetailSheet(
+          transaction: transaction,
+          category: category,
         ),
+      ),
+    );
+  }
+}
+
+/// Marks a row the bank import created rather than the user.
+class _AutomaticBadge extends StatelessWidget {
+  const _AutomaticBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: ShapeDecoration(
+        color: cs.tertiaryContainer,
+        shape: const StadiumBorder(),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(LucideIcons.zap, size: 10, color: cs.onTertiaryContainer),
+          const SizedBox(width: 3),
+          Text(
+            'Tự động',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: cs.onTertiaryContainer,
+            ),
+          ),
+        ],
       ),
     );
   }

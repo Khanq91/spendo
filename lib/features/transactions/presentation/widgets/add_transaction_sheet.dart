@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/transaction_repository.dart';
-import '../../domain/transaction.dart';
-import '../../../categories/domain/category.dart';
-import '../../../categories/presentation/providers/category_provider.dart';
-import '../../../budget/presentation/providers/category_budget_provider.dart';
-import '../../../wallets/domain/wallet.dart';
-import '../../../wallets/presentation/providers/wallet_provider.dart';
-import '../../../wallets/data/wallet_repository.dart';
-import 'numpad.dart';
-import 'amount_input_controller.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/category_matcher.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/category_icons.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/date_helpers.dart';
 import '../../../../shared/widgets/motion/motion.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../budget/presentation/providers/category_budget_provider.dart';
+import '../../../categories/domain/category.dart';
+import '../../../categories/presentation/providers/category_provider.dart';
+import '../../../reminders/presentation/widgets/reminder_form_sheet.dart';
+import '../../../wallets/data/wallet_repository.dart';
+import '../../../wallets/domain/wallet.dart';
+import '../../../wallets/presentation/providers/wallet_provider.dart';
+import '../../data/transaction_repository.dart';
+import '../../domain/note_suggestions.dart';
+import '../../domain/transaction.dart';
 import '../screens/note_picker_screen.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'amount_input_controller.dart';
 
 /// Opens the add/edit transaction sheet.
 ///
@@ -30,10 +34,8 @@ Future<void> showAddTransactionSheet(
   String? prefillNote,
   int? prefillAmount,
 }) {
-  return showModalBottomSheet<void>(
+  return SpendoSheet.showModal<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (_) => AddTransactionSheet(
       existing: existing,
       preselectedCategoryId: preselectedCategoryId,
@@ -66,16 +68,23 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   late final AmountInputController _amountCtrl;
   late final TextEditingController _noteCtrl;
   late bool _isExpense;
+
+  /// When the transaction happened. Editable through the date chip; defaults
+  /// to now for a new entry and to the stored stamp when editing.
+  late DateTime _createdAt;
+
   String? _selectedCategoryId;
   bool _userPickedCategory = false;
-  bool get _isEditMode => widget.existing != null;
-  final _categoryScrollCtrl = ScrollController();
-  final Map<String, GlobalKey> _chipKeys = {};
 
-  // Wallet state
   bool _trackWallet = false;
   String? _selectedWalletId;
   bool _isSubmitting = false;
+
+  /// Suggestions for the selected category, shown as chips under the note.
+  List<String> _noteHistory = const [];
+  String? _historyCategoryId;
+
+  bool get _isEditMode => widget.existing != null;
 
   @override
   void initState() {
@@ -93,6 +102,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _amountCtrl.prefill(tx.amount.toString());
       _noteCtrl.text = tx.note ?? '';
       _isExpense = tx.isExpense;
+      _createdAt = tx.createdAt;
       _selectedCategoryId = tx.categoryId;
       _userPickedCategory = true;
       if (tx.walletId != null) {
@@ -101,6 +111,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       }
     } else {
       _isExpense = true;
+      _createdAt = DateTime.now();
       if (widget.prefillNote != null) _noteCtrl.text = widget.prefillNote!;
       if (widget.prefillAmount != null && widget.prefillAmount! > 0) {
         _amountCtrl.prefill(widget.prefillAmount!.toString());
@@ -112,12 +123,29 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   void dispose() {
     _amountCtrl.dispose();
     _noteCtrl.dispose();
-    _categoryScrollCtrl.dispose();
     super.dispose();
   }
 
   List<Category> _categories(List<Category> all) =>
       all.where((c) => c.isIncome == !_isExpense).toList();
+
+  Category? _selectedCategory(List<Category> cats) =>
+      cats.where((c) => c.id == _selectedCategoryId).firstOrNull;
+
+  // ── Note suggestions ──────────────────────────────────────────────────────
+
+  /// Reloads the chips when the category changes, once per category.
+  void _syncNoteHistory() {
+    final categoryId = _selectedCategoryId;
+    if (categoryId == null || categoryId == _historyCategoryId) return;
+    _historyCategoryId = categoryId;
+    loadNoteHistory(categoryId).then((history) {
+      if (!mounted || _historyCategoryId != categoryId) return;
+      setState(() => _noteHistory = history);
+    });
+  }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
     if (_isSubmitting || !_amountCtrl.hasValue || _selectedCategoryId == null) {
@@ -127,13 +155,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      // Check budget
       if (_isExpense && !_isEditMode) {
         final shouldProceed = await _checkCategoryBudget();
         if (!shouldProceed) return;
       }
 
-      // Check wallet balance
       if (_trackWallet &&
           _selectedWalletId != null &&
           _isExpense &&
@@ -143,30 +169,38 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       }
 
       final repo = TransactionRepository();
+      final note = _noteCtrl.text.trim();
 
       if (_isEditMode) {
-        final updated = Transaction(
-          id: widget.existing!.id,
-          amount: _amountCtrl.value,
-          type: _isExpense ? 'expense' : 'income',
-          categoryId: _selectedCategoryId!,
-          note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-          createdAt: widget.existing!.createdAt,
-          walletId: _trackWallet ? _selectedWalletId : null,
-          source: widget.existing!.source,
+        await repo.update(
+          Transaction(
+            id: widget.existing!.id,
+            amount: _amountCtrl.value,
+            type: _isExpense ? 'expense' : 'income',
+            categoryId: _selectedCategoryId!,
+            note: note.isEmpty ? null : note,
+            createdAt: _createdAt,
+            walletId: _trackWallet ? _selectedWalletId : null,
+            source: widget.existing!.source,
+          ),
         );
-        await repo.update(updated);
       } else {
         await repo.add(
           amount: _amountCtrl.value,
           type: _isExpense ? 'expense' : 'income',
           categoryId: _selectedCategoryId!,
-          note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+          note: note.isEmpty ? null : note,
+          createdAt: _createdAt,
           walletId: _trackWallet ? _selectedWalletId : null,
         );
       }
 
       if (mounted) Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không lưu được giao dịch. Thử lại.')),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -174,137 +208,105 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
   Future<bool> _checkCategoryBudget() async {
     final catId = _selectedCategoryId!;
-    final progressMap = ref.read(categoryBudgetProgressProvider);
-    final progress = progressMap[catId];
+    final progress = ref.read(categoryBudgetProgressProvider)[catId];
     if (progress == null) return true;
 
     final newAmount = _amountCtrl.value;
-    final willExceed = (progress.spent + newAmount) > progress.budget;
-    if (!willExceed) return true;
+    if ((progress.spent + newAmount) <= progress.budget) return true;
     if (!mounted) return false;
 
-    final allCats = ref.read(expenseCategoriesProvider);
     final catName =
-        allCats.where((c) => c.id == catId).firstOrNull?.name ?? 'danh mục này';
-    final remaining = progress.budget - progress.spent;
-    final overAmount = (progress.spent + newAmount) - progress.budget;
+        ref
+            .read(expenseCategoriesProvider)
+            .where((c) => c.id == catId)
+            .firstOrNull
+            ?.name ??
+        'danh mục này';
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => _BudgetWarningDialog(
-            categoryName: catName,
-            budgetAmount: progress.budget,
-            spentAmount: progress.spent,
-            newAmount: newAmount,
-            remaining: remaining,
-            overAmount: overAmount,
-            isAlreadyOver: progress.isOver,
+      builder: (ctx) => _WarningDialog(
+        title: progress.isOver ? 'Đã vượt hạn mức!' : 'Sắp vượt hạn mức',
+        message: progress.isOver
+            ? 'Danh mục này đã vượt hạn mức. Thêm khoản này sẽ làm tăng thêm số tiền vượt hạn.'
+            : 'Thêm khoản chi này sẽ khiến danh mục "$catName" vượt hạn mức.',
+        rows: [
+          (label: 'Danh mục', value: catName, emphasis: _Emphasis.none),
+          (
+            label: 'Hạn mức',
+            value: formatVND(progress.budget),
+            emphasis: _Emphasis.none,
           ),
+          (
+            label: 'Đã chi',
+            value: formatVND(progress.spent),
+            emphasis: _Emphasis.warning,
+          ),
+          (
+            label: 'Khoản này',
+            value: formatVND(newAmount),
+            emphasis: _Emphasis.danger,
+          ),
+          (
+            label: 'Vượt hạn',
+            value: '+${formatVND((progress.spent + newAmount) - progress.budget)}',
+            emphasis: _Emphasis.total,
+          ),
+        ],
+      ),
     );
     return confirmed == true;
   }
 
   Future<bool> _checkWalletBalance() async {
-    final walletId = _selectedWalletId!;
-    final balance = await WalletRepository().calculateBalance(walletId);
+    final wallets = ref.read(walletsProvider).valueOrNull ?? const <Wallet>[];
+    final wallet = wallets.where((w) => w.id == _selectedWalletId).firstOrNull;
+    if (wallet == null) return true;
+
+    final balance = await WalletRepository().calculateBalance(wallet.id);
     final newAmount = _amountCtrl.value;
     if (balance - newAmount >= 0) return true;
     if (!mounted) return false;
 
-    final wallets = ref.read(walletsProvider).valueOrNull ?? [];
-    final wallet = wallets.where((w) => w.id == walletId).firstOrNull;
-    final walletName = wallet?.name ?? 'ví này';
-    final overAmount = newAmount - balance;
-
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            icon: const Text('⚠️', style: TextStyle(fontSize: 28)),
-            title: Text(
-              balance < 0 ? 'Ví đang âm!' : 'Số dư không đủ',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _InfoRow(
-                  label: 'Ví',
-                  value: walletName,
-                  color: Theme.of(ctx).colorScheme.onSurface,
-                ),
-                _InfoRow(
-                  label: 'Số dư hiện tại',
-                  value: formatVND(balance),
-                  color: balance < 0 ? AppTheme.expenseAltColor : Colors.orange,
-                ),
-                _InfoRow(
-                  label: 'Khoản chi',
-                  value: formatVND(newAmount),
-                  color: AppTheme.expenseAltColor,
-                ),
-                const Divider(height: 16),
-                _InfoRow(
-                  label: 'Thiếu',
-                  value: formatVND(overAmount),
-                  color: AppTheme.expenseAltColor,
-                  bold: true,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Số dư ví sẽ bị âm sau giao dịch này.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(
-                  'Huỷ',
-                  style: TextStyle(
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.orange.shade700,
-                ),
-                child: const Text('Vẫn thêm'),
-              ),
-            ],
+      builder: (ctx) => _WarningDialog(
+        title: balance < 0 ? 'Ví đang âm!' : 'Số dư không đủ',
+        message: 'Số dư ví sẽ bị âm sau giao dịch này.',
+        rows: [
+          (label: 'Ví', value: wallet.name, emphasis: _Emphasis.none),
+          (
+            label: 'Số dư hiện tại',
+            value: formatVND(balance),
+            emphasis: balance < 0 ? _Emphasis.danger : _Emphasis.warning,
           ),
+          (
+            label: 'Khoản chi',
+            value: formatVND(newAmount),
+            emphasis: _Emphasis.danger,
+          ),
+          (
+            label: 'Thiếu',
+            value: formatVND((balance - newAmount).abs()),
+            emphasis: _Emphasis.total,
+          ),
+        ],
+      ),
     );
     return confirmed == true;
   }
 
+  // ── Field actions ─────────────────────────────────────────────────────────
+
   void _autoSelectCategory(String note) {
+    setState(() {});
     if (_userPickedCategory) return;
     final iconName = matchCategory(note);
     if (iconName == null) return;
-    final allCats = ref.read(categoriesProvider).valueOrNull ?? [];
-    final cats = _categories(allCats);
+    final cats = _categories(ref.read(categoriesProvider).valueOrNull ?? []);
     final matched = cats.where((c) => c.iconName == iconName).firstOrNull;
     if (matched != null && matched.id != _selectedCategoryId) {
       setState(() => _selectedCategoryId = matched.id);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final key = _chipKeys[matched.id];
-        if (key?.currentContext != null) {
-          Scrollable.ensureVisible(
-            key!.currentContext!,
-            alignment: 0.3,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
     }
   }
 
@@ -317,17 +319,22 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     });
   }
 
+  void _pickCategory(String id) {
+    setState(() {
+      _selectedCategoryId = id;
+      _userPickedCategory = true;
+    });
+  }
+
   Future<void> _openNotePicker() async {
-    final allCats = ref.read(categoriesProvider).valueOrNull ?? [];
-    final cats = _categories(allCats);
+    final cats = _categories(ref.read(categoriesProvider).valueOrNull ?? []);
     final result = await Navigator.of(context).push<NotePickerResult>(
       MaterialPageRoute(
-        builder:
-            (_) => NotePickerScreen(
-              initialNote: _noteCtrl.text,
-              initialCategoryId: _selectedCategoryId,
-              categories: cats,
-            ),
+        builder: (_) => NotePickerScreen(
+          initialNote: _noteCtrl.text,
+          initialCategoryId: _selectedCategoryId,
+          categories: cats,
+        ),
       ),
     );
     if (result == null || !mounted) return;
@@ -341,649 +348,660 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     });
   }
 
-  void _openWalletPicker(List<Wallet> wallets) {
-    showModalBottomSheet(
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
       context: context,
-      builder:
-          (ctx) => _WalletPickerSheet(
-            wallets: wallets,
-            selectedId: _selectedWalletId,
-            onSelect: (id) {
-              setState(() => _selectedWalletId = id);
-              Navigator.pop(ctx);
-            },
-          ),
+      initialDate: _createdAt,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 1, 12, 31),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_createdAt),
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _createdAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time?.hour ?? _createdAt.hour,
+        time?.minute ?? _createdAt.minute,
+      );
+    });
+  }
+
+  void _openWalletPicker(List<Wallet> wallets) {
+    SpendoSheet.showModal<void>(
+      context: context,
+      builder: (ctx) => _WalletPickerSheet(
+        wallets: wallets,
+        selectedId: _selectedWalletId,
+        onSelect: (id) {
+          setState(() {
+            _trackWallet = true;
+            _selectedWalletId = id;
+          });
+          Navigator.pop(ctx);
+        },
+        onClear: () {
+          setState(() => _trackWallet = false);
+          Navigator.pop(ctx);
+        },
+      ),
     );
   }
 
+  /// Turns the entry being typed into a recurring reminder, pre-filled with
+  /// what has been entered so far.
+  void _createReminder(List<Category> cats) {
+    final note = _noteCtrl.text.trim();
+    final category = _selectedCategory(cats);
+    SpendoSheet.showModal<void>(
+      context: context,
+      builder: (_) => ReminderFormSheet(
+        preselectedCategoryId: _selectedCategoryId,
+        prefillTitle: note.isNotEmpty ? note : category?.name,
+        prefillAmount: _amountCtrl.hasValue ? _amountCtrl.value : null,
+      ),
+    );
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final allCategories = categoriesAsync.valueOrNull ?? [];
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final allCategories = ref.watch(categoriesProvider).valueOrNull ?? [];
     final cats = _categories(allCategories);
-    final cs = Theme.of(context).colorScheme;
+    final wallets = ref.watch(walletsProvider).valueOrNull ?? const <Wallet>[];
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final wallets = ref.watch(walletsProvider).valueOrNull ?? [];
-
-    final budgetProgressMap =
-        _isExpense
-            ? ref.watch(categoryBudgetProgressProvider)
-            : <
-              String,
-              ({int budget, int spent, double percent, bool isOver})
-            >{};
 
     if (cats.isNotEmpty &&
         (_selectedCategoryId == null ||
             !cats.any((c) => c.id == _selectedCategoryId))) {
       _selectedCategoryId = cats.first.id;
     }
+    _syncNoteHistory();
 
-    // Auto-select wallet đầu tiên nếu user bật trackWallet nhưng chưa chọn
     if (_trackWallet && _selectedWalletId == null && wallets.isNotEmpty) {
       _selectedWalletId = wallets.first.id;
     }
 
-    final color =
-        _isExpense ? const Color(0xFFE53935) : const Color(0xFF43A047);
+    final amountColor = _isExpense ? theme.spendo.expense : theme.spendo.income;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+    return SpendoSheet(
+      padding: EdgeInsets.zero,
+      header: _Header(
+        isExpense: _isExpense,
+        onSwitchType: _switchType,
+        onCancel: () => Navigator.of(context).pop(),
+        onSave: !_isSubmitting &&
+                _amountCtrl.hasValue &&
+                _selectedCategoryId != null
+            ? _submit
+            : null,
+        busy: _isSubmitting,
+        saveLabel: _isEditMode ? 'Lưu' : 'Lưu',
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: cs.outlineVariant,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          if (_isEditMode)
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                'Chỉnh sửa giao dịch',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurfaceVariant,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+              child: ListenableBuilder(
+                listenable: _amountCtrl,
+                builder: (_, __) => AnimatedMoneyText(
+                  value: _amountCtrl.value,
+                  formatter: (value) => formatVND(value.round()),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    color: amountColor,
+                  ),
                 ),
               ),
             ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _TypeToggle(
-                  label: 'Chi',
-                  active: _isExpense,
-                  color: const Color(0xFFE53935),
-                  onTap: () => _switchType(true),
-                ),
-                const SizedBox(width: 8),
-                _TypeToggle(
-                  label: 'Thu',
-                  active: !_isExpense,
-                  color: const Color(0xFF43A047),
-                  onTap: () => _switchType(false),
-                ),
-                const Spacer(),
-                ListenableBuilder(
-                  listenable: _amountCtrl,
-                  builder:
-                      (_, __) => AnimatedMoneyText(
-                        value: _amountCtrl.value,
-                        formatter: (value) => formatVND(value.round()),
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w600,
-                          color: color,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '₫',
-                  style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
-                ),
-              ],
+            _CategoryGrid(
+              categories: cats,
+              selectedId: _selectedCategoryId,
+              onPick: _pickCategory,
             ),
-          ),
-
-          const SizedBox(height: 10),
-
-          // Category chips
-          SizedBox(
-            height:
-                _selectedCategoryId != null &&
-                        budgetProgressMap.containsKey(_selectedCategoryId)
-                    ? 48
-                    : 36,
-            child: ListView.separated(
-              controller: _categoryScrollCtrl,
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: cats.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final cat = cats[i];
-                final selected = cat.id == _selectedCategoryId;
-                _chipKeys.putIfAbsent(cat.id, () => GlobalKey());
-
-                final progress = budgetProgressMap[cat.id];
-                final chipBgColor = _resolveChipBgColor(
-                  progress: progress,
-                  selected: selected,
-                  baseColor: color,
-                  cs: cs,
-                );
-                final chipSelectedColor =
-                    progress != null
-                        ? _resolveSelectedColor(progress)
-                        : color.withValues(alpha: 0.15);
-
-                return PressableScale(
-                  key: _chipKeys[cat.id],
-                  deferTapToChild: true,
-                  onTap: () {},
-                  child: ChoiceChip(
-                    label: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              cat.name,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight:
-                                    selected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                color: selected ? color : cs.onSurfaceVariant,
-                              ),
-                            ),
-                            if (selected && !_userPickedCategory) ...[
-                              const SizedBox(width: 3),
-                              Icon(LucideIcons.wand, size: 10, color: color),
-                            ],
-                            if (!selected && progress != null) ...[
-                              const SizedBox(width: 3),
-                              _BudgetDot(
-                                percent: progress.percent,
-                                isOver: progress.isOver,
-                              ),
-                            ],
-                          ],
-                        ),
-                        if (selected && progress != null) ...[
-                          const SizedBox(height: 3),
-                          _MiniProgressBar(
-                            percent: progress.percent,
-                            isOver: progress.isOver,
-                          ),
-                        ],
-                      ],
-                    ),
-                    selected: selected,
-                    onSelected:
-                        (_) => setState(() {
-                          _selectedCategoryId = cat.id;
-                          _userPickedCategory = true;
-                        }),
-                    selectedColor: chipSelectedColor,
-                    backgroundColor: chipBgColor,
-                    side: BorderSide(
-                      color: _resolveChipBorderColor(
-                        progress: progress,
-                        selected: selected,
-                        baseColor: color,
-                        cs: cs,
-                      ),
-                      width: 0.8,
-                    ),
-                    showCheckmark: false,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                  ),
-                );
+            _NoteField(
+              controller: _noteCtrl,
+              onChanged: _autoSelectCategory,
+              onSearch: _openNotePicker,
+              suggestions: mergeNoteSuggestions(
+                history: _noteHistory,
+                iconName: _selectedCategory(cats)?.iconName,
+              ),
+              onSuggestionTap: (note) {
+                setState(() {
+                  _noteCtrl.text = note;
+                  _noteCtrl.selection = TextSelection.collapsed(
+                    offset: note.length,
+                  );
+                });
               },
             ),
+            _MetaChips(
+              createdAt: _createdAt,
+              onPickDate: _pickDate,
+              wallet: _trackWallet
+                  ? wallets.where((w) => w.id == _selectedWalletId).firstOrNull
+                  : null,
+              hasWallets: wallets.isNotEmpty,
+              onPickWallet: () => _openWalletPicker(wallets),
+              onRepeat: () => _createReminder(cats),
+            ),
+            if (cats.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Text(
+                  _isExpense
+                      ? 'Chưa có danh mục chi nào. Thêm danh mục trong Cài đặt.'
+                      : 'Chưa có danh mục thu nào. Thêm danh mục trong Cài đặt.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                ),
+              ),
+            if (!isKeyboardVisible)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+                child: SpendoNumpad(
+                  onKey: _amountCtrl.press,
+                  onLongPressDelete: _amountCtrl.reset,
+                ),
+              )
+            else
+              const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Header: Huỷ · Chi|Thu · Lưu ──────────────────────────────────────────────
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.isExpense,
+    required this.onSwitchType,
+    required this.onCancel,
+    required this.onSave,
+    required this.busy,
+    required this.saveLabel,
+  });
+
+  final bool isExpense;
+  final ValueChanged<bool> onSwitchType;
+  final VoidCallback onCancel;
+  final VoidCallback? onSave;
+  final bool busy;
+  final String saveLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: onCancel,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Text(
+                'Huỷ',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: cs.primary,
+                ),
+              ),
+            ),
           ),
+          Expanded(
+            child: Center(
+              // Narrow phones leave the pill barely enough room; let it
+              // shrink rather than overflow the header row.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SpendoSegmented<bool>(
+                  options: const [
+                    (value: true, label: 'Chi'),
+                    (value: false, label: 'Thu'),
+                  ],
+                  value: isExpense,
+                  onChanged: onSwitchType,
+                ),
+              ),
+            ),
+          ),
+          _SaveButton(label: saveLabel, onPressed: onSave, busy: busy),
+        ],
+      ),
+    );
+  }
+}
 
-          const SizedBox(height: 8),
+/// Compact pill so the header stays one row — [SpendoButton] is 48 tall and
+/// would push the segmented control out of alignment.
+class _SaveButton extends StatelessWidget {
+  const _SaveButton({
+    required this.label,
+    required this.onPressed,
+    required this.busy,
+  });
 
-          // Note
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+  final String label;
+  final VoidCallback? onPressed;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final enabled = onPressed != null && !busy;
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: PressableScale(
+        deferTapToChild: true,
+        child: Material(
+          color: cs.primary,
+          shape: const StadiumBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: enabled ? onPressed : null,
+            child: Container(
+              height: 38,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: busy
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: cs.onPrimary,
+                      ),
+                    )
+                  : Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onPrimary,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Category grid ────────────────────────────────────────────────────────────
+
+/// Four-column grid of category tiles.
+///
+/// Replaces the horizontal chip strip: the whole set is visible at once, and
+/// each cell carries the category's own icon and colour like everywhere else
+/// in the app.
+class _CategoryGrid extends StatelessWidget {
+  const _CategoryGrid({
+    required this.categories,
+    required this.selectedId,
+    required this.onPick,
+  });
+
+  final List<Category> categories;
+  final String? selectedId;
+  final ValueChanged<String> onPick;
+
+  /// Cap the grid at two rows; the rest scrolls with the sheet body.
+  static const _perRow = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    if (categories.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        itemCount: categories.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: _perRow,
+          mainAxisExtent: 72,
+          mainAxisSpacing: 12,
+        ),
+        itemBuilder: (_, i) {
+          final cat = categories[i];
+          return SpendoCategoryTile(
+            label: cat.name,
+            color: cat.color,
+            iconName: cat.iconName,
+            selected: cat.id == selectedId,
+            onTap: () => onPick(cat.id),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ── Note field + inline suggestions ──────────────────────────────────────────
+
+class _NoteField extends StatelessWidget {
+  const _NoteField({
+    required this.controller,
+    required this.onChanged,
+    required this.onSearch,
+    required this.suggestions,
+    required this.onSuggestionTap,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onSearch;
+  final List<String> suggestions;
+  final ValueChanged<String> onSuggestionTap;
+
+  /// Only the handful that fits without pushing the numpad off-screen; the
+  /// full list lives one tap away behind the search icon.
+  static const _inlineCount = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final inline = suggestions.take(_inlineCount).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 46,
+            padding: const EdgeInsets.only(left: 14, right: 6),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainer,
+              borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _noteCtrl,
-                    onChanged: _autoSelectCategory,
-                    style: TextStyle(fontSize: 13, color: cs.onSurface),
+                    controller: controller,
+                    onChanged: onChanged,
+                    style: const TextStyle(fontSize: 15),
                     decoration: InputDecoration(
-                      hintText: 'Ghi chú (tuỳ chọn)...',
+                      isDense: true,
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: 'Ghi chú (tuỳ chọn)',
                       hintStyle: TextStyle(
-                        fontSize: 13,
+                        fontSize: 15,
                         color: cs.onSurfaceVariant,
                       ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
                     ),
                   ),
                 ),
-                GestureDetector(
-                  onTap: _openNotePicker,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Icon(
-                      LucideIcons.search,
-                      size: 18,
-                      color: cs.onSurfaceVariant,
+                Semantics(
+                  button: true,
+                  label: 'Gợi ý ghi chú',
+                  child: GestureDetector(
+                    key: const ValueKey('add_note_search'),
+                    onTap: onSearch,
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Icon(
+                        LucideIcons.search,
+                        size: 19,
+                        color: cs.primary,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Wallet picker row
-          if (wallets.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  SizedBox(
-                    height: 24,
-                    child: Checkbox(
-                      value: _trackWallet,
-                      onChanged:
-                          (val) => setState(() => _trackWallet = val ?? false),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Ghi vào nguồn tiền',
-                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-                  ),
-                  if (_trackWallet && _selectedWalletId != null) ...[
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => _openWalletPicker(wallets),
-                      child: _SelectedWalletChip(
-                        wallet:
-                            wallets
-                                .where((w) => w.id == _selectedWalletId)
-                                .firstOrNull,
-                      ),
-                    ),
-                  ],
-                ],
+          if (inline.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.zero,
+                itemCount: inline.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => SpendoChip.suggestion(
+                  label: inline[i],
+                  onTap: () => onSuggestionTap(inline[i]),
+                ),
               ),
             ),
           ],
-
-          const Divider(height: 12, thickness: 0.5),
-
-          if (!isKeyboardVisible)
-            ListenableBuilder(
-              listenable: _amountCtrl,
-              builder: (_, __) => Numpad(onKey: _amountCtrl.press),
-            ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: ListenableBuilder(
-              listenable: _amountCtrl,
-              builder:
-                  (_, __) => FilledButton(
-                    onPressed:
-                        !_isSubmitting &&
-                                _amountCtrl.hasValue &&
-                                _selectedCategoryId != null
-                            ? _submit
-                            : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: color,
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: AnimatedSwitcher(
-                      duration: appMotion.whenMotionAllowed(
-                        context,
-                        appMotion.screenDuration,
-                      ),
-                      child:
-                          _isSubmitting
-                              ? const SizedBox(
-                                key: ValueKey('submitting'),
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                              : Text(
-                                _isEditMode
-                                    ? 'Lưu thay đổi'
-                                    : (_isExpense
-                                        ? 'Chi ${_amountCtrl.formatted} ₫'
-                                        : 'Thu ${_amountCtrl.formatted} ₫'),
-                                key: const ValueKey('ready'),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                    ),
-                  ),
-            ),
-          ),
         ],
       ),
     );
   }
-
-  Color _resolveChipBgColor({
-    required ({int budget, int spent, double percent, bool isOver})? progress,
-    required bool selected,
-    required Color baseColor,
-    required ColorScheme cs,
-  }) {
-    if (selected) return baseColor.withValues(alpha: 0.15);
-    if (progress == null) return Colors.transparent;
-    if (progress.isOver) return Colors.red.withValues(alpha: 0.08);
-    if (progress.percent >= 0.8) return Colors.orange.withValues(alpha: 0.08);
-    if (progress.percent >= 0.5) return Colors.amber.withValues(alpha: 0.06);
-    return Colors.green.withValues(alpha: 0.06);
-  }
-
-  Color _resolveSelectedColor(
-    ({int budget, int spent, double percent, bool isOver}) progress,
-  ) {
-    if (progress.isOver) return Colors.red.withValues(alpha: 0.12);
-    if (progress.percent >= 0.8) return Colors.orange.withValues(alpha: 0.12);
-    if (progress.percent >= 0.5) return Colors.amber.withValues(alpha: 0.10);
-    return Colors.green.withValues(alpha: 0.10);
-  }
-
-  Color _resolveChipBorderColor({
-    required ({int budget, int spent, double percent, bool isOver})? progress,
-    required bool selected,
-    required Color baseColor,
-    required ColorScheme cs,
-  }) {
-    if (selected) return baseColor;
-    if (progress == null) return cs.outlineVariant;
-    if (progress.isOver) return Colors.red.withValues(alpha: 0.5);
-    if (progress.percent >= 0.8) return Colors.orange.withValues(alpha: 0.5);
-    if (progress.percent >= 0.5) return Colors.amber.withValues(alpha: 0.4);
-    return Colors.green.withValues(alpha: 0.4);
-  }
 }
 
-// ── Wallet chip hiển thị wallet đang chọn ────────────────────────────────────
+// ── Meta chips: date · wallet · repeat ───────────────────────────────────────
 
-class _SelectedWalletChip extends StatelessWidget {
+class _MetaChips extends StatelessWidget {
+  const _MetaChips({
+    required this.createdAt,
+    required this.onPickDate,
+    required this.wallet,
+    required this.hasWallets,
+    required this.onPickWallet,
+    required this.onRepeat,
+  });
+
+  final DateTime createdAt;
+  final VoidCallback onPickDate;
   final Wallet? wallet;
-  const _SelectedWalletChip({required this.wallet});
+  final bool hasWallets;
+  final VoidCallback onPickWallet;
+  final VoidCallback onRepeat;
 
   @override
   Widget build(BuildContext context) {
-    if (wallet == null) return const SizedBox.shrink();
-    final color = wallet!.color;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(categoryIcon(wallet!.type.iconName), size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            wallet!.name,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: SizedBox(
+        height: 36,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          children: [
+            SpendoChip.meta(
+              key: const ValueKey('add_date_chip'),
+              label: '${formatDayHeader(createdAt)}, ${formatTime(createdAt)}',
+              icon: LucideIcons.calendar,
+              onTap: onPickDate,
             ),
-          ),
-          const SizedBox(width: 4),
-          Icon(LucideIcons.chevronDown, size: 14, color: color),
-        ],
+            if (hasWallets) ...[
+              const SizedBox(width: 8),
+              SpendoChip.meta(
+                key: const ValueKey('add_wallet_chip'),
+                label: wallet?.name ?? 'Chọn ví',
+                icon: wallet == null ? LucideIcons.wallet : null,
+                leading: wallet == null
+                    ? null
+                    : Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: wallet!.color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                onTap: onPickWallet,
+              ),
+            ],
+            const SizedBox(width: 8),
+            SpendoChip.meta(
+              key: const ValueKey('add_repeat_chip'),
+              label: 'Lặp lại',
+              icon: LucideIcons.repeat,
+              onTap: onRepeat,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Wallet picker sheet ───────────────────────────────────────────────────────
+// ── Wallet picker ────────────────────────────────────────────────────────────
 
 class _WalletPickerSheet extends StatelessWidget {
-  final List<Wallet> wallets;
-  final String? selectedId;
-  final ValueChanged<String> onSelect;
-
   const _WalletPickerSheet({
     required this.wallets,
     required this.selectedId,
     required this.onSelect,
+    required this.onClear,
   });
+
+  final List<Wallet> wallets;
+  final String? selectedId;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          width: 36,
-          height: 4,
-          decoration: BoxDecoration(
-            color: cs.outlineVariant,
-            borderRadius: BorderRadius.circular(2),
+    return SpendoSheet(
+      header: const SpendoSheetHeader(title: 'Chọn nguồn tiền'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SpendoSettingsGroup(
+            children: [
+              for (final wallet in wallets)
+                SpendoSettingsRow(
+                  icon: LucideIcons.wallet,
+                  label: wallet.name,
+                  trailingText: wallet.type.label,
+                  trailing: wallet.id == selectedId
+                      ? Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Icon(
+                            LucideIcons.check,
+                            size: 18,
+                            color: cs.primary,
+                          ),
+                        )
+                      : null,
+                  onTap: () => onSelect(wallet.id),
+                ),
+            ],
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Chọn nguồn tiền',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
+          const SizedBox(height: 12),
+          SpendoButton.outline(
+            label: 'Không ghi vào ví nào',
+            expand: true,
+            onPressed: onClear,
           ),
-        ),
-        const Divider(height: 1),
-        ...wallets.map((w) {
-          final selected = w.id == selectedId;
-          final color = w.color;
-          return ListTile(
-            onTap: () => onSelect(w.id),
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                categoryIcon(w.type.iconName),
-                size: 18,
-                color: color,
-              ),
-            ),
-            title: Text(w.name, style: const TextStyle(fontSize: 14)),
-            subtitle: Text(
-              w.type.label,
-              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-            ),
-            trailing:
-                selected
-                    ? Icon(LucideIcons.check, color: cs.primary, size: 18)
-                    : null,
-          );
-        }),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-}
-
-// ── Shared sub-widgets (giống file gốc) ──────────────────────────────────────
-
-class _BudgetDot extends StatelessWidget {
-  final double percent;
-  final bool isOver;
-  const _BudgetDot({required this.percent, required this.isOver});
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        isOver
-            ? Colors.red
-            : percent >= 0.8
-            ? Colors.orange
-            : Colors.green;
-    return Container(
-      width: 6,
-      height: 6,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
-}
-
-class _MiniProgressBar extends StatelessWidget {
-  final double percent;
-  final bool isOver;
-  const _MiniProgressBar({required this.percent, required this.isOver});
-
-  @override
-  Widget build(BuildContext context) {
-    final barColor =
-        isOver
-            ? Colors.red
-            : percent >= 0.8
-            ? Colors.orange
-            : Colors.green;
-    final displayPercent = (percent * 100).clamp(0, 999).toInt();
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 48,
-          child: AnimatedProgressBar(
-            value: percent,
-            height: 3,
-            trackColor: barColor.withValues(alpha: 0.15),
-            valueColor: barColor,
-            borderRadius: BorderRadius.circular(2),
-            semanticLabel: 'Tiến độ ngân sách',
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$displayPercent%',
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w600,
-            color: barColor,
-            height: 1,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BudgetWarningDialog extends StatelessWidget {
-  final String categoryName;
-  final int budgetAmount;
-  final int spentAmount;
-  final int newAmount;
-  final int remaining;
-  final int overAmount;
-  final bool isAlreadyOver;
-
-  const _BudgetWarningDialog({
-    required this.categoryName,
-    required this.budgetAmount,
-    required this.spentAmount,
-    required this.newAmount,
-    required this.remaining,
-    required this.overAmount,
-    required this.isAlreadyOver,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AlertDialog(
-      icon: const Text('⚠️', style: TextStyle(fontSize: 32)),
-      title: Text(
-        isAlreadyOver ? 'Đã vượt hạn mức!' : 'Sắp vượt hạn mức',
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ],
       ),
+    );
+  }
+}
+
+// ── Warning dialogs ──────────────────────────────────────────────────────────
+
+enum _Emphasis { none, warning, danger, total }
+
+typedef _DialogRow = ({String label, String value, _Emphasis emphasis});
+
+/// One dialog shape for both the budget and the wallet warning — they showed
+/// the same "here are the numbers, continue anyway?" question in two layouts.
+class _WarningDialog extends StatelessWidget {
+  const _WarningDialog({
+    required this.title,
+    required this.message,
+    required this.rows,
+  });
+
+  final String title;
+  final String message;
+  final List<_DialogRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    Color colorFor(_Emphasis emphasis) => switch (emphasis) {
+      _Emphasis.none => cs.onSurface,
+      _Emphasis.warning => theme.spendo.warning,
+      _Emphasis.danger || _Emphasis.total => cs.error,
+    };
+
+    return AlertDialog(
+      icon: Icon(LucideIcons.triangleAlert, size: 28, color: cs.error),
+      title: Text(title, textAlign: TextAlign.center),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Danh mục: $categoryName',
-            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-          ),
+          for (final row in rows) ...[
+            if (row.emphasis == _Emphasis.total) const Divider(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    row.label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: row.emphasis == _Emphasis.total
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
+                  Text(
+                    row.value,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: row.emphasis == _Emphasis.total
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: colorFor(row.emphasis),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
-          _InfoRow(
-            label: 'Hạn mức',
-            value: formatVND(budgetAmount),
-            color: cs.onSurface,
-          ),
-          _InfoRow(
-            label: 'Đã chi',
-            value: formatVND(spentAmount),
-            color: Colors.orange,
-          ),
-          _InfoRow(
-            label: 'Khoản này',
-            value: formatVND(newAmount),
-            color: Colors.red,
-          ),
-          const Divider(height: 16),
-          _InfoRow(
-            label: 'Vượt hạn',
-            value: '+${formatVND(overAmount)}',
-            color: Colors.red,
-            bold: true,
-          ),
-          const SizedBox(height: 8),
           Text(
-            isAlreadyOver
-                ? 'Danh mục này đã vượt hạn mức. Thêm khoản này sẽ làm tăng thêm số tiền vượt hạn.'
-                : 'Thêm khoản chi này sẽ khiến danh mục "$categoryName" vượt hạn mức.',
+            message,
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
         ],
@@ -991,97 +1009,14 @@ class _BudgetWarningDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: Text('Huỷ bỏ', style: TextStyle(color: cs.onSurfaceVariant)),
+          child: Text('Huỷ', style: TextStyle(color: cs.onSurfaceVariant)),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
-          style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600),
+          style: FilledButton.styleFrom(backgroundColor: cs.error),
           child: const Text('Vẫn thêm'),
         ),
       ],
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  final bool bold;
-
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    required this.color,
-    this.bold = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TypeToggle extends StatelessWidget {
-  final String label;
-  final bool active;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _TypeToggle({
-    required this.label,
-    required this.active,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return PressableScale(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: appMotion.whenMotionAllowed(context, appMotion.tapUpDuration),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: active ? color.withValues(alpha: 0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: active ? color : cs.outlineVariant,
-            width: 0.8,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: active ? color : cs.onSurfaceVariant,
-          ),
-        ),
-      ),
     );
   }
 }

@@ -13,11 +13,21 @@ class ReminderFormSheet extends ConsumerStatefulWidget {
   /// Category ID pre-selected (dùng khi tạo từ habit suggestion)
   final String? preselectedCategoryId;
 
+  /// Seeds the title when the sheet is opened from a transaction in progress
+  /// ("Lặp lại" in the add sheet), so the user does not retype what they just
+  /// entered.
+  final String? prefillTitle;
+
+  /// Seeds the estimated amount, same origin as [prefillTitle].
+  final int? prefillAmount;
+
   const ReminderFormSheet({
     super.key,
     this.existing,
     this.preset,
     this.preselectedCategoryId,
+    this.prefillTitle,
+    this.prefillAmount,
   });
 
   @override
@@ -53,8 +63,9 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
       _categoryId = e.categoryId;
     } else {
       _frequency = p?.frequency ?? ReminderFrequency.monthly;
-      _titleCtrl.text = p?.title ?? '';
-      _amountCtrl.text = p?.suggestedAmount?.toString() ?? '';
+      _titleCtrl.text = widget.prefillTitle ?? p?.title ?? '';
+      _amountCtrl.text =
+          (widget.prefillAmount ?? p?.suggestedAmount)?.toString() ?? '';
       _hour = 20;
       _minute = 0;
       _dayOfWeek = 1;

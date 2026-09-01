@@ -87,12 +87,14 @@ class TransactionRepository {
 
   Future<void> update(Transaction t) async {
     await _database.execute(
-      'UPDATE transactions SET amount=?, type=?, category_id=?, note=?, wallet_id=?, source=? WHERE id=?',
+      'UPDATE transactions SET amount=?, type=?, category_id=?, note=?, '
+      'created_at=?, wallet_id=?, source=? WHERE id=?',
       [
         t.amount.toString(),
         t.type,
         t.categoryId,
         t.note,
+        t.createdAt.millisecondsSinceEpoch.toString(),
         t.walletId,
         t.source,
         t.id,

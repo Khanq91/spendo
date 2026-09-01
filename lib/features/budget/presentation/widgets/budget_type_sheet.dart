@@ -3,6 +3,18 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../screens/budget_screen.dart';
 import '../screens/category_budget_screen.dart';
 
+/// Opens [BudgetTypeSheet] as a modal.
+///
+/// The single entry point, so Home and any later caller present it the same
+/// way instead of each restating the sheet configuration.
+Future<void> showBudgetTypeSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => const BudgetTypeSheet(),
+  );
+}
+
 /// Bottom sheet chọn loại hạn mức.
 /// Được mở từ BudgetCard thay vì thẳng vào BudgetScreen.
 class BudgetTypeSheet extends StatelessWidget {

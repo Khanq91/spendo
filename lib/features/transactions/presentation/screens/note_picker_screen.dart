@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/db/powersync_db.dart';
-import '../../../../core/utils/category_icons.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
+import '../../domain/note_suggestions.dart';
 
-// ── Result ────────────────────────────────────────────────────────────────────
-
+/// What the picker hands back to the add sheet.
 class NotePickerResult {
   final String note;
   final String? categoryId;
@@ -14,29 +13,10 @@ class NotePickerResult {
   const NotePickerResult({required this.note, required this.categoryId});
 }
 
-// ── Default notes per icon_name ───────────────────────────────────────────────
-
-const _kDefaultNotes = <String, List<String>>{
-  'restaurant': ['Ăn sáng', 'Ăn trưa', 'Ăn tối', 'Cà phê', 'Trà sữa', 'Đi ăn', 'Bia', 'Đặt đồ ăn'],
-  'directions_car': ['Xăng xe', 'Grab', 'Taxi', 'Gửi xe', 'Sửa xe', 'Gojek', 'Be'],
-  'school': ['Học phí', 'Sách giáo khoa', 'Khóa học online', 'Văn phòng phẩm', 'Udemy'],
-  'shopping_bag': ['Shopee', 'Lazada', 'Tiki', 'Siêu thị', 'Quần áo', 'Giày dép', 'Mỹ phẩm'],
-  'favorite': ['Thuốc', 'Khám bệnh', 'Gym', 'Spa', 'Vitamin', 'Bệnh viện'],
-  'sports_esports': ['Netflix', 'Spotify', 'Game', 'Phim rạp', 'CGV', 'Karaoke', 'Steam'],
-  'work': ['Lương tháng', 'Thưởng', 'Lương thưởng', 'Phụ cấp'],
-  'laptop': ['Freelance', 'Dự án', 'Hợp đồng', 'Thu nhập thêm'],
-  'storefront': ['Bán hàng', 'Doanh thu', 'Hàng bán được'],
-  'card_giftcard': ['Quà sinh nhật', 'Tiền mừng', 'Quà tặng', 'Lì xì'],
-  'home': ['Tiền nhà', 'Điện', 'Nước', 'Internet', 'Sửa nhà'],
-  'flight': ['Vé máy bay', 'Khách sạn', 'Du lịch', 'Visa'],
-  'movie': ['Phim', 'Rạp chiếu', 'Streaming'],
-  'fitness_center': ['Gym', 'Thể dục', 'Yoga', 'Chạy bộ'],
-  'pets': ['Thức ăn thú cưng', 'Thú y', 'Phụ kiện thú cưng'],
-  'more_horiz': ['Chi tiêu khác', 'Linh tinh', 'Khác'],
-};
-
-// ── Screen ────────────────────────────────────────────────────────────────────
-
+/// Screen 02b — write a note, with the category's past notes as suggestions.
+///
+/// The category grid mirrors the add sheet's, so switching category here reads
+/// as the same control rather than a second style for the same entity.
 class NotePickerScreen extends StatefulWidget {
   final String initialNote;
   final String? initialCategoryId;
@@ -56,7 +36,7 @@ class NotePickerScreen extends StatefulWidget {
 class _NotePickerScreenState extends State<NotePickerScreen> {
   late final TextEditingController _ctrl;
   late String? _categoryId;
-  List<String> _historyNotes = [];
+  List<String> _historyNotes = const [];
   bool _historyLoading = true;
 
   @override
@@ -74,175 +54,144 @@ class _NotePickerScreenState extends State<NotePickerScreen> {
   }
 
   Future<void> _loadHistory() async {
-    if (_categoryId == null) {
+    final categoryId = _categoryId;
+    if (categoryId == null) {
       setState(() => _historyLoading = false);
       return;
     }
-    try {
-      final rows = await db.getAll(
-        "SELECT note, COUNT(*) as cnt FROM transactions "
-        "WHERE category_id = ? AND note IS NOT NULL AND note != '' "
-        "GROUP BY note ORDER BY cnt DESC LIMIT 20",
-        [_categoryId],
-      );
-      if (mounted) {
-        setState(() {
-          _historyNotes = rows.map((r) => r['note'] as String).toList();
-          _historyLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _historyLoading = false);
-    }
+    final history = await loadNoteHistory(categoryId);
+    if (!mounted || _categoryId != categoryId) return;
+    setState(() {
+      _historyNotes = history;
+      _historyLoading = false;
+    });
   }
 
   void _onCategoryChanged(String id) {
     setState(() {
       _categoryId = id;
-      _historyNotes = [];
+      _historyNotes = const [];
       _historyLoading = true;
     });
     _loadHistory();
   }
 
-  /// Suggestions = history + defaults, filtered by current input, deduplicated
-  List<String> get _suggestions {
-    final query = _ctrl.text.toLowerCase().trim();
-    final cat = _categoryId == null
-        ? null
-        : widget.categories.where((c) => c.id == _categoryId).firstOrNull;
-    final defaults = cat != null ? (_kDefaultNotes[cat.iconName] ?? []) : [];
+  Category? get _category =>
+      widget.categories.where((c) => c.id == _categoryId).firstOrNull;
 
-    // Merge: history first (user habits), then defaults
-    final merged = <String>[];
-    final seen = <String>{};
-    for (final s in [..._historyNotes, ...defaults]) {
-      final key = s.toLowerCase();
-      if (!seen.contains(key)) {
-        seen.add(key);
-        merged.add(s);
-      }
-    }
-
-    if (query.isEmpty) return merged;
-    return merged.where((s) => s.toLowerCase().contains(query)).toList();
-  }
+  List<String> get _suggestions => mergeNoteSuggestions(
+    history: _historyNotes,
+    iconName: _category?.iconName,
+    query: _ctrl.text,
+  );
 
   void _confirm() {
     Navigator.of(context).pop(
-      NotePickerResult(
-        note: _ctrl.text.trim(),
-        categoryId: _categoryId,
-      ),
+      NotePickerResult(note: _ctrl.text.trim(), categoryId: _categoryId),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final suggestions = _suggestions;
+    final isSearching = _ctrl.text.trim().isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(LucideIcons.x, size: 20),
+          icon: const Icon(LucideIcons.x, size: 22),
+          tooltip: 'Đóng',
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Ghi chú'),
+        title: Text('Ghi chú', style: theme.textTheme.titleLarge?.copyWith(
+          fontSize: 20,
+        )),
+        centerTitle: true,
         actions: [
           TextButton(
             onPressed: _confirm,
             child: Text(
               'Xác nhận',
               style: TextStyle(
-                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
                 color: cs.primary,
               ),
             ),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Note input ─────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: TextField(
               controller: _ctrl,
               autofocus: true,
+              textInputAction: TextInputAction.done,
               onChanged: (_) => setState(() {}),
-              style: TextStyle(fontSize: 15, color: cs.onSurface),
+              onSubmitted: (_) => _confirm(),
+              style: const TextStyle(fontSize: 15),
               decoration: InputDecoration(
-                hintText: 'Nhập ghi chú...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                hintText: 'Nhập ghi chú…',
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+                  horizontal: 14,
+                  vertical: 14,
                 ),
-                suffixIcon: _ctrl.text.isNotEmpty
-                    ? IconButton(
+                suffixIcon: _ctrl.text.isEmpty
+                    ? null
+                    : IconButton(
                         icon: const Icon(LucideIcons.x, size: 16),
-                        onPressed: () => setState(() => _ctrl.clear()),
-                      )
-                    : null,
+                        tooltip: 'Xoá ghi chú',
+                        onPressed: () => setState(_ctrl.clear),
+                      ),
               ),
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          // ── Category chips ──────────────────────────────────────────
           if (widget.categories.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 16, bottom: 8),
-              child: Text(
-                'Danh mục',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: SpendoSectionHeader(label: 'Danh mục'),
             ),
-            SizedBox(
-              height: 36,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
                 itemCount: widget.categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      mainAxisExtent: 72,
+                      mainAxisSpacing: 12,
+                    ),
                 itemBuilder: (_, i) {
                   final cat = widget.categories[i];
-                  final selected = cat.id == _categoryId;
-                  return _CategoryChip(
-                    category: cat,
-                    selected: selected,
+                  return SpendoCategoryTile(
+                    label: cat.name,
+                    color: cat.color,
+                    iconName: cat.iconName,
+                    selected: cat.id == _categoryId,
                     onTap: () => _onCategoryChanged(cat.id),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
+            Divider(height: 1, color: cs.outlineVariant),
           ],
-
-          const Divider(height: 1),
-
-          // ── Suggestions ─────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Text(
-              _ctrl.text.isEmpty ? 'Gợi ý' : 'Kết quả tìm kiếm',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurfaceVariant,
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SpendoSectionHeader(
+              label: isSearching ? 'Kết quả tìm kiếm' : 'Gợi ý',
+              padding: const EdgeInsets.only(top: 16, bottom: 10),
             ),
           ),
-
           Expanded(
             child: _historyLoading
                 ? const Center(
@@ -253,35 +202,36 @@ class _NotePickerScreenState extends State<NotePickerScreen> {
                     ),
                   )
                 : suggestions.isEmpty
-                    ? Center(
-                        child: Text(
-                          _ctrl.text.isEmpty
-                              ? 'Chưa có gợi ý cho danh mục này'
-                              : 'Không tìm thấy gợi ý phù hợp',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: cs.onSurfaceVariant,
+                ? SpendoEmptyState(
+                    icon: LucideIcons.messageSquareDashed,
+                    title: isSearching
+                        ? 'Không tìm thấy gợi ý phù hợp'
+                        : 'Chưa có gợi ý cho danh mục này',
+                    message: isSearching
+                        ? null
+                        : 'Ghi chú bạn dùng sẽ xuất hiện ở đây.',
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final suggestion in suggestions)
+                          _SuggestionChip(
+                            label: suggestion,
+                            onTap: () {
+                              setState(() {
+                                _ctrl.text = suggestion;
+                                _ctrl.selection = TextSelection.collapsed(
+                                  offset: suggestion.length,
+                                );
+                              });
+                            },
                           ),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: suggestions
-                              .map((s) => _SuggestionChip(
-                                    label: s,
-                                    onTap: () {
-                                      setState(() => _ctrl.text = s);
-                                      _ctrl.selection = TextSelection.fromPosition(
-                                        TextPosition(offset: s.length),
-                                      );
-                                    },
-                                  ))
-                              .toList(),
-                        ),
-                      ),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -289,85 +239,36 @@ class _NotePickerScreenState extends State<NotePickerScreen> {
   }
 }
 
-// ── Category chip ─────────────────────────────────────────────────────────────
-
-class _CategoryChip extends StatelessWidget {
-  final Category category;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _CategoryChip({
-    required this.category,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = category.color;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? color : cs.outlineVariant,
-            width: 0.8,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              categoryIcon(category.iconName),
-              size: 13,
-              color: selected ? color : cs.onSurfaceVariant,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              category.name,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? color : cs.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Suggestion chip ───────────────────────────────────────────────────────────
-
+/// Filled pill — screen 02b's suggestion variant, per `02-components.md`.
 class _SuggestionChip extends StatelessWidget {
+  const _SuggestionChip({required this.label, required this.onTap});
+
   final String label;
   final VoidCallback onTap;
 
-  const _SuggestionChip({required this.label, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cs.outlineVariant, width: 0.5),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(fontSize: 13, color: cs.onSurface),
+    return Material(
+      color: cs.surfaceContainer,
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 36,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width - 32,
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );

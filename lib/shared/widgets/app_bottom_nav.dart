@@ -11,6 +11,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/stats/presentation/screens/stats_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
+import '../providers/shell_tab_provider.dart';
 import 'aurora_theme_background.dart';
 import 'motion/motion.dart';
 import 'spendo/spendo.dart';
@@ -30,7 +31,19 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  late int _index = widget.initialIndex;
+  @override
+  void initState() {
+    super.initState();
+    // Seed the shared tab state so a deep link that opens the shell on a
+    // given tab agrees with what the rest of the app reads back.
+    if (widget.initialIndex != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(shellTabProvider.notifier).state =
+            ShellTab.values[widget.initialIndex];
+      });
+    }
+  }
 
   static const _screens = [
     HomeScreen(),
@@ -39,13 +52,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     SettingsScreen(),
   ];
 
-  /// Settings has no "add transaction" affordance.
-  bool get _showFab => _index != 3;
-
   @override
   Widget build(BuildContext context) {
     final visualMode = ref.watch(visualModeProvider);
     final isFancy = visualMode == AppVisualMode.fancy;
+    final index = ref.watch(shellTabProvider).index;
+    // Settings has no "add transaction" affordance.
+    final showFab = index != ShellTab.settings.index;
 
     return Scaffold(
       extendBody: isFancy,
@@ -60,23 +73,23 @@ class _AppShellState extends ConsumerState<AppShell> {
                   )
                 : Theme.of(context),
             child: IndexedStack(
-              index: _index,
+              index: index,
               children: List.generate(
                 _screens.length,
-                (i) => TickerMode(enabled: _index == i, child: _screens[i]),
+                (i) => TickerMode(enabled: index == i, child: _screens[i]),
               ),
             ),
           ),
         ],
       ),
       bottomNavigationBar: isFancy
-          ? _FancySpendoNavBar(selectedIndex: _index, onTap: _selectTab)
+          ? _FancySpendoNavBar(selectedIndex: index, onTap: _selectTab)
           : SpendoBottomNav(
               destinations: SpendoBottomNav.spendoDestinations,
-              selectedIndex: _index,
+              selectedIndex: index,
               onSelected: _selectTab,
             ),
-      floatingActionButton: _showFab
+      floatingActionButton: showFab
           ? (isFancy
                 ? PressableScale(
                     deferTapToChild: true,
@@ -107,8 +120,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   void _selectTab(int i) {
-    if (i == _index) return;
-    setState(() => _index = i);
+    final tab = ShellTab.values[i];
+    if (tab == ref.read(shellTabProvider)) return;
+    ref.read(shellTabProvider.notifier).state = tab;
   }
 }
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
 import '../../../../shared/widgets/motion/motion.dart';
+import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
 import '../../domain/transaction.dart';
 import 'transaction_list_item.dart';
@@ -97,45 +97,24 @@ class _DayHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final isPositive = dayNet >= 0;
-    final header = Padding(
-      padding:
-          style == GroupedTransactionStyle.filledHeader
-              ? const EdgeInsets.fromLTRB(16, 8, 16, 6)
-              : const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Row(
-        children: [
-          Text(
-            formatDayHeader(date),
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurfaceVariant,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            '${isPositive ? '+' : '-'}${formatVND(dayNet.abs())}',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color:
-                  isPositive ? AppTheme.incomeColor : AppTheme.expenseAltColor,
-            ),
-          ),
-        ],
-      ),
+    final header = SpendoDayHeader(
+      label: formatDayHeader(date),
+      totalText: '${isPositive ? '+' : '−'}${formatVND(dayNet.abs())}',
+      totalIsIncome: isPositive,
+      padding: style == GroupedTransactionStyle.filledHeader
+          ? const EdgeInsets.fromLTRB(16, 8, 16, 6)
+          : const EdgeInsets.fromLTRB(16, 10, 16, 2),
     );
 
     if (style == GroupedTransactionStyle.filledHeader) {
-      return ColoredBox(color: cs.surfaceContainerHighest, child: header);
+      return ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: header,
+      );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [header, const Divider(height: 1, indent: 16, endIndent: 16)],
-    );
+    return header;
   }
 }
 
