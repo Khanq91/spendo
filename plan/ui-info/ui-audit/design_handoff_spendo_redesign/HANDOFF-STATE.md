@@ -43,9 +43,11 @@ Cấm rải hex trong widget, mọi màu lấy qua `ColorScheme` + `context.spen
 | 4 — Ví & Hạn mức | ✅ xong | `37ee086` |
 | 5 — Thống kê, Vay, Nhắc nhở | ✅ xong | `eb30303` + `583d7d0` |
 | 6 — Cài đặt & trang con | ✅ xong | `da955a9` |
-| 7 — Khởi động + Dark pass + QA | ⬜ tiếp theo | |
+| 7 — Khởi động + Dark pass + QA | ✅ xong | `adf1bf1` |
 
-Baseline hiện tại: `flutter analyze` sạch · **207 test pass** · debug APK build được.
+Baseline hiện tại: `flutter analyze` sạch · **244 test pass** · debug APK build được.
+
+> **Toàn bộ 8 phase đã xong.** Redesign khép lại ở `adf1bf1`.
 
 > Sau Phase 3 có 1 commit sửa lỗi UI phát hiện khi chạy thật (`6eb95fa`) —
 > xem mục 2.9.
@@ -480,6 +482,112 @@ Trang Sao lưu và Ngân hàng cần dòng 2 (`Toàn bộ dữ liệu, khôi ph�
 `minHeight` 49 → **52** cho vừa 2 dòng. `_DashedCircle` đổi tên thành
 **`SpendoDashedCircle`** (public) vì hàng slot widget cần nó ở cỡ 32.
 
+### 2.32 Phase 7 — `StartupGate` XOÁ, splash tự quyết đích đến
+
+Gate cũ render `Scaffold` trắng + spinner giữa 2 màn đều có nền riêng → khởi
+động ở dark mode chớp trắng (`02-startup-gate.md` §J).
+
+`SplashScreen` giờ nhận **`nextScreenBuilder(context, onboardingCompleted)`**
+thay `nextScreen`. Nó tự đọc cờ onboarding **song song với init**, nên tới lúc
+fade là đã có câu trả lời — không còn frame trung gian nào.
+
+- Key `onboardingCompletedPrefsKey` chuyển sang
+  **`onboarding/presentation/onboarding_prefs.dart`** (splash và welcome dùng
+  chung, không bên nào phải import bên kia).
+- Đọc prefs lỗi → coi như chưa onboarding (xấu nhất là xem lại 2 trang welcome),
+  **không** để user kẹt ở splash.
+- Message tiến độ đổi sang tiếng Việt (`Đang mở dữ liệu…`…) — trước tiếng Anh
+  giữa app thuần Việt (`01-splash.md` §L).
+
+⚠️ Đừng dựng lại màn trung gian nào giữa splash và app.
+
+### 2.33 Phase 7 — Welcome 2 trang, dots + Bỏ qua mọi nơi
+
+Trang 0 cũ chỉ có 1 câu, nửa dưới trống; đồ hoạ và Drive mỗi thứ 1 trang
+(`03-welcome.md` §L).
+
+| Trang | Nội dung |
+|---|---|
+| 1 | Brand card + **3 dòng tính năng** (Ghi 5 giây · Hạn mức & nhắc nhở · Dữ liệu của bạn) |
+| 2 | Đồ hoạ (2 card) + Google Drive (tuỳ chọn) — gộp 2 trang cũ |
+
+- **Dots** ở cả 2 trang (trước không có, không biết còn mấy bước).
+- **`Bỏ qua` ở mọi trang** (trước chỉ trang cuối), nút cuối ghi **`Bắt đầu`**
+  thay `Tiếp theo`.
+- `_finish()` **luôn lưu `visualModeProvider`** — kể cả khi thoát bằng Bỏ qua.
+  Bản cũ chỉ lưu khi bấm Tiếp theo rời trang đó.
+- Bỏ `GlassContainer` premium + `AuroraThemeBackground` chạy full ngay cả với
+  user sắp chọn "Bình thường"; brand card giờ là `surfaceContainerLowest`
+  alpha .82, đọc được trên aurora mà không cần glass layer.
+- `WelcomeScreen({destinationBuilder})` — inject đích đến để test khỏi phải
+  mount `SpendoApp` (nó chạm plugin notification, widget test không có binding).
+
+**Xoá:** `shared/widgets/visual_mode_picker.dart` (+test) — Giao diện (Phase 6)
+và Welcome đều có card riêng · `shared/widgets/category_icon.dart` (0 call-site,
+`SpendoIconTile` đã thay).
+
+### 2.34 Phase 7 — Widget: LUÔN 4 ô, không bỏ ghim, tap để đổi
+
+**User chốt lệch mockup 23.** Mockup ghi "ghim bao nhiêu dùng bấy nhiêu, slot
+trống hiện +"; phương án đang dùng là **4 ô luôn có danh mục, tap 1 ô để đổi
+sang danh mục khác**. Trang Widget bỏ nút "Bỏ ghim".
+
+Sửa luôn bug thật: Kotlin cũ `if (cats.size >= 4) cats else defaults` — **vứt
+dữ liệu thật đi** dùng 4 tên hard-code khi có ít hơn 4 danh mục; và
+`widget_sync.dart` tự fill cho đủ 4 nên lời hứa "ghim bao nhiêu dùng bấy nhiêu"
+chưa từng đúng.
+
+**`resolveWidgetSlots(pinnedIds, expenseCategories)`** trong
+`core/utils/widget_sync.dart` là **định nghĩa duy nhất**, dùng chung cho sync và
+cho preview ở trang Cài đặt → hai bên không thể lệch nhau:
+
+- id đã ghim giữ đúng slot; id không còn tồn tại → rơi xuống fallback
+- fallback lấy danh mục **chưa dùng** theo thứ tự, không lặp
+- ít hơn 4 danh mục → slot thừa để `null`, **giữ nguyên vị trí** (lưới 2×2 là
+  positional), widget vẽ `+` / `Ghi nhanh` và mở `/add` không kèm danh mục
+
+Có 8 test khoá ở `test/core/utils/widget_slots_test.dart`.
+
+### 2.35 Phase 7 — màu native ra `values/` + `values-night/`
+
+2 widget và launch screen hard-code màu sáng (`#FFFFFF`, `#F06292`, `#666666`,
+`#FFF0F5`) → đặt widget lên home screen nền tối thì chói.
+
+Giờ mọi màu native đi qua `@color/...`, khai báo 2 bộ:
+`android/app/src/main/res/values/colors.xml` (light) và `values-night/`
+(dark, theo quy tắc §01-tokens: brand giữ hue + `#551D30` đè lên, primary sáng
+lên `#E9A4B5`, phân tầng bằng surface chứ không bằng shadow).
+
+⚠️ Sửa màu widget thì sửa **cả hai file**, đừng nhét hex vào layout/drawable —
+`grep -roE '#[0-9A-Fa-f]{6,8}' res/layout res/drawable` phải ra **0**.
+
+`launch_bg_*` **không** override trong `values-night/`: `values-night/styles.xml`
+đã tự trỏ vào `launch_bg_dark` rồi.
+
+### 2.36 Phase 7 — bug: `VisualModeNotifier._load()` đè lên `setMode()`
+
+Phát hiện khi viết test Welcome. `_load()` đọc prefs **bất đồng bộ** rồi gán
+`state`; nếu user chọn đồ hoạ trong vài khoảnh khắc đầu sau khi mở app (đúng
+kịch bản trang Welcome), lựa chọn bị **âm thầm revert** khi `_load()` xong.
+
+Thêm cờ `_chosen`: `_load()` bỏ qua nếu user đã chọn rồi (và nếu notifier đã
+dispose). Test khoá ở `test/core/theme/visual_mode_provider_test.dart`.
+
+⚠️ Notifier nào vừa `_load()` async vừa có setter đều dính kiểu bug này — kiểm
+lại nếu thêm cái mới.
+
+### 2.37 Phase 7 — dark pass là TEST, không phải rà tay
+
+`test/core/theme/dark_mode_pass_test.dart` render **8 màn × 2 theme** (bắt
+exception + tràn layout) và khoá quy tắc token: surface dark là nâu ấm chứ
+không đen thuần; brand dùng chung 2 theme, còn primary / income / expense phải
+khác nhau.
+
+Bộ component chung (Phase 1) **đã** tôn trọng quy tắc "dark không bóng"
+(`SpendoFab` bỏ shadow khi dark) và alpha tile 0.16→0.24, nên phase này không
+phải sửa gì ở đó. Mấy `BoxShadow` còn lại là **vòng chọn** (swatch màu), không
+phải shadow tạo độ sâu — giữ nguyên.
+
 ### 2.5 Phase 2 — `shellTabProvider` thay `setState` trong AppShell
 
 Nút "Xem tất cả" ở Home phải chuyển sang **tab** Giao dịch, không push route
@@ -603,18 +711,20 @@ tôn trọng reduce-motion.
 
 ## 4. Nợ kỹ thuật còn lại (phần lớn thuộc Phase 7)
 
-| Việc | Quy mô hiện tại |
+Redesign đã xong; bảng dưới là những gì **cố ý để lại**, không phải việc dở.
+
+| Việc | Trạng thái |
 |---|---|
 | ~~Hex hard-code ngoài `core/theme/`~~ | ✅ **0** (từ 55) — hết ở Phase 6 |
 | ~~`AppTheme.incomeColor/…` → `context.spendo`~~ | ✅ **0** (từ 53/16) — 3 hằng đã xoá, mục 2.8 |
-| `Colors.white/grey/red/orange/…` cố định (không đổi theo dark) | **19** chỗ / 4 file (từ ~100): `debug_reminder_panel` (chỉ kDebugMode), `aurora_theme_background`, `category_icon`, `splash_screen` — Phase 7 |
-| ~~`numpad.dart` (alias) → xoá~~ | ✅ xoá ở Phase 5 |
-| ~~`month_selector.dart` → xoá~~ | ✅ xoá ở Phase 4 |
-| ~~`typedef StatsDateRange = Period` → xoá alias~~ | ✅ xoá ở Phase 5 (mục 2.17) |
-| Splash | Phase 0 mới đổi màu sang token; redesign thật ở Phase 7 |
-| 2 widget Android native `widget_layout_*.xml` | chưa đổi màu — Phase 7 |
-| Route `/stats` `/settings` trùng tab của shell | vẫn còn — Phase 6 giữ nguyên vì hub push `/wallets` `/loans` `/reminders` ra ngoài shell, đổi cơ chế là việc của Phase 7 |
-| `shared/widgets/category_icon.dart` | trùng vai với `SpendoIconTile`; còn call-site ngoài phạm vi Phase 6 — Phase 7 gộp |
+| ~~Hex trong `res/layout` + `res/drawable`~~ | ✅ **0** — ra `values/` + `values-night/` (mục 2.35) |
+| `Colors.white` cố định | **6** chỗ / 2 file (từ ~100) — **cố ý giữ**: highlight trên logo splash + shimmer progress + gloss aurora. Đều là lớp phủ trắng thật và **đã** đổi alpha theo `isDark`; thay bằng token là sai nghĩa. |
+| ~~`numpad.dart` · `month_selector.dart` · `typedef StatsDateRange`~~ | ✅ xoá ở Phase 4–5 |
+| ~~`visual_mode_picker.dart` · `category_icon.dart`~~ | ✅ xoá ở Phase 7 (mục 2.33) |
+| ~~Splash / Welcome redesign~~ | ✅ Phase 7 (mục 2.32, 2.33) |
+| ~~2 widget Android native~~ | ✅ Phase 7 (mục 2.34, 2.35) |
+| Route `/stats` `/settings` trùng tab của shell | **còn lại** — hub push `/wallets` `/loans` `/reminders` ra ngoài shell (mất bottom nav ở màn con). Đổi sang `StatefulShellRoute` là việc riêng, không thuộc redesign. |
+| `debug_reminder_panel` (~310 dòng) | chỉ `kDebugMode`, không ship. Đã chuyển sang token ở Phase 7. |
 
 ---
 
@@ -754,6 +864,37 @@ Làm 2 commit: `eb30303` (Thống kê) + `583d7d0` (Vay + Nhắc nhở).
 
 ---
 
+## 4g. Phase 7 đã đụng file nào
+
+1 commit: `adf1bf1`.
+
+**Thêm:** `onboarding/presentation/onboarding_prefs.dart`
+
+**Viết lại:** `onboarding/presentation/welcome_screen.dart` (3 trang → 2)
+
+**Sửa:** `shared/widgets/splash_screen.dart` (`nextScreenBuilder`, đọc cờ
+onboarding, message tiếng Việt) · `main.dart` (bỏ gate, message tiếng Việt) ·
+`core/utils/widget_sync.dart` (`resolveWidgetSlots`) ·
+`core/theme/visual_mode_provider.dart` (cờ `_chosen`, mục 2.36) ·
+`settings/…/screens/widget_screen.dart` (4 ô luôn đầy, bỏ "Bỏ ghim") ·
+`reminders/…/widgets/debug_reminder_panel.dart` (sang token) ·
+`SpendoWidgetMedium.kt` (nhận 1–4 slot) · 2 `widget_layout_*.xml` +
+3 `drawable/widget_*.xml` (dùng `@color/`) · `values/colors.xml` +
+`values-night/colors.xml`
+
+**Xoá:** `onboarding/presentation/startup_gate.dart` ·
+`shared/widgets/visual_mode_picker.dart` (+test) ·
+`shared/widgets/category_icon.dart`
+
+**Test mới:** `test/core/theme/dark_mode_pass_test.dart` (18 test — 8 màn × 2
+theme + quy tắc token) · `test/core/theme/visual_mode_provider_test.dart` ·
+`test/core/utils/widget_slots_test.dart` (8 test) ·
+`test/features/onboarding/…/welcome_screen_test.dart` ·
+`splash_screen_test.dart` (+3) · `widget_screen_test.dart` (viết lại)
+— 207 → **244 test**
+
+---
+
 ## 5. Quy trình mỗi phase
 
 1. Đọc mục phase đó trong `04-phases.md` → biết làm màn nào, lưu ý gì.
@@ -770,6 +911,10 @@ Làm 2 commit: `eb30303` (Thống kê) + `583d7d0` (Vay + Nhắc nhở).
 
 Làm đúng 1 phase mỗi lượt, không lấn phase sau. Điều gì không rõ → hỏi, kèm
 phương án đề xuất.
+
+> **Hết phase rồi.** Quy trình trên giữ lại cho việc sau: sửa/thêm màn thì vẫn
+> đọc mục 2 trước, dùng component ở mục 3, và chạy đủ `analyze` → `test` →
+> `build apk` trước khi commit. Nợ cố ý còn lại nằm ở mục 4.
 
 Ưu tiên khi mâu thuẫn: **HANDOFF-STATE (mục 2) > tokens > mockup > audit**.
 (Audit là AS-IS — mô tả cái đang có, không phải cái cần làm.)
