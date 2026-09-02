@@ -23,8 +23,8 @@
 | Thông báo | **31** `showSnackBar` trong **19** file, toàn bộ là Material SnackBar floating ở đáy (theme tại [app_theme.dart:408](../../lib/core/theme/app_theme.dart)). 8 cái có nút Hoàn tác 5s. 21 cái là lỗi "Không … được", còn lại thành công/thông tin. Sheet đang mở thì snackbar bị sheet che. | 1 kiểu duy nhất: pill rơi từ mép trên, dot màu theo loại; 8 cái Hoàn tác cũng slide-in nhưng có nút và dot màu cố định. |
 | Nền Xịn xò | `AuroraThemeBackground` 4 blob + parallax cảm biến nghiêng, dùng ở `AppShell` (fancy) và `WelcomeScreen` (luôn) | `ParticleField` (copy nguyên từ Snipz) + blur nhẹ 1 lượt cả lớp, thay ở cả 2 chỗ. Aurora xoá. |
 
-Baseline trước khi làm: `flutter analyze` sạch (theo PLAN trước) · **≈372 test**
-(đếm `testWidgets(`/`test(`; xác nhận lại bằng `flutter test` trước GĐ1) ·
+Baseline trước khi làm: `flutter analyze` sạch · **390 test** (đo bằng `flutter test`
+trước GĐ0; 394 sau GĐ0) ·
 version `1.7.26+31`.
 
 ---
@@ -33,7 +33,7 @@ version `1.7.26+31`.
 
 | GĐ | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
-| 0 — Chip ôm chữ | Sửa `SpendoChip` nở full width trong `Wrap` (bug), + pop 1.12 spring kiểu Choice Chips khi chọn | ⬜ chưa | |
+| 0 — Chip ôm chữ | Sửa `SpendoChip` nở full width trong `Wrap` (bug), + pop 1.12 spring kiểu Choice Chips khi chọn | ✅ xong | `23476e8` |
 | 1 — Nav lơ lửng | Snap Rail thay `SpendoBottomNav` (chế độ Bình thường), `extendBody` cả 2 mode | ⬜ chưa | |
 | 2 — Reveal list | `RevealScope`/`RevealItem` dùng chung, áp 10 màn list dữ liệu, xoá `MotionListItem` | ⬜ chưa | |
 | 3 — Notice slide-in | `NoticeHost` + `AppNotice.show`, thay 31 `showSnackBar`, xoá `snackBarTheme` | ⬜ chưa | |
