@@ -24,8 +24,8 @@
 | Nền Xịn xò | `AuroraThemeBackground` 4 blob + parallax cảm biến nghiêng, dùng ở `AppShell` (fancy) và `WelcomeScreen` (luôn) | `ParticleField` (copy nguyên từ Snipz) + blur nhẹ 1 lượt cả lớp, thay ở cả 2 chỗ. Aurora xoá. |
 
 Baseline trước khi làm: `flutter analyze` sạch · **390 test** (đo bằng `flutter test`
-trước GĐ0; 394 sau GĐ0; 396 sau GĐ1; 401 sau GĐ2; 406 sau GĐ3) ·
-version `1.7.26+31`.
+trước GĐ0; 394 sau GĐ0; 396 sau GĐ1; 401 sau GĐ2; 406 sau GĐ3; 409 sau GĐ4) ·
+version `1.7.26+31` → `1.7.31+36` sau GĐ4. APK debug build sạch sau mỗi GĐ.
 
 ---
 
@@ -37,7 +37,7 @@ version `1.7.26+31`.
 | 1 — Nav lơ lửng | Snap Rail thay `SpendoBottomNav` (chế độ Bình thường), `extendBody` cả 2 mode | ✅ xong | `43a57f4` |
 | 2 — Reveal list | `RevealScope`/`RevealItem` dùng chung, áp 10 màn list dữ liệu, xoá `MotionListItem` | ✅ xong | `b987f53` |
 | 3 — Notice slide-in | `NoticeHost` + `AppNotice.show`, thay 31 `showSnackBar`, xoá `snackBarTheme` | ✅ xong | `41be81d` |
-| 4 — Nền hạt | `ParticleField` + blur thay Aurora ở Shell + Welcome, sửa copy, bỏ `sensors_plus` | ⬜ chưa | |
+| 4 — Nền hạt | `ParticleField` + blur thay Aurora ở Shell + Welcome, sửa copy, bỏ `sensors_plus` | ✅ xong | `35ccac7` |
 
 Quy trình mỗi GĐ: analyze → test → build apk → tự kiểm mục 5 → **1 commit** →
 cập nhật bảng này → dừng chờ duyệt. Version bump patch mỗi GĐ có code
