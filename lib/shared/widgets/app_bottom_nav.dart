@@ -12,8 +12,8 @@ import '../../features/stats/presentation/screens/stats_screen.dart';
 import '../../features/transactions/presentation/screens/transactions_screen.dart';
 import '../../features/transactions/presentation/widgets/add_transaction_sheet.dart';
 import '../providers/shell_tab_provider.dart';
-import 'aurora_theme_background.dart';
 import 'motion/motion.dart';
+import 'particle_theme_background.dart';
 import 'spendo/spendo.dart';
 
 /// Four-tab shell: Trang chủ · Giao dịch · Thống kê · Cài đặt.
@@ -66,7 +66,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       extendBody: true,
       body: Stack(
         children: [
-          if (isFancy) const Positioned.fill(child: AuroraThemeBackground()),
+          if (isFancy) const Positioned.fill(child: ParticleThemeBackground()),
           Theme(
             data: isFancy
                 ? Theme.of(context).copyWith(

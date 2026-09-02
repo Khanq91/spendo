@@ -203,7 +203,7 @@ class _VisualModeRow extends StatelessWidget {
             Expanded(
               child: _VisualModeCard(
                 title: 'Xịn xò',
-                subtitle: 'Aurora + liquid glass ở Home, Welcome, Cài đặt.',
+                subtitle: 'Nền hạt + liquid glass ở Home, Welcome, Cài đặt.',
                 icon: LucideIcons.sparkles,
                 selected: selected == AppVisualMode.fancy,
                 onTap: () => onSelected(AppVisualMode.fancy),

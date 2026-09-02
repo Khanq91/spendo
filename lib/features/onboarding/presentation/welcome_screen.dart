@@ -9,7 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/spendo_colors.dart';
 import '../../../core/theme/visual_mode_provider.dart';
 import '../../../shared/widgets/notice/notice.dart';
-import '../../../shared/widgets/aurora_theme_background.dart';
+import '../../../shared/widgets/particle_theme_background.dart';
 import '../../../shared/widgets/motion/motion.dart';
 import '../../../shared/widgets/spendo/spendo.dart';
 import '../../settings/presentation/providers/gdrive_provider.dart';
@@ -95,7 +95,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       backgroundColor: cs.surface,
       body: Stack(
         children: [
-          const Positioned.fill(child: AuroraThemeBackground()),
+          const Positioned.fill(child: ParticleThemeBackground()),
           SafeArea(
             child: Stack(
               children: [
@@ -277,7 +277,7 @@ class _SetupPage extends ConsumerWidget {
         const SizedBox(height: 10),
         _ModeCard(
           title: 'Xịn xò',
-          body: 'Nền aurora và hiệu ứng mềm hơn.',
+          body: 'Nền hạt lấp lánh và hiệu ứng mềm hơn.',
           icon: LucideIcons.sparkles,
           selected: selectedMode == AppVisualMode.fancy,
           onTap: () => onModeChanged(AppVisualMode.fancy),
@@ -414,7 +414,7 @@ class _BrandCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
       decoration: BoxDecoration(
-        // Reads over the aurora without needing a glass layer, which the old
+        // Reads over the particles without needing a glass layer, which the old
         // build ran at premium quality even for users about to pick
         // "Bình thường" (`03-welcome.md` §L).
         color: cs.surfaceContainerLowest.withValues(alpha: 0.82),
