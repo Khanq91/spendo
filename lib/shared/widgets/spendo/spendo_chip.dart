@@ -77,6 +77,12 @@ class SpendoChip extends StatelessWidget {
     };
 
     final height = kind == SpendoChipKind.meta ? 36.0 : 34.0;
+    // Fill and label crossfade when `selected` flips (kinetics "Choice
+    // Chips": 0.2s ease).
+    final colorDuration = appMotion.whenMotionAllowed(
+      context,
+      const Duration(milliseconds: 200),
+    );
 
     final content = Row(
       mainAxisSize: MainAxisSize.min,
@@ -87,15 +93,15 @@ class SpendoChip extends StatelessWidget {
           const SizedBox(width: 6),
         ],
         Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          child: AnimatedDefaultTextStyle(
+            duration: colorDuration,
+            curve: Curves.ease,
             style: TextStyle(
               fontSize: kind == SpendoChipKind.meta ? 12.5 : 13,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               color: foreground,
             ),
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ),
         if (onDeleted != null) ...[
@@ -108,10 +114,15 @@ class SpendoChip extends StatelessWidget {
       ],
     );
 
-    final chip = Container(
+    // No `alignment` here on purpose: a Container with an alignment and a
+    // bounded parent (a Wrap, say) grows to the parent's full width before
+    // centring its child, which put every chip on a row of its own. The Row
+    // already centres its children vertically within [height].
+    final chip = AnimatedContainer(
+      duration: colorDuration,
+      curve: Curves.ease,
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 14),
-      alignment: Alignment.center,
       decoration: ShapeDecoration(color: background, shape: const StadiumBorder()),
       child: content,
     );
@@ -120,11 +131,87 @@ class SpendoChip extends StatelessWidget {
 
     return PressableScale(
       deferTapToChild: true,
+      child: _ChipPop(
+        // A meta chip reads out a value; only a choice earns the pop.
+        pop: kind != SpendoChipKind.meta,
+        onTap: onTap!,
+        child: chip,
+      ),
+    );
+  }
+}
+
+/// Tap feedback from kinetics "Choice Chips": the chip springs to 1.12 for
+/// 300ms and settles back. The pop is the chip's own transient; the
+/// selected state stays with the parent, so a group of chips is single- or
+/// multi-select purely by what the parent does in `onTap`.
+class _ChipPop extends StatefulWidget {
+  const _ChipPop({
+    required this.pop,
+    required this.onTap,
+    required this.child,
+  });
+
+  final bool pop;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_ChipPop> createState() => _ChipPopState();
+}
+
+class _ChipPopState extends State<_ChipPop>
+    with SingleTickerProviderStateMixin {
+  static const _spring = Cubic(0.34, 1.56, 0.64, 1);
+  static const _popDuration = Duration(milliseconds: 300);
+
+  // Holds the popped state for the original's 300ms setTimeout; a controller
+  // rather than a Timer so nothing outlives the widget in tests. Created
+  // eagerly: a lazy `late` would first be built inside dispose() for a chip
+  // that was never tapped, when the ticker can no longer find its TickerMode.
+  late final AnimationController _hold;
+  bool _popped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hold = AnimationController(vsync: this, duration: _popDuration)
+      ..addStatusListener(_onHoldStatus);
+  }
+
+  void _onHoldStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed && mounted) {
+      setState(() => _popped = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _hold.dispose();
+    super.dispose();
+  }
+
+  void _tap() {
+    if (widget.pop && !MotionSpec.shouldReduceMotion(context)) {
+      setState(() => _popped = true);
+      _hold.forward(from: 0);
+    }
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // The scale sits outside the clipping Material so the overshoot can draw
+    // past the pill's bounds, as the original does.
+    return AnimatedScale(
+      scale: _popped ? 1.12 : 1,
+      duration: appMotion.whenMotionAllowed(context, _popDuration),
+      curve: _spring,
       child: Material(
         color: Colors.transparent,
         shape: const StadiumBorder(),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(onTap: onTap, child: chip),
+        child: InkWell(onTap: _tap, child: widget.child),
       ),
     );
   }

@@ -88,4 +88,85 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('a chip inside a Wrap hugs its label', (tester) async {
+    await _pump(tester, AppTheme.light(AppColorScheme.roseDefault), [
+      const SpendoChip(label: 'Ăn uống'),
+      SpendoChip(label: 'Đi lại', onTap: () {}),
+    ]);
+    await tester.pumpAndSettle();
+
+    // A Wrap hands each child a bounded max width; the chip used to grow to
+    // all of it and land on a row of its own.
+    final screen = tester.getSize(find.byType(Scaffold)).width;
+    for (final label in ['Ăn uống', 'Đi lại']) {
+      final width = tester.getSize(find.widgetWithText(SpendoChip, label)).width;
+      expect(width, lessThan(screen / 3), reason: '$label must hug its text');
+    }
+    expect(
+      tester.getTopLeft(find.widgetWithText(SpendoChip, 'Đi lại')).dy,
+      tester.getTopLeft(find.widgetWithText(SpendoChip, 'Ăn uống')).dy,
+      reason: 'two short chips share one row',
+    );
+  });
+
+  group('pop on tap', () {
+    double scaleOf(WidgetTester tester, String label) => tester
+        .widget<AnimatedScale>(
+          find.descendant(
+            of: find.widgetWithText(SpendoChip, label),
+            matching: find.byType(AnimatedScale),
+          ).last, // the outer one belongs to PressableScale
+        )
+        .scale;
+
+    testWidgets('a choice chip springs to 1.12 and settles back', (
+      tester,
+    ) async {
+      var taps = 0;
+      await _pump(tester, AppTheme.light(AppColorScheme.roseDefault), [
+        SpendoChip(label: 'Lọc', onTap: () => taps++),
+      ]);
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester, 'Lọc'), 1);
+
+      await tester.tap(find.text('Lọc'));
+      await tester.pump();
+      expect(taps, 1);
+      expect(scaleOf(tester, 'Lọc'), 1.12);
+
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester, 'Lọc'), 1);
+    });
+
+    testWidgets('a meta chip does not pop', (tester) async {
+      await _pump(tester, AppTheme.light(AppColorScheme.roseDefault), [
+        SpendoChip.meta(label: 'Hôm nay', onTap: () {}),
+      ]);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Hôm nay'));
+      await tester.pump();
+      expect(scaleOf(tester, 'Hôm nay'), 1);
+    });
+
+    testWidgets('reduce motion skips the pop', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(AppColorScheme.roseDefault),
+          home: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: Scaffold(
+              body: Wrap(children: [SpendoChip(label: 'Lọc', onTap: () {})]),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Lọc'));
+      await tester.pump();
+      expect(scaleOf(tester, 'Lọc'), 1);
+    });
+  });
 }
