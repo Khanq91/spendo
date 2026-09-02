@@ -58,10 +58,9 @@ class GroupedTransactionSliver extends StatelessWidget {
             ),
             _TransactionRow() => KeyedSubtree(
               key: ValueKey(row.transaction.id),
-              child: MotionListItem(
-                index: row.itemIndex,
-                enabled: animateItems,
-                child: Column(
+              child: _maybeReveal(
+                row.transaction.id,
+                Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _maybeDismissible(
@@ -92,6 +91,13 @@ class GroupedTransactionSliver extends StatelessWidget {
         },
       ),
     );
+  }
+
+  /// Rows pop in as they first enter the viewport when the host wraps its
+  /// scroll view in a [RevealScope]; day headers stay put (Phase 4).
+  Widget _maybeReveal(String id, Widget child) {
+    if (!animateItems) return child;
+    return RevealItem(id: id, child: child);
   }
 
   Widget _maybeDismissible(
@@ -178,10 +184,9 @@ class _DayRow extends _GroupedRow {
 }
 
 class _TransactionRow extends _GroupedRow {
-  const _TransactionRow(this.transaction, this.itemIndex);
+  const _TransactionRow(this.transaction);
 
   final Transaction transaction;
-  final int itemIndex;
 }
 
 List<_GroupedRow> _flatten(List<Transaction> transactions) {
@@ -193,7 +198,6 @@ List<_GroupedRow> _flatten(List<Transaction> transactions) {
   }
 
   final rows = <_GroupedRow>[];
-  var itemIndex = 0;
   for (final transactionsForDay in grouped.values) {
     final dayNet = transactionsForDay.fold<int>(
       0,
@@ -204,7 +208,7 @@ List<_GroupedRow> _flatten(List<Transaction> transactions) {
     );
     rows.add(_DayRow(transactionsForDay.first.createdAt, dayNet));
     for (final transaction in transactionsForDay) {
-      rows.add(_TransactionRow(transaction, itemIndex++));
+      rows.add(_TransactionRow(transaction));
     }
   }
   return rows;

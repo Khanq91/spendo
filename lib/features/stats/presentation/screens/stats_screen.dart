@@ -367,7 +367,8 @@ class _CategoryViewState extends ConsumerState<_CategoryView> {
         widget.categoryMap[slices[index].categoryId]?.color ??
         cs.onSurfaceVariant;
 
-    return ListView(
+    return RevealScope(
+      child: ListView(
       // Floating nav (= bottom padding) + FAB clearance.
       padding: EdgeInsets.only(
         bottom: MediaQuery.paddingOf(context).bottom + 80,
@@ -443,13 +444,17 @@ class _CategoryViewState extends ConsumerState<_CategoryView> {
           ),
         ),
         for (var i = 0; i < slices.length; i++)
-          _LegendRow(
-            slice: slices[i],
-            category: widget.categoryMap[slices[i].categoryId],
-            color: colorOf(i),
-            onTap: () => widget.onTapSlice(slices[i].categoryId),
+          RevealItem(
+            id: slices[i].categoryId,
+            child: _LegendRow(
+              slice: slices[i],
+              category: widget.categoryMap[slices[i].categoryId],
+              color: colorOf(i),
+              onTap: () => widget.onTapSlice(slices[i].categoryId),
+            ),
           ),
       ],
+      ),
     );
   }
 }
@@ -581,7 +586,8 @@ class _DailyView extends ConsumerWidget {
     // chart stops earning its space and the table carries the period alone.
     final showChart = period.daySpan <= 92;
 
-    return ListView(
+    return RevealScope(
+      child: ListView(
       // Floating nav (= bottom padding) + FAB clearance.
       padding: EdgeInsets.only(
         bottom: MediaQuery.paddingOf(context).bottom + 80,
@@ -689,8 +695,12 @@ class _DailyView extends ConsumerWidget {
           ),
         ),
         for (final day in days.reversed)
-          _DailyRow(date: day, totals: totals[day]!),
+          RevealItem(
+            id: day,
+            child: _DailyRow(date: day, totals: totals[day]!),
+          ),
       ],
+      ),
     );
   }
 }

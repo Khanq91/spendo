@@ -140,22 +140,24 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     key: const ValueKey('transactions_empty'),
                     isNarrowed: filter.isNarrowed,
                   ),
-                  _ => CustomScrollView(
+                  _ => RevealScope(
                     key: const ValueKey('transactions_list'),
-                    slivers: [
-                      GroupedTransactionSliver(
-                        transactions: txs,
-                        categoryMap: categoryMap,
-                        style: GroupedTransactionStyle.filledHeader,
-                        dismissible: true,
-                      ),
-                      // Floating nav (= bottom padding) + FAB clearance.
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: MediaQuery.paddingOf(context).bottom + 80,
+                    child: CustomScrollView(
+                      slivers: [
+                        GroupedTransactionSliver(
+                          transactions: txs,
+                          categoryMap: categoryMap,
+                          style: GroupedTransactionStyle.filledHeader,
+                          dismissible: true,
                         ),
-                      ),
-                    ],
+                        // Floating nav (= bottom padding) + FAB clearance.
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: MediaQuery.paddingOf(context).bottom + 80,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 },
               ),

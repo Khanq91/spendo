@@ -46,7 +46,8 @@ class WalletsScreen extends ConsumerWidget {
                   onRetry: () => ref.invalidate(walletsProvider),
                 ),
                 (_, true) => const _WalletsSkeleton(),
-                _ => ListView(
+                _ => RevealScope(
+                  child: ListView(
                   padding: const EdgeInsets.only(bottom: 96),
                   children: [
                     _NetWorthCard(
@@ -66,12 +67,16 @@ class WalletsScreen extends ConsumerWidget {
                       const SizedBox(height: 6),
                       for (var i = 0; i < wallets.length; i++) ...[
                         if (i > 0) const _WalletDivider(),
-                        _WalletTile(wallet: wallets[i]),
+                        RevealItem(
+                          id: wallets[i].id,
+                          child: _WalletTile(wallet: wallets[i]),
+                        ),
                       ],
                     ],
                     if (archived.isNotEmpty)
                       _ArchivedSection(wallets: archived),
                   ],
+                  ),
                 ),
               },
             ),

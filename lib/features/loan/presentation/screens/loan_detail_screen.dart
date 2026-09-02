@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../data/loan_repository.dart';
 import '../../domain/installment_status.dart';
@@ -92,7 +93,8 @@ class LoanDetailScreen extends ConsumerWidget {
               ],
             ),
             Expanded(
-              child: ListView(
+              child: RevealScope(
+                child: ListView(
                 padding: const EdgeInsets.only(bottom: 32),
                 children: [
                   // Arriving from a reminder, the missing wallet picker would
@@ -188,7 +190,10 @@ class LoanDetailScreen extends ConsumerWidget {
                   else
                     for (var i = 0; i < payments.length; i++) ...[
                       if (i > 0) const _PaymentDivider(),
-                      _PaymentTile(loan: loan, payment: payments[i]),
+                      RevealItem(
+                        id: payments[i].id,
+                        child: _PaymentTile(loan: loan, payment: payments[i]),
+                      ),
                     ],
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 18, 16, 0),
@@ -197,6 +202,7 @@ class LoanDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+                ),
               ),
             ),
           ],

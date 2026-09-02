@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../domain/category.dart';
@@ -113,7 +114,8 @@ class _CategoryList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ReorderableListView.builder(
+    return RevealScope(
+      child: ReorderableListView.builder(
       padding: const EdgeInsets.only(top: 8, bottom: 120),
       itemCount: categories.length + 1,
       // Already adjusts newIndex for the removed row, so no off-by-one fix up.
@@ -133,13 +135,19 @@ class _CategoryList extends ConsumerWidget {
         }
 
         final category = categories[index];
-        return _CategoryTile(
+        // The key must sit on the item itself for the reorder machinery; the
+        // drag proxy is rebuilt outside the scope and simply renders.
+        return RevealItem(
           key: ValueKey(category.id),
-          index: index,
-          category: category,
-          count: counts[category.id] ?? 0,
+          id: category.id,
+          child: _CategoryTile(
+            index: index,
+            category: category,
+            count: counts[category.id] ?? 0,
+          ),
         );
       },
+      ),
     );
   }
 
@@ -173,7 +181,6 @@ class _CategoryList extends ConsumerWidget {
 
 class _CategoryTile extends ConsumerWidget {
   const _CategoryTile({
-    super.key,
     required this.index,
     required this.category,
     required this.count,

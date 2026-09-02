@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../domain/installment_generator.dart';
@@ -227,7 +228,8 @@ class _InstallmentScheduleScreenState
               title: widget.existing.isEmpty ? 'Tạo lịch trả' : 'Sửa lịch trả',
             ),
             Expanded(
-              child: ListView(
+              child: RevealScope(
+                child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 children: [
                   _GeneratorCard(
@@ -262,10 +264,13 @@ class _InstallmentScheduleScreenState
                     ),
                     const SizedBox(height: 4),
                     for (final row in visible)
-                      _InstallmentRow(
-                        installment: row,
-                        onEdit: () => _editRow(row),
-                        onDelete: () => _deleteRow(row),
+                      RevealItem(
+                        id: row.id,
+                        child: _InstallmentRow(
+                          installment: row,
+                          onEdit: () => _editRow(row),
+                          onDelete: () => _deleteRow(row),
+                        ),
                       ),
                     if (hidden > 0)
                       Align(
@@ -296,6 +301,7 @@ class _InstallmentScheduleScreenState
                     ),
                   ],
                 ],
+                ),
               ),
             ),
             Padding(

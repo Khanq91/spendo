@@ -37,7 +37,8 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: CustomScrollView(
+        child: RevealScope(
+          child: CustomScrollView(
           key: const ValueKey('home_scroll'),
           slivers: [
             const SliverToBoxAdapter(child: _HomeTitleBar()),
@@ -102,6 +103,7 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );

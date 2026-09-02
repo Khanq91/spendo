@@ -55,7 +55,8 @@ class BudgetScreen extends ConsumerWidget {
               ],
             ),
             Expanded(
-              child: ListView(
+              child: RevealScope(
+                child: ListView(
                 padding: const EdgeInsets.only(bottom: 32),
                 children: [
                   _MonthTotalCard(
@@ -108,22 +109,25 @@ class BudgetScreen extends ConsumerWidget {
                     )
                   else
                     for (final category in tracked)
-                      _CategoryBudgetRow(
+                      RevealItem(
                         key: ValueKey('budget_${category.id}'),
-                        category: category,
-                        amount: budgetMap[category.id]!.amount,
-                        spent: progressMap[category.id]?.spent ?? 0,
-                        onEdit: () => _setCategoryBudget(
-                          context,
-                          ref,
-                          category: category,
-                          existing: budgetMap[category.id]!.amount,
-                          spent: progressMap[category.id]?.spent ?? 0,
-                        ),
-                        onDelete: () => _deleteCategoryBudget(
-                          context,
+                        id: category.id,
+                        child: _CategoryBudgetRow(
                           category: category,
                           amount: budgetMap[category.id]!.amount,
+                          spent: progressMap[category.id]?.spent ?? 0,
+                          onEdit: () => _setCategoryBudget(
+                            context,
+                            ref,
+                            category: category,
+                            existing: budgetMap[category.id]!.amount,
+                            spent: progressMap[category.id]?.spent ?? 0,
+                          ),
+                          onDelete: () => _deleteCategoryBudget(
+                            context,
+                            category: category,
+                            amount: budgetMap[category.id]!.amount,
+                          ),
                         ),
                       ),
                   if (untracked.isNotEmpty && tracked.isNotEmpty)
@@ -148,6 +152,7 @@ class BudgetScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+                ),
               ),
             ),
           ],
@@ -420,7 +425,6 @@ class _MonthBudgetProgress extends StatelessWidget {
 
 class _CategoryBudgetRow extends StatelessWidget {
   const _CategoryBudgetRow({
-    super.key,
     required this.category,
     required this.amount,
     required this.spent,

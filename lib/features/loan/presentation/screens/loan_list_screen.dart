@@ -113,7 +113,8 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
                   onAction: () => ref.invalidate(loansOfBook(tracking)),
                 ),
                 (_, true) => const Center(child: CircularProgressIndicator()),
-                _ => ListView(
+                _ => RevealScope(
+                  child: ListView(
                   padding: const EdgeInsets.only(bottom: 96),
                   children: [
                     _TotalsCard(loans: allLoans, paid: paid),
@@ -163,16 +164,20 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
                       ),
                     for (var i = 0; i < active.length; i++) ...[
                       if (i > 0) const _LoanDivider(),
-                      _LoanTile(
-                        loan: active[i],
-                        paid: paid[active[i].id] ?? 0,
-                        progress:
-                            progressByLoan[active[i].id] ??
-                            const <InstallmentProgress>[],
+                      RevealItem(
+                        id: active[i].id,
+                        child: _LoanTile(
+                          loan: active[i],
+                          paid: paid[active[i].id] ?? 0,
+                          progress:
+                              progressByLoan[active[i].id] ??
+                              const <InstallmentProgress>[],
+                        ),
                       ),
                     ],
                     if (closed.isNotEmpty) _ClosedSection(loans: closed),
                   ],
+                  ),
                 ),
               },
             ),

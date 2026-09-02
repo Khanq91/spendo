@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
@@ -56,7 +57,8 @@ class RemindersScreen extends ConsumerWidget {
                   onAction: () => ref.invalidate(remindersProvider),
                 ),
                 (_, true) => const Center(child: CircularProgressIndicator()),
-                _ => ListView(
+                _ => RevealScope(
+                  child: ListView(
                   padding: const EdgeInsets.only(bottom: 96),
                   children: [
                     _SuggestionRow(reminders: reminders),
@@ -82,10 +84,13 @@ class RemindersScreen extends ConsumerWidget {
                       ),
                       for (var i = 0; i < reminders.length; i++) ...[
                         if (i > 0) const _ReminderDivider(),
-                        _ReminderTile(
+                        RevealItem(
                           key: ValueKey(reminders[i].id),
-                          reminder: reminders[i],
-                          category: categoryMap[reminders[i].categoryId],
+                          id: reminders[i].id,
+                          child: _ReminderTile(
+                            reminder: reminders[i],
+                            category: categoryMap[reminders[i].categoryId],
+                          ),
                         ),
                       ],
                       const Padding(
@@ -101,6 +106,7 @@ class RemindersScreen extends ConsumerWidget {
                     if (kDebugMode && reminders.isNotEmpty)
                       DebugReminderPanel(reminders: reminders),
                   ],
+                  ),
                 ),
               },
             ),
@@ -236,7 +242,7 @@ String _capitalize(String s) =>
 // ── Reminder row ─────────────────────────────────────────────────────────────
 
 class _ReminderTile extends ConsumerWidget {
-  const _ReminderTile({super.key, required this.reminder, this.category});
+  const _ReminderTile({required this.reminder, this.category});
 
   final RecurringReminder reminder;
   final Category? category;

@@ -10,6 +10,7 @@ class MotionSpec {
     this.chartDuration = const Duration(milliseconds: 380),
     this.screenDuration = const Duration(milliseconds: 420),
     this.staggerShort = const Duration(milliseconds: 30),
+    this.revealStagger = const Duration(milliseconds: 80),
     this.curveStandard = Curves.easeOutCubic,
     this.curveLayout = Curves.easeInOutCubic,
     this.curveMaterial = Curves.fastOutSlowIn,
@@ -22,6 +23,9 @@ class MotionSpec {
   final Duration chartDuration;
   final Duration screenDuration;
   final Duration staggerShort;
+
+  /// Delay between rows that reveal together (react-bits Animated List).
+  final Duration revealStagger;
   final Curve curveStandard;
   final Curve curveLayout;
   final Curve curveMaterial;

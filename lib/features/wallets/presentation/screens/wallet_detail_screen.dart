@@ -112,7 +112,8 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
               ],
             ),
             Expanded(
-              child: CustomScrollView(
+              child: RevealScope(
+                child: CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(child: _InfoCard(wallet: wallet)),
                   SliverToBoxAdapter(
@@ -163,6 +164,7 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
                   },
                   const SliverToBoxAdapter(child: SizedBox(height: 96)),
                 ],
+                ),
               ),
             ),
           ],
