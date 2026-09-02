@@ -368,7 +368,10 @@ class _CategoryViewState extends ConsumerState<_CategoryView> {
         cs.onSurfaceVariant;
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 96),
+      // Floating nav (= bottom padding) + FAB clearance.
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom + 80,
+      ),
       children: [
         SizedBox(
           height: 210,
@@ -579,7 +582,10 @@ class _DailyView extends ConsumerWidget {
     final showChart = period.daySpan <= 92;
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 96),
+      // Floating nav (= bottom padding) + FAB clearance.
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom + 80,
+      ),
       children: [
         if (showChart && maxValue > 0) ...[
           Padding(

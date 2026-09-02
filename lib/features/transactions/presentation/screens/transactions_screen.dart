@@ -149,7 +149,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         style: GroupedTransactionStyle.filledHeader,
                         dismissible: true,
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 96)),
+                      // Floating nav (= bottom padding) + FAB clearance.
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: MediaQuery.paddingOf(context).bottom + 80,
+                        ),
+                      ),
                     ],
                   ),
                 },

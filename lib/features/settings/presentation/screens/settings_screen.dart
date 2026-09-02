@@ -6,7 +6,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/notifications/notification_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
-import '../../../../core/theme/visual_mode_provider.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../loan/presentation/providers/loan_provider.dart';
@@ -27,9 +26,9 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isFancy = ref.watch(visualModeProvider) == AppVisualMode.fancy;
-    final bottomPadding =
-        (isFancy ? MediaQuery.paddingOf(context).bottom : 0.0) + 24;
+    // Inside the shell the bottom padding is the floating nav bar's height
+    // (extendBody); on the standalone route it is the system inset.
+    final bottomPadding = MediaQuery.paddingOf(context).bottom + 24;
 
     return Scaffold(
       body: SafeArea(

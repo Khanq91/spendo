@@ -13,7 +13,13 @@ class SpendoNavDestination {
   final String label;
 }
 
-/// The four-tab bar: 80px tall, brand pill behind the active icon.
+/// The four-tab bar as a floating snap rail (kinetics "Snap Rail"): a pill
+/// hovers above the bottom edge, and a translucent brand pill springs between
+/// its four EQUAL cells — always one cell wide, never sized to the label.
+///
+/// Meant for a `Scaffold` with `extendBody: true`, so content scrolls under
+/// the gap around the rail; the Scaffold reports this widget's full height
+/// (margins included) as the body's bottom padding.
 class SpendoBottomNav extends StatelessWidget {
   const SpendoBottomNav({
     super.key,
@@ -34,33 +40,93 @@ class SpendoBottomNav extends StatelessWidget {
     SpendoNavDestination(icon: LucideIcons.settings, label: 'Cài đặt'),
   ];
 
+  /// Key of the sliding pill, for tests.
+  static const pillKey = Key('spendo_nav_pill');
+
+  static const double railHeight = 64;
+  static const double sideMargin = 16;
+  static const double bottomGap = 12;
+  static const double _inset = 4;
+
+  /// Overshooting bezier the original rail snaps with.
+  static const Curve _spring = Cubic(0.34, 1.56, 0.64, 1);
+
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final spendo = theme.spendo;
+    final isDark = theme.brightness == Brightness.dark;
+    final snapDuration = appMotion.whenMotionAllowed(
+      context,
+      const Duration(milliseconds: 450),
+    );
 
-    return Container(
-      color: cs.surfaceContainer,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 80,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        sideMargin,
+        0,
+        sideMargin,
+        MediaQuery.paddingOf(context).bottom + bottomGap,
+      ),
+      child: Container(
+        height: railHeight,
+        padding: const EdgeInsets.all(_inset),
+        decoration: ShapeDecoration(
+          color: cs.surfaceContainer,
+          shape: StadiumBorder(side: BorderSide(color: cs.outlineVariant)),
+          // Same rule as SpendoFab: a shadow lifts the rail off the light
+          // surface but only muddies the dark one.
+          shadows: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: cs.shadow.withValues(alpha: 0.12),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final cellWidth = constraints.maxWidth / destinations.length;
+            return Stack(
               children: [
-                for (var i = 0; i < destinations.length; i++)
-                  Expanded(
-                    child: _NavTab(
-                      key: ValueKey('spendo_tab_$i'),
-                      destination: destinations[i],
-                      selected: i == selectedIndex,
-                      onTap: () => onSelected(i),
+                AnimatedPositioned(
+                  key: pillKey,
+                  duration: snapDuration,
+                  curve: _spring,
+                  left: selectedIndex * cellWidth,
+                  top: 0,
+                  bottom: 0,
+                  width: cellWidth,
+                  child: DecoratedBox(
+                    decoration: ShapeDecoration(
+                      color: spendo.brand.withValues(alpha: 0.16),
+                      shape: StadiumBorder(
+                        side: BorderSide(
+                          color: spendo.brand.withValues(alpha: 0.5),
+                        ),
+                      ),
                     ),
                   ),
+                ),
+                Row(
+                  children: [
+                    for (var i = 0; i < destinations.length; i++)
+                      Expanded(
+                        child: _NavTab(
+                          key: ValueKey('spendo_tab_$i'),
+                          destination: destinations[i],
+                          selected: i == selectedIndex,
+                          onTap: () => onSelected(i),
+                        ),
+                      ),
+                  ],
+                ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -84,10 +150,12 @@ class _NavTab extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final spendo = theme.spendo;
-    final duration = appMotion.whenMotionAllowed(
+    // The label tints to the accent over 0.25s ease, as in the original.
+    final tintDuration = appMotion.whenMotionAllowed(
       context,
-      appMotion.tapUpDuration,
+      const Duration(milliseconds: 250),
     );
+    final color = selected ? spendo.brand : cs.onSurfaceVariant;
 
     return Semantics(
       button: true,
@@ -100,34 +168,25 @@ class _NavTab extends StatelessWidget {
         },
         behavior: HitTestBehavior.opaque,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedContainer(
-              duration: duration,
-              curve: appMotion.curveStandard,
-              width: 56,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: ShapeDecoration(
-                color: selected ? spendo.brand : Colors.transparent,
-                shape: const StadiumBorder(),
-              ),
-              child: Icon(
-                destination.icon,
-                size: 20,
-                color: selected ? spendo.onBrand : cs.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              destination.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            Icon(destination.icon, size: 20, color: color),
+            const SizedBox(height: 3),
+            AnimatedDefaultTextStyle(
+              duration: tintDuration,
+              curve: Curves.ease,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                color: selected ? cs.onSurface : cs.onSurfaceVariant,
+                color: color,
                 height: 1.1,
+              ),
+              child: Text(
+                destination.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
               ),
             ),
           ],

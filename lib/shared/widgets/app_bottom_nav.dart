@@ -61,7 +61,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     final showFab = index != ShellTab.settings.index;
 
     return Scaffold(
-      extendBody: isFancy,
+      // Both bars float now, so every tab scrolls under the gap around them
+      // and reads the bar's height back as MediaQuery bottom padding.
+      extendBody: true,
       body: Stack(
         children: [
           if (isFancy) const Positioned.fill(child: AuroraThemeBackground()),

@@ -139,7 +139,9 @@ void main() {
       expect(find.text('Cài đặt'), findsOneWidget);
     });
 
-    testWidgets('the active tab wears the brand pill', (tester) async {
+    testWidgets('the pill sits over the active tab, one cell wide', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _host(
           SpendoBottomNav(
@@ -151,13 +153,95 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final theme = AppTheme.light(AppColorScheme.roseDefault);
-      final pills = tester
-          .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
-          .map((c) => (c.decoration as ShapeDecoration?)?.color)
-          .toList();
+      final pill = find.byKey(SpendoBottomNav.pillKey);
+      expect(
+        tester.getCenter(pill).dx,
+        closeTo(tester.getCenter(find.text('Thống kê')).dx, 1),
+      );
+      // Equal cells: the pill is a quarter of the track, never the label.
+      final track = tester.getSize(find.byType(SpendoBottomNav)).width -
+          2 * SpendoBottomNav.sideMargin -
+          2 * 4 -
+          2;
+      expect(tester.getSize(pill).width, closeTo(track / 4, 1));
 
-      expect(pills.where((c) => c == theme.spendo.brand).length, 1);
+      // The active label tints to the brand colour.
+      final theme = AppTheme.light(AppColorScheme.roseDefault);
+      final style = tester
+          .widget<AnimatedDefaultTextStyle>(
+            find
+                .ancestor(
+                  of: find.text('Thống kê'),
+                  matching: find.byType(AnimatedDefaultTextStyle),
+                )
+                .first,
+          )
+          .style;
+      expect(style.color, theme.spendo.brand);
+    });
+
+    testWidgets('the pill springs to the newly selected cell', (tester) async {
+      var index = 0;
+      await tester.pumpWidget(
+        _host(
+          StatefulBuilder(
+            builder: (context, setState) => SpendoBottomNav(
+              destinations: SpendoBottomNav.spendoDestinations,
+              selectedIndex: index,
+              onSelected: (i) => setState(() => index = i),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final pill = find.byKey(SpendoBottomNav.pillKey);
+      final start = tester.getCenter(pill).dx;
+
+      await tester.tap(find.text('Cài đặt'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      final midway = tester.getCenter(pill).dx;
+      expect(midway, greaterThan(start));
+      expect(midway, lessThan(tester.getCenter(find.text('Cài đặt')).dx));
+
+      await tester.pumpAndSettle();
+      expect(
+        tester.getCenter(pill).dx,
+        closeTo(tester.getCenter(find.text('Cài đặt')).dx, 1),
+      );
+    });
+
+    testWidgets('reduce motion snaps the pill without animating', (
+      tester,
+    ) async {
+      var index = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(AppColorScheme.roseDefault),
+          home: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: Scaffold(
+              body: Center(
+                child: StatefulBuilder(
+                  builder: (context, setState) => SpendoBottomNav(
+                    destinations: SpendoBottomNav.spendoDestinations,
+                    selectedIndex: index,
+                    onSelected: (i) => setState(() => index = i),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cài đặt'));
+      await tester.pump();
+      expect(
+        tester.getCenter(find.byKey(SpendoBottomNav.pillKey)).dx,
+        closeTo(tester.getCenter(find.text('Cài đặt')).dx, 1),
+      );
     });
 
     testWidgets('reports the tapped index', (tester) async {
