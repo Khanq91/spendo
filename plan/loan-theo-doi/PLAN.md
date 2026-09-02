@@ -29,7 +29,7 @@ là công tắc tắt 2.6/2.8 theo từng khoản vay.
 
 | GĐ | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
-| 1 — Sổ theo dõi | schema + trang riêng + branch payment/form | ✅ xong | `PENDING` |
+| 1 — Sổ theo dõi | schema + trang riêng + branch payment/form | ✅ xong | `b622801` |
 
 Baseline trước khi làm: `flutter analyze` sạch · **371 test** · APK debug OK.
 
