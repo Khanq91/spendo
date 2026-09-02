@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../../core/utils/category_icons.dart';
@@ -166,15 +167,12 @@ class _CategoryList extends ConsumerWidget {
     final ordered = List<Category>.from(categories);
     ordered.insert(newIndex, ordered.removeAt(oldIndex));
 
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref
           .read(categoryRepoProvider)
           .reorder(ordered.map((c) => c.id).toList());
     } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Không lưu được thứ tự. Thử lại.')),
-      );
+      AppNotice.error('Không lưu được thứ tự. Thử lại.');
     }
   }
 }
@@ -301,36 +299,24 @@ Future<void> _deleteWithUndo(
   WidgetRef ref,
   Category category,
 ) async {
-  final messenger = ScaffoldMessenger.of(context);
   final repo = ref.read(categoryRepoProvider);
 
   try {
     await repo.delete(category.id);
   } catch (error) {
-    messenger.showSnackBar(
-      SnackBar(content: Text(error.toString().replaceAll('Exception: ', ''))),
-    );
+    AppNotice.error(error.toString().replaceAll('Exception: ', ''));
     return;
   }
 
-  messenger.clearSnackBars();
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text('Đã xoá "${category.name}"'),
-      duration: const Duration(seconds: 5),
-      action: SnackBarAction(
-        label: 'Hoàn tác',
-        onPressed: () async {
-          try {
-            await repo.restore(category);
-          } catch (_) {
-            messenger.showSnackBar(
-              const SnackBar(content: Text('Không khôi phục được danh mục.')),
-            );
-          }
-        },
-      ),
-    ),
+  AppNotice.undo(
+    'Đã xoá "${category.name}"',
+    onUndo: () async {
+      try {
+        await repo.restore(category);
+      } catch (_) {
+        AppNotice.error('Không khôi phục được danh mục.');
+      }
+    },
   );
 }
 

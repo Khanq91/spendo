@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/wallet_icons.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../data/wallet_repository.dart';
@@ -90,7 +91,6 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
 
     setState(() => _loading = true);
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final note = _noteCtrl.text.trim();
 
     try {
@@ -126,9 +126,7 @@ class _WalletFormSheetState extends ConsumerState<WalletFormSheet> {
       // explanation, so a save that never landed looked like one that did.
       if (!mounted) return;
       setState(() => _loading = false);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Không lưu được nguồn tiền. Thử lại.')),
-      );
+      AppNotice.error('Không lưu được nguồn tiền. Thử lại.');
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../../wallets/domain/wallet.dart';
@@ -187,7 +188,6 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
 
     setState(() => _saving = true);
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final contact = _contactCtrl.text.trim();
     final existing = widget.existing;
 
@@ -231,9 +231,7 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Không lưu được khoản vay. Thử lại.')),
-      );
+      AppNotice.error('Không lưu được khoản vay. Thử lại.');
     }
   }
 

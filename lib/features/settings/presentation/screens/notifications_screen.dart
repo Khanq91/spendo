@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/notifications/notification_provider.dart';
 import '../../../../core/notifications/notification_service.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 
 /// `/settings/notifications` — the daily nudge, split out of the hub.
@@ -99,18 +100,13 @@ class NotificationsScreen extends ConsumerWidget {
     int hour,
     int minute,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
     if (value) {
       final granted = await NotificationService.requestPermission();
       if (!granted) {
         // The old switch simply snapped back with no explanation
         // (`20-settings.md` §F).
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Cần quyền thông báo. Bật trong Cài đặt hệ thống rồi thử lại.',
-            ),
-          ),
+        AppNotice.warning(
+          'Cần quyền thông báo. Bật trong Cài đặt hệ thống rồi thử lại.',
         );
         return;
       }
@@ -141,13 +137,7 @@ class NotificationsScreen extends ConsumerWidget {
   }
 
   Future<void> _sendTest(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     await NotificationService.sendTestNotification();
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('Thông báo sẽ hiện sau 5 giây'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    AppNotice.info('Thông báo sẽ hiện sau 5 giây');
   }
 }

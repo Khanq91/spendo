@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/domain/period.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
@@ -187,7 +188,6 @@ class BudgetScreen extends ConsumerWidget {
     WidgetRef ref, {
     required Period period,
   }) async {
-    final messenger = ScaffoldMessenger.of(context);
     final key = Budget.monthKey(period.start);
     final previous = ref.read(budgetPageBudgetProvider).valueOrNull;
     if (previous == null) return;
@@ -196,16 +196,9 @@ class BudgetScreen extends ConsumerWidget {
     await repo.delete(key);
     // Deleting a limit used to happen on one tap with no confirmation and no
     // way back; undo is the same trade the transaction list already makes.
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Đã xoá hạn mức ${period.label.toLowerCase()}'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Hoàn tác',
-          onPressed: () => repo.set(key, previous.amount),
-        ),
-      ),
+    AppNotice.undo(
+      'Đã xoá hạn mức ${period.label.toLowerCase()}',
+      onUndo: () => repo.set(key, previous.amount),
     );
   }
 
@@ -253,19 +246,11 @@ class BudgetScreen extends ConsumerWidget {
     required Category category,
     required int amount,
   }) async {
-    final messenger = ScaffoldMessenger.of(context);
     final repo = CategoryBudgetRepository();
     await repo.delete(category.id);
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Đã xoá hạn mức ${category.name}'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Hoàn tác',
-          onPressed: () => repo.set(category.id, amount),
-        ),
-      ),
+    AppNotice.undo(
+      'Đã xoá hạn mức ${category.name}',
+      onUndo: () => repo.set(category.id, amount),
     );
   }
 }

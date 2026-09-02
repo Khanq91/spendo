@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/wallet_icons.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/domain/period.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
@@ -214,7 +215,6 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
 
   Future<void> _toggleArchive(Wallet wallet) async {
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final repo = WalletRepository();
 
     if (wallet.isArchived) {
@@ -225,16 +225,9 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
     await repo.archive(wallet.id);
     // Archiving used to pop with no way back, while deleting — the more
     // destructive of the two — asked first. Undo evens them out.
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Đã lưu trữ ${wallet.name}'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Hoàn tác',
-          onPressed: () => repo.unarchive(wallet.id),
-        ),
-      ),
+    AppNotice.undo(
+      'Đã lưu trữ ${wallet.name}',
+      onUndo: () => repo.unarchive(wallet.id),
     );
     navigator.pop();
   }
@@ -244,15 +237,8 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
     final count = await repo.transactionCount(wallet.id);
     if (!mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
     if (count > 0) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Ví còn $count giao dịch. Hãy lưu trữ ví thay vì xoá.',
-          ),
-        ),
-      );
+      AppNotice.warning('Ví còn $count giao dịch. Hãy lưu trữ ví thay vì xoá.');
       return;
     }
 

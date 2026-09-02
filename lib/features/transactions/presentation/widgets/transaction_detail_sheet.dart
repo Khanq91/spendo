@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
@@ -106,10 +107,7 @@ class _TransactionDetailSheetState
       await TransactionRepository().update(updated);
       if (mounted) setState(() => _transaction = updated);
     } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không đổi được ngày. Thử lại.')),
-      );
+      AppNotice.error('Không đổi được ngày. Thử lại.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

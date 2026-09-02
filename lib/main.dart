@@ -21,6 +21,7 @@ import 'core/utils/widget_sync.dart';
 import 'features/loan/data/loan_repository.dart';
 import 'features/onboarding/presentation/welcome_screen.dart';
 import 'features/reminders/data/reminder_repository.dart';
+import 'shared/widgets/notice/notice.dart';
 import 'shared/widgets/splash_screen.dart';
 
 @pragma('vm:entry-point')
@@ -88,6 +89,8 @@ class _AppRoot extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // The notice banner lives above the navigator so it shows over sheets.
+      builder: (_, child) => NoticeHost(child: child ?? const SizedBox()),
       home: SplashScreen(
         onInit: _initServices,
         // The splash reads the onboarding flag itself while init runs, so

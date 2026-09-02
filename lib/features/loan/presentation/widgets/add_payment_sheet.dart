@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
 import '../../../wallets/domain/wallet.dart';
@@ -122,7 +123,6 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
     setState(() => _saving = true);
 
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final note = _noteCtrl.text.trim();
 
     try {
@@ -145,9 +145,7 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Không ghi được thanh toán. Thử lại.')),
-      );
+      AppNotice.error('Không ghi được thanh toán. Thử lại.');
     }
   }
 

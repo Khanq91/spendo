@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
@@ -198,7 +199,6 @@ class _InstallmentScheduleScreenState
   Future<void> _save() async {
     setState(() => _saving = true);
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref
           .read(loanRepoProvider)
@@ -207,9 +207,7 @@ class _InstallmentScheduleScreenState
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Không lưu được lịch trả. Thử lại.')),
-      );
+      AppNotice.error('Không lưu được lịch trả. Thử lại.');
     }
   }
 

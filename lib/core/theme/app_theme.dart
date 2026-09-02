@@ -405,18 +405,6 @@ class AppTheme {
         color: colorScheme.primary,
         linearTrackColor: colorScheme.surfaceContainerHighest,
       ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: colorScheme.inverseSurface,
-        contentTextStyle: TextStyle(
-          fontFamily: AppTypography.fontFamily,
-          fontSize: 14,
-          color: colorScheme.onInverseSurface,
-        ),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusInput),
-        ),
-      ),
       dialogTheme: DialogThemeData(
         backgroundColor: colorScheme.surfaceContainerLowest,
         surfaceTintColor: Colors.transparent,

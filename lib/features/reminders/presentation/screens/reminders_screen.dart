@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/domain/category.dart';
@@ -372,22 +373,14 @@ Future<void> _deleteWithUndo(
   WidgetRef ref,
   RecurringReminder reminder,
 ) async {
-  final messenger = ScaffoldMessenger.of(context);
   final actions = ref.read(reminderActionsProvider);
 
   await actions.delete(reminder);
   // Deleting used to take one tap from a menu with no confirmation and no way
   // back — the only place in the app that did.
-  messenger.clearSnackBars();
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text('Đã xoá ${reminder.title}'),
-      duration: const Duration(seconds: 5),
-      action: SnackBarAction(
-        label: 'Hoàn tác',
-        onPressed: () => actions.add(reminder),
-      ),
-    ),
+  AppNotice.undo(
+    'Đã xoá ${reminder.title}',
+    onUndo: () => actions.add(reminder),
   );
 }
 

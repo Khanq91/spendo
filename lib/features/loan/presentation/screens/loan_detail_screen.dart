@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../data/loan_repository.dart';
@@ -609,7 +610,6 @@ class _LoanMenu extends ConsumerWidget {
   }
 
   Future<void> _toggleClosed(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     final repo = LoanRepository();
 
     if (loan.isClosed) {
@@ -620,16 +620,9 @@ class _LoanMenu extends ConsumerWidget {
     await repo.close(loan.id);
     // Closing was one silent tap while deleting asked first; undo evens the
     // two out without adding a dialog to the common case.
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Đã tất toán ${loan.title}'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Hoàn tác',
-          onPressed: () => repo.reopen(loan.id),
-        ),
-      ),
+    AppNotice.undo(
+      'Đã tất toán ${loan.title}',
+      onUndo: () => repo.reopen(loan.id),
     );
   }
 
@@ -912,7 +905,6 @@ Future<void> _deleteWithUndo(
   Loan loan,
   LoanPayment payment,
 ) async {
-  final messenger = ScaffoldMessenger.of(context);
   final repo = LoanRepository();
 
   // The transaction the payment wrote goes with it, and comes back with it —
@@ -923,29 +915,22 @@ Future<void> _deleteWithUndo(
       : await repo.walletOfTransaction(payment.transactionId!);
 
   await repo.deletePayment(payment.id);
-  messenger.clearSnackBars();
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text('Đã xoá ${formatVND(payment.amount)}'),
-      duration: const Duration(seconds: 5),
-      action: SnackBarAction(
-        label: 'Hoàn tác',
-        onPressed: () => repo.addPayment(
-          loanId: payment.loanId,
-          amount: payment.amount,
-          paidAt: payment.paidAt,
-          note: payment.note,
-          loanType: loan.type,
-          walletId: walletId,
-          title: loan.title,
-          // Re-using the id keeps the restored transaction the same row it
-          // was, not a look-alike.
-          transactionId: payment.transactionId,
-          // A payment recorded before wallets were linked had no transaction
-          // and must not grow one on the way back.
-          withTransaction: payment.transactionId != null,
-        ),
-      ),
+  AppNotice.undo(
+    'Đã xoá ${formatVND(payment.amount)}',
+    onUndo: () => repo.addPayment(
+      loanId: payment.loanId,
+      amount: payment.amount,
+      paidAt: payment.paidAt,
+      note: payment.note,
+      loanType: loan.type,
+      walletId: walletId,
+      title: loan.title,
+      // Re-using the id keeps the restored transaction the same row it
+      // was, not a look-alike.
+      transactionId: payment.transactionId,
+      // A payment recorded before wallets were linked had no transaction
+      // and must not grow one on the way back.
+      withTransaction: payment.transactionId != null,
     ),
   );
 }

@@ -9,6 +9,7 @@ import 'package:spendo/features/transactions/presentation/widgets/grouped_transa
 import 'package:spendo/features/transactions/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:spendo/features/wallets/domain/wallet.dart';
 import 'package:spendo/features/wallets/presentation/providers/wallet_provider.dart';
+import 'package:spendo/shared/widgets/notice/notice.dart';
 
 const _repay = Category(
   id: 'loan-repay',
@@ -75,6 +76,7 @@ Future<void> _pumpList(WidgetTester tester, Transaction transaction) async {
     ProviderScope(
       child: MaterialApp(
         theme: AppTheme.light(AppColorScheme.roseDefault),
+        builder: (_, child) => NoticeHost(child: child ?? const SizedBox()),
         home: Scaffold(
           body: CustomScrollView(
             slivers: [
@@ -139,18 +141,22 @@ void main() {
   testWidgets('swiping a loan transaction says no instead of removing it', (
     tester,
   ) async {
+    AppNotice.reset();
     await _pumpList(tester, _transaction());
 
     // The row is titled by its category; the note rides in the subtitle.
     await tester.drag(find.text('Trả nợ').last, const Offset(-400, 0));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
 
-    // The row springs back and the snackbar explains why, rather than the row
+    // The row springs back and the notice explains why, rather than the row
     // vanishing and reappearing on the next stream emit.
     expect(find.textContaining('Trả nợ: Vay mua xe'), findsOneWidget);
     expect(
       find.text('Giao dịch của khoản vay — xoá từ màn khoản vay.'),
       findsOneWidget,
     );
+    expect(AppNotice.requests.value?.kind, NoticeKind.warning);
+    await tester.pumpAndSettle();
   });
 }

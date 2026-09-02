@@ -7,6 +7,7 @@ import '../../../../core/services/gdrive_backup_service.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/backup_service.dart';
 import '../../../../core/utils/export_service.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
@@ -46,7 +47,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       }
       if (next.successMessage != null &&
           next.successMessage != prev?.successMessage) {
-        _snack(next.successMessage!);
+        _snack(next.successMessage!, kind: NoticeKind.success);
       }
     });
 
@@ -185,11 +186,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  void _snack(String message) {
+  /// Most of what this page reports is a failure, so that is the default.
+  void _snack(String message, {NoticeKind kind = NoticeKind.error}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    AppNotice.show(message, kind: kind);
   }
 
   Future<void> _confirmSignOut() async {

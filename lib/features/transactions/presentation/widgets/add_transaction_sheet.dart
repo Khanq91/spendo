@@ -7,6 +7,7 @@ import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/category_matcher.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_helpers.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/motion/motion.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../budget/presentation/providers/category_budget_provider.dart';
@@ -210,10 +211,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không lưu được giao dịch. Thử lại.')),
-      );
+      AppNotice.error('Không lưu được giao dịch. Thử lại.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

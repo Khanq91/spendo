@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/spendo_colors.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../domain/sepay_bank_account.dart';
 import '../providers/sepay_provider.dart';
@@ -156,14 +157,11 @@ class _SepayCard extends StatelessWidget {
   }
 
   Future<void> _openDashboard(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     final uri = Uri.parse(_sepayDashboardUrl);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Không mở được trình duyệt')),
-      );
+      AppNotice.error('Không mở được trình duyệt');
     }
   }
 }

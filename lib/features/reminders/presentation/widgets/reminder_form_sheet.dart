@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../transactions/presentation/widgets/amount_input_controller.dart';
@@ -186,7 +187,6 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
 
     setState(() => _saving = true);
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
 
     try {
       final actions = ref.read(reminderActionsProvider);
@@ -223,9 +223,7 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
       // The old form let a failure escape unhandled and left `_loading` stuck.
       if (!mounted) return;
       setState(() => _saving = false);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Không lưu được nhắc nhở. Thử lại.')),
-      );
+      AppNotice.error('Không lưu được nhắc nhở. Thử lại.');
     }
   }
 

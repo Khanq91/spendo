@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/utils/wallet_icons.dart';
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
 import '../../../wallets/domain/wallet.dart';
 import '../../../wallets/presentation/providers/wallet_provider.dart';
@@ -100,7 +101,6 @@ class _SepayMappingSheetState extends ConsumerState<SepayMappingSheet> {
 
     setState(() => _loading = true);
     final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
     final label = _labelCtrl.text.trim();
 
     try {
@@ -116,9 +116,7 @@ class _SepayMappingSheetState extends ConsumerState<SepayMappingSheet> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _loading = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Không thêm được kết nối: $error')),
-      );
+      AppNotice.error('Không thêm được kết nối: $error');
     }
   }
 

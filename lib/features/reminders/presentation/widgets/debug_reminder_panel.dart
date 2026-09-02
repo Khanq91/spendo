@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../core/db/powersync_db.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/notifications/reminder_notification_service.dart';
@@ -60,24 +61,9 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
       );
       await ReminderNotificationService.scheduleTest(testReminder);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🔔 "${r.title}" sẽ hiện sau $_delaySeconds giây'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      AppNotice.info('🔔 "${r.title}" sẽ hiện sau $_delaySeconds giây');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      AppNotice.error('Lỗi: $e');
     } finally {
       if (mounted) setState(() => _firing = false);
     }
@@ -315,11 +301,7 @@ class _DebugReminderPanelState extends State<DebugReminderPanel> {
                 FilledButton.icon(
                   onPressed: () async {
                     await _seedHabitTestData();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('✅ Đã seed test data')),
-                      );
-                    }
+                    AppNotice.success('Đã seed test data');
                   },
                   style: FilledButton.styleFrom(backgroundColor: cs.tertiary),
                   icon: const Icon(LucideIcons.flaskConical, size: 16),

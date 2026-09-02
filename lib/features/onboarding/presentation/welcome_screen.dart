@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/spendo_colors.dart';
 import '../../../core/theme/visual_mode_provider.dart';
+import '../../../shared/widgets/notice/notice.dart';
 import '../../../shared/widgets/aurora_theme_background.dart';
 import '../../../shared/widgets/motion/motion.dart';
 import '../../../shared/widgets/spendo/spendo.dart';
@@ -75,22 +76,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   }
 
   Future<void> _signInGoogle() async {
-    final messenger = ScaffoldMessenger.of(context);
     await ref.read(gdriveProvider.notifier).signIn();
     if (!mounted) return;
 
     final state = ref.read(gdriveProvider);
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            state.isSignedIn
-                ? 'Đã kết nối Google Drive.'
-                : state.error ?? 'Đăng nhập Google thất bại.',
-          ),
-        ),
-      );
+    if (state.isSignedIn) {
+      AppNotice.success('Đã kết nối Google Drive.');
+    } else {
+      AppNotice.error(state.error ?? 'Đăng nhập Google thất bại.');
+    }
   }
 
   @override
