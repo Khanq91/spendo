@@ -41,6 +41,19 @@ final _loan = Loan(
   isClosed: false,
 );
 
+/// The same loan, kept in the tracking sổ.
+final _trackingLoan = Loan(
+  id: 'l2',
+  title: 'Nợ Anh B',
+  type: LoanType.borrowed,
+  principal: 9000000,
+  contactName: 'Anh B',
+  startDate: DateTime(2026, 9),
+  colorHex: '#B23A2E',
+  isClosed: false,
+  isTrackingOnly: true,
+);
+
 Future<void> _pump(
   WidgetTester tester,
   Widget child, {
@@ -164,6 +177,52 @@ void main() {
       await _pump(tester, const LoanFormSheet(), wallets: const []);
 
       expect(find.text('Ghi vào ví'), findsNothing);
+    });
+  });
+
+  group('sổ theo dõi', () {
+    testWidgets('the form drops the funding section and says why', (
+      tester,
+    ) async {
+      // Wallets exist and the toggle would otherwise be right here — a
+      // tracking loan's principal simply has no wallet side (PLAN §2.4).
+      await _pump(tester, const LoanFormSheet(trackingOnly: true));
+
+      expect(find.text('Ghi vào ví'), findsNothing);
+      expect(find.text('Tiền vay về cộng vào ví'), findsNothing);
+      expect(
+        find.text('Sổ theo dõi — chỉ ghi nợ, không đụng ví & thống kê'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the payment sheet offers no wallet, and says so', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        AddPaymentSheet(loan: _trackingLoan, remaining: 5000000),
+      );
+
+      // Not "no wallet chosen" — no chip at all, because there is no wallet
+      // side to choose from.
+      expect(find.byKey(const ValueKey('payment_wallet_chip')), findsNothing);
+      expect(find.text('Tiền mặt'), findsNothing);
+      expect(
+        find.text('Chỉ theo dõi — không tạo giao dịch, không trừ ví'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a spending loan keeps its wallet chip', (tester) async {
+      // The guard against the branch above firing for every loan.
+      await _pump(tester, AddPaymentSheet(loan: _loan, remaining: 5000000));
+
+      expect(find.byKey(const ValueKey('payment_wallet_chip')), findsOneWidget);
+      expect(
+        find.text('Chỉ theo dõi — không tạo giao dịch, không trừ ví'),
+        findsNothing,
+      );
     });
   });
 }

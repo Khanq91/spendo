@@ -64,12 +64,24 @@ class LoanRepository {
 
   // ── Loans ────────────────────────────────────────────────────────────────
 
-  Stream<List<Loan>> watchAll() {
+  /// Every loan of one sổ — the two are separate books and never see each
+  /// other (PLAN §2.5), so the flag is a WHERE rather than a second method.
+  ///
+  /// `COALESCE` because the column arrived after the loans did: a row written
+  /// before this feature has no value and belongs to the spending book.
+  Stream<List<Loan>> watchAll({bool trackingOnly = false}) {
     return _db
-        .watch('SELECT * FROM loans ORDER BY is_closed ASC, start_date DESC')
+        .watch(
+          'SELECT * FROM loans WHERE COALESCE(is_tracking_only, 0) = ? '
+          'ORDER BY is_closed ASC, start_date DESC',
+          parameters: [trackingOnly ? 1 : 0],
+        )
         .map((rows) => rows.map(Loan.fromMap).toList());
   }
 
+  /// Every loan of both sổ. The reminder scheduler and the backup want the
+  /// lot: a tracking loan is still reminded — reminding is what tracking is
+  /// for (PLAN §2.4) — and a backup that dropped one book would lose it.
   Future<List<Loan>> getAll() async {
     final rows = await _db.getAll(
       'SELECT * FROM loans ORDER BY is_closed ASC, start_date DESC',
@@ -127,8 +139,8 @@ class LoanRepository {
     final rows = await _db.execute(
       '''INSERT INTO loans(id, title, type, principal, contact_name,
            start_date, due_date, note, color_hex, is_closed, repayment_mode,
-           funding_transaction_id)
-         VALUES(uuid(), ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?) RETURNING id''',
+           funding_transaction_id, is_tracking_only)
+         VALUES(uuid(), ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?) RETURNING id''',
       [
         loan.title,
         loan.type.name,
@@ -140,11 +152,15 @@ class LoanRepository {
         loan.colorHex,
         loan.repaymentMode.name,
         loan.fundingTransactionId,
+        // The only place the flag is ever written. `update` leaves it alone.
+        loan.isTrackingOnly ? 1 : 0,
       ],
     );
     return rows.first['id'] as String;
   }
 
+  /// Saves an edit. `is_tracking_only` is not in the SET list on purpose: a
+  /// loan cannot change sổ after it is created (PLAN §2.2).
   Future<void> update(Loan loan) async {
     await _db.execute(
       '''UPDATE loans SET title=?, type=?, principal=?, contact_name=?,
@@ -482,7 +498,7 @@ class LoanRepository {
 
   /// Stream LoanSummary tính remaining = principal - sum(payments).
   /// Reactive với cả loans lẫn loan_payments vì watch cả 2 bảng.
-  Stream<LoanSummary> watchSummaryWithRemaining() {
+  Stream<LoanSummary> watchSummaryWithRemaining({bool trackingOnly = false}) {
     // Watch loans để trigger stream mỗi khi loans hoặc payments thay đổi.
     // PowerSync watch sẽ emit lại khi bất kỳ row nào trong query thay đổi.
     return _db
@@ -497,8 +513,9 @@ class LoanRepository {
           FROM loans l
           LEFT JOIN loan_payments p ON p.loan_id = l.id
           WHERE l.is_closed = 0
+            AND COALESCE(l.is_tracking_only, 0) = ?
           GROUP BY l.id, l.type, l.principal, l.is_closed, l.due_date
-        ''')
+        ''', parameters: [trackingOnly ? 1 : 0])
         .map((rows) {
       if (rows.isEmpty) {
         return const LoanSummary(

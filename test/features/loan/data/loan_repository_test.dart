@@ -44,6 +44,7 @@ void main() {
     int principal = 9000000,
     LoanType type = LoanType.borrowed,
     String? fundingWalletId,
+    bool trackingOnly = false,
   }) => repository.add(
     Loan(
       id: '',
@@ -55,6 +56,7 @@ void main() {
       colorHex: '#B23A2E',
       isClosed: false,
       repaymentMode: mode,
+      isTrackingOnly: trackingOnly,
     ),
     fundingWalletId: fundingWalletId,
   );
@@ -582,8 +584,97 @@ void main() {
     expect(grouped[first]?.length, 3);
     expect(grouped[second]?.length, 2);
   });
-}
 
+  // ── Sổ theo dõi ───────────────────────────────────────────────────────────
+
+  test('the two sổ do not see each other', () async {
+    final spending = await addLoan();
+    final tracking = await addLoan(trackingOnly: true);
+
+    final spendingBook = await repository.watchAll().first;
+    final trackingBook = await repository.watchAll(trackingOnly: true).first;
+
+    expect(spendingBook.map((l) => l.id), [spending]);
+    expect(trackingBook.map((l) => l.id), [tracking]);
+    expect(spendingBook.single.isTrackingOnly, isFalse);
+    expect(trackingBook.single.isTrackingOnly, isTrue);
+  });
+
+  test('a loan written before the column existed reads as spending', () async {
+    // Exactly what a row from an older build looks like: no flag at all.
+    await database.execute(
+      '''INSERT INTO loans(id, title, type, principal, contact_name,
+           start_date, color_hex, is_closed)
+         VALUES('old', 'Vay cũ', 'borrowed', '5000000', 'Anh A',
+                '2026-01-01T00:00:00.000', '#B23A2E', 0)''',
+    );
+
+    expect((await repository.watchAll().first).map((l) => l.id), ['old']);
+    expect(await repository.watchAll(trackingOnly: true).first, isEmpty);
+  });
+
+  test('each sổ totals only its own loans', () async {
+    await addLoan(principal: 5000000);
+    await addLoan(principal: 2000000, type: LoanType.lent);
+    await addLoan(principal: 7000000, trackingOnly: true);
+
+    final spending = await repository.watchSummaryWithRemaining().first;
+    final tracking = await repository
+        .watchSummaryWithRemaining(trackingOnly: true)
+        .first;
+
+    expect(spending.count, 2);
+    expect(spending.remainingBorrowed, 5000000);
+    expect(spending.remainingLent, 2000000);
+    expect(tracking.count, 1);
+    expect(tracking.remainingBorrowed, 7000000);
+  });
+
+  test('a tracking payment moves no money and makes no category', () async {
+    final id = await addLoan(principal: 3000000, trackingOnly: true);
+
+    await repository.addPayment(
+      loanId: id,
+      amount: 1000000,
+      paidAt: DateTime(2026, 9, 20),
+      withTransaction: false,
+    );
+
+    // The payment is the whole record: remaining still moves...
+    expect(await repository.getTotalPaid(id), 1000000);
+    // ...while nothing reaches the wallet, the statistics, or the four debt
+    // categories a spending-sổ payment would lazily create.
+    expect(await transactions(), isEmpty);
+    expect(await database.getAll('SELECT id FROM categories'), isEmpty);
+    final payments = await repository.getAllPayments();
+    expect(payments.single.transactionId, isNull);
+  });
+
+  test('an edit cannot move a loan to the other sổ', () async {
+    final id = await addLoan(trackingOnly: true);
+    final loan = (await repository.watchAll(trackingOnly: true).first).single;
+
+    // Even handed a loan whose flag says otherwise, `update` leaves the column
+    // alone — the sổ is fixed at creation (PLAN §2.2).
+    await repository.update(
+      Loan(
+        id: loan.id,
+        title: 'Đổi tên',
+        type: loan.type,
+        principal: loan.principal,
+        contactName: loan.contactName,
+        startDate: loan.startDate,
+        colorHex: loan.colorHex,
+        isClosed: false,
+      ),
+    );
+
+    final still = await repository.watchAll(trackingOnly: true).first;
+    expect(still.single.id, id);
+    expect(still.single.title, 'Đổi tên');
+    expect(await repository.watchAll().first, isEmpty);
+  });
+}
 class _TestPowerSyncOpenFactory extends PowerSyncOpenFactory {
   _TestPowerSyncOpenFactory({required super.path, required this.libraryPath});
 

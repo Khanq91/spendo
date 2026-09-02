@@ -4,11 +4,19 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../shared/widgets/motion/motion.dart';
 
-/// The four Home shortcuts: Ví · Vay nợ · Nhắc nhở · Hạn mức.
+/// The Home shortcuts: three destinations Home does not already show, plus
+/// "Xem thêm" for the rest.
 ///
-/// Trimmed from eight — Thêm, Giao dịch and Thống kê all had a tab or the FAB
-/// already, and "Xem thêm" led to a screen that repeated this grid. The icons
-/// wear `secondaryContainer` instead of eight one-off accent colours.
+/// Down from eight, then re-cut. Thêm, Giao dịch and Thống kê went first —
+/// each already has a tab or the FAB. Ví and Hạn mức followed: `home_wallet_strip`
+/// and `home_budget_card` sit further down this very screen and lead to the
+/// same places, so a shortcut to them repeated a door the user could already
+/// see. What is left is what Home shows no other way.
+///
+/// "Xem thêm" is back, but not as it was: the screen it opens (`/features`)
+/// lists six entries against these three, so it is the longer list rather than
+/// this row again — which is what got the old one deleted. Do not "restore"
+/// this to four flat destinations.
 class HomeShortcuts extends StatelessWidget {
   const HomeShortcuts({super.key});
 
@@ -16,14 +24,14 @@ class HomeShortcuts extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortcuts = <({String label, IconData icon, VoidCallback onTap})>[
       (
-        label: 'Ví',
-        icon: LucideIcons.wallet,
-        onTap: () => context.push('/wallets'),
-      ),
-      (
         label: 'Vay nợ',
         icon: LucideIcons.handCoins,
         onTap: () => context.push('/loans'),
+      ),
+      (
+        label: 'Sổ theo dõi',
+        icon: LucideIcons.notebookPen,
+        onTap: () => context.push('/loans-tracking'),
       ),
       (
         label: 'Nhắc nhở',
@@ -31,9 +39,9 @@ class HomeShortcuts extends StatelessWidget {
         onTap: () => context.push('/reminders'),
       ),
       (
-        label: 'Hạn mức',
-        icon: LucideIcons.target,
-        onTap: () => context.push('/budget'),
+        label: 'Xem thêm',
+        icon: LucideIcons.layoutGrid,
+        onTap: () => context.push('/features'),
       ),
     ];
 

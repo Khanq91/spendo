@@ -8,6 +8,7 @@ import '../../features/loan/presentation/screens/loan_detail_screen.dart';
 import '../../features/loan/presentation/screens/loan_list_screen.dart';
 import '../../features/loan/presentation/widgets/add_payment_sheet.dart';
 import '../../features/categories/presentation/screens/categories_screen.dart';
+import '../../features/home/presentation/screens/features_screen.dart';
 import '../../features/settings/presentation/screens/appearance_screen.dart';
 import '../../features/settings/presentation/screens/backup_screen.dart';
 import '../../features/settings/presentation/screens/bank_screen.dart';
@@ -86,6 +87,16 @@ final appRouter = GoRouter(
         return LoanListScreen(filterType: filterType);
       },
     ),
+    // Deliberately not `/loans/tracking`: that would collide with the
+    // `/loans/:id` pattern below and be read as a loan whose id is "tracking".
+    GoRoute(
+      path: '/loans-tracking',
+      builder: (_, state) => LoanListScreen(
+        filterType: state.uri.queryParameters['type'],
+        trackingOnly: true,
+      ),
+    ),
+    GoRoute(path: '/features', builder: (_, __) => const FeaturesScreen()),
     // The detail screen used to be reached by a bare Navigator.push, so it
     // had no URL and could not be deep-linked or restored.
     GoRoute(
@@ -140,11 +151,7 @@ class _LoanPaymentPageState extends ConsumerState<LoanPaymentPage> {
     // The notification can launch the app cold, before the loan stream has
     // anything in it; the sheet waits for the loan rather than opening on a
     // blank one.
-    final loan = ref
-        .watch(loansProvider)
-        .valueOrNull
-        ?.where((l) => l.id == widget.loanId)
-        .firstOrNull;
+    final loan = ref.watch(loanByIdProvider(widget.loanId));
 
     // Watched, not read inside the callback: the progress provider is
     // autoDispose, and reading one with no listener yields an empty list built

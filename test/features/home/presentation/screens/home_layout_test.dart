@@ -120,7 +120,11 @@ void main() {
     expect(find.text('Còn lại tháng này'), findsOneWidget);
     expect(find.text('Ngân sách tháng'), findsOneWidget);
     expect(find.text('Tiền mặt'), findsOneWidget);
-    expect(find.text('Hạn mức'), findsOneWidget);
+    // The shortcut row is Vay nợ · Sổ theo dõi · Nhắc nhở · Xem thêm. Ví and
+    // Hạn mức left it because the wallet strip and the budget card above
+    // already lead to those very pages.
+    expect(find.text('Sổ theo dõi'), findsOneWidget);
+    expect(find.text('Xem thêm'), findsOneWidget);
     expect(find.text('Gần đây'), findsOneWidget);
 
     // ...and the first transaction is on screen without scrolling, which is

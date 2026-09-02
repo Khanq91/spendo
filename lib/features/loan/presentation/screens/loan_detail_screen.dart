@@ -29,10 +29,10 @@ class LoanDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final loansAsync = ref.watch(loansProvider);
-    final loan = loansAsync.valueOrNull
-        ?.where((l) => l.id == loanId)
-        .firstOrNull;
+    // Both books, because a loan reached from a notification or a deep link
+    // could be in either and the URL says only its id.
+    final loansLoaded = ref.watch(loansLoadedProvider);
+    final loan = ref.watch(loanByIdProvider(loanId));
 
     if (loan == null) {
       // The old screen kept the Loan object it was pushed with, so a loan
@@ -44,7 +44,7 @@ class LoanDetailScreen extends ConsumerWidget {
             children: [
               const SpendoScreenHeader(title: 'Khoản vay'),
               Expanded(
-                child: loansAsync.hasValue
+                child: loansLoaded
                     ? SpendoEmptyState(
                         icon: LucideIcons.circleAlert,
                         title: 'Khoản vay không còn tồn tại',
@@ -95,6 +95,35 @@ class LoanDetailScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 32),
                 children: [
+                  // Arriving from a reminder, the missing wallet picker would
+                  // otherwise look like a bug (PLAN §2.4).
+                  if (loan.isTrackingOnly)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            LucideIcons.notebookPen,
+                            size: 14,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Sổ theo dõi — không liên kết ví & thống kê',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   _InfoCard(
                     loan: loan,
                     paid: paid,

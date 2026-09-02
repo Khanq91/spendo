@@ -5,8 +5,50 @@ import '../../domain/loan.dart';
 
 final loanRepoProvider = Provider((_) => LoanRepository());
 
+/// The spending book — what `/loans`, the detail screen and everything that
+/// existed before the tracking book mean by "loans".
+///
+/// A loan written before the tracking book existed has no flag at all, and the
+/// repository's `COALESCE` puts it here (PLAN §2.5).
 final loansProvider = StreamProvider<List<Loan>>((ref) {
   return ref.watch(loanRepoProvider).watchAll();
+});
+
+/// The tracking book: loans the app only keeps a record of.
+final trackingLoansProvider = StreamProvider<List<Loan>>((ref) {
+  return ref.watch(loanRepoProvider).watchAll(trackingOnly: true);
+});
+
+/// Whichever book [trackingOnly] names — how the one list screen, drawn twice,
+/// reads the sổ it was told to show. Two providers rather than a family so a
+/// test can still override either book on its own.
+StreamProvider<List<Loan>> loansOfBook(bool trackingOnly) =>
+    trackingOnly ? trackingLoansProvider : loansProvider;
+
+/// Every loan of both books, for the screens that look one up by id — the
+/// detail screen, the payment deep link — which cannot know which sổ it is in.
+final allLoansProvider = Provider<List<Loan>>((ref) {
+  return [
+    ...?ref.watch(loansProvider).valueOrNull,
+    ...?ref.watch(trackingLoansProvider).valueOrNull,
+  ];
+});
+
+/// Whether both books have settled — the detail screen tells "still loading"
+/// from "this loan is gone" by it, and a loan can be in either book.
+///
+/// A book that failed counts as settled: one broken stream must not leave a
+/// loan in the other book spinning forever.
+final loansLoadedProvider = Provider<bool>((ref) {
+  bool settled(AsyncValue<List<Loan>> book) => book.hasValue || book.hasError;
+  return settled(ref.watch(loansProvider)) &&
+      settled(ref.watch(trackingLoansProvider));
+});
+
+/// One loan by id, from whichever sổ holds it — null while the books are
+/// still loading, and once the loan is really gone.
+final loanByIdProvider = Provider.family<Loan?, String>((ref, id) {
+  return ref.watch(allLoansProvider).where((l) => l.id == id).firstOrNull;
 });
 
 /// Chỉ loans đang active (chưa closed).
@@ -41,11 +83,15 @@ enum LoanFilter {
   };
 }
 
-/// The list screen's segmented filter.
+/// The list screen's segmented filter, one per sổ.
 ///
 /// The audit found the filter reachable only through a query parameter from a
-/// screen that no longer exists, so the list itself had no way to narrow.
-final loanFilterProvider = StateProvider<LoanFilter>((_) => LoanFilter.all);
+/// screen that no longer exists, so the list itself had no way to narrow. It
+/// is a family because the two books are separate screens: narrowing one to
+/// "Cho vay" must not narrow the other (PLAN §2.5).
+final loanFilterProvider = StateProvider.family<LoanFilter, bool>(
+  (_, trackingOnly) => LoanFilter.all,
+);
 
 /// How much has been paid against each loan, keyed by loan id.
 final paidByLoanProvider = StreamProvider<Map<String, int>>((ref) {
@@ -73,9 +119,8 @@ final installmentsByLoanProvider =
 final installmentProgressProvider = Provider.autoDispose
     .family<List<InstallmentProgress>, String>((ref, loanId) {
       final loan = ref
-          .watch(loansProvider)
-          .valueOrNull
-          ?.where((l) => l.id == loanId)
+          .watch(allLoansProvider)
+          .where((l) => l.id == loanId)
           .firstOrNull;
       if (loan == null) return const [];
 
@@ -100,7 +145,7 @@ final installmentProgressProvider = Provider.autoDispose
 /// (PLAN §4.8).
 final progressByLoanProvider =
     Provider.autoDispose<Map<String, List<InstallmentProgress>>>((ref) {
-      final loans = ref.watch(loansProvider).valueOrNull ?? const <Loan>[];
+      final loans = ref.watch(allLoansProvider);
       final schedules =
           ref.watch(installmentsByLoanProvider).valueOrNull ??
           const <String, List<LoanInstallment>>{};
@@ -173,12 +218,19 @@ class LoanSummary {
   int get alertCount => overdueCount > 0 ? overdueCount : upcomingCount;
 }
 
+/// The spending book's summary — what Home and the widget mean by "loans".
+///
+/// The tracking book has no summary provider because it needs none: its
+/// totals card adds up the rows the list screen already holds. `trackingOnly`
+/// on the repository method is what a second one would use (PLAN §2.5).
+///
 /// StreamProvider — reactive với cả loans lẫn payments.
 final loanSummaryProvider = StreamProvider.autoDispose<LoanSummary>((ref) {
   final repo = ref.watch(loanRepoProvider);
   // Watch loans stream để trigger khi loans thay đổi
   return repo.watchSummaryWithRemaining();
 });
+
 
 /// Convenience provider — trả LoanSummary.empty khi loading/error
 /// để Home không cần handle AsyncValue.

@@ -66,6 +66,8 @@ const schema = Schema([
     Column.integer('is_closed'),
     Column.text('repayment_mode'),  // 'free' | 'installment' — nullable = free
     Column.text('funding_transaction_id'), // nullable — GD ghi tiền gốc vào ví
+    // null/0 = sổ chi tiêu (tạo giao dịch), 1 = sổ theo dõi (không đụng tiền)
+    Column.integer('is_tracking_only'),
   ]),
   Table.localOnly('loan_installments', [
     Column.text('loan_id'),

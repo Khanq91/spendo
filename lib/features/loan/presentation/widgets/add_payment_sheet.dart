@@ -126,6 +126,7 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
     final note = _noteCtrl.text.trim();
 
     try {
+      final tracking = widget.loan.isTrackingOnly;
       await LoanRepository().addPayment(
         loanId: widget.loan.id,
         amount: _amountCtrl.value,
@@ -133,9 +134,12 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
         note: note.isEmpty ? null : note,
         // A repayment is real money moving, so it is written as a transaction
         // too — the wallet and the statistics see it like any other entry.
-        loanType: widget.loan.type,
-        walletId: _walletId,
+        // Unless the loan is only being tracked: then the payment is the whole
+        // record, no transaction and no debt category behind it (PLAN §2.4).
+        loanType: tracking ? null : widget.loan.type,
+        walletId: tracking ? null : _walletId,
         title: widget.loan.title,
+        withTransaction: !tracking,
       );
       navigator.pop();
     } catch (_) {
@@ -164,7 +168,12 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final wallets = ref.watch(walletsProvider).valueOrNull ?? const <Wallet>[];
+    final tracking = widget.loan.isTrackingOnly;
+    // A tracking loan has no wallet side at all, so the picker is not merely
+    // pre-set to "none" — it is not offered.
+    final wallets = tracking
+        ? const <Wallet>[]
+        : ref.watch(walletsProvider).valueOrNull ?? const <Wallet>[];
     // The first wallet stands in until the user says otherwise, matching how
     // Thêm giao dịch behaves; picking "không ghi vào ví nào" opts out.
     if (!_walletChosen && _walletId == null && wallets.isNotEmpty) {
@@ -218,6 +227,18 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
               ],
             ),
           ),
+          if (tracking)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Chỉ theo dõi — không tạo giao dịch, không trừ ví',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ),
           const SizedBox(height: 10),
           // Wrapped, not a Row: the wallet chip made three of them, and a long
           // wallet name on a narrow phone ran off the edge.

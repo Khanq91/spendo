@@ -6,7 +6,11 @@ import 'package:spendo/features/loan/domain/loan.dart';
 import 'package:spendo/features/loan/presentation/providers/loan_provider.dart';
 import 'package:spendo/features/loan/presentation/screens/loan_detail_screen.dart';
 
-Loan _loan({bool closed = false, DateTime? dueDate}) => Loan(
+Loan _loan({
+  bool closed = false,
+  DateTime? dueDate,
+  bool tracking = false,
+}) => Loan(
   id: 'l1',
   title: 'Vay mua xe',
   type: LoanType.borrowed,
@@ -17,6 +21,7 @@ Loan _loan({bool closed = false, DateTime? dueDate}) => Loan(
   note: 'Vay sửa xe máy',
   colorHex: '#B23A2E',
   isClosed: closed,
+  isTrackingOnly: tracking,
 );
 
 final _payments = [
@@ -42,6 +47,9 @@ ProviderContainer _container({
   return ProviderContainer(
     overrides: [
       loansProvider.overrideWith((ref) => Stream.value(loans ?? [_loan()])),
+      // The screen looks a loan up across both sổ, so both have to arrive
+      // before it can say one is gone.
+      trackingLoansProvider.overrideWith((ref) => Stream.value(const <Loan>[])),
       loanPaymentsProvider.overrideWith((ref, id) => Stream.value(payments)),
     ],
   );
@@ -136,5 +144,41 @@ void main() {
     expect(find.text('Đã tất toán'), findsOneWidget);
     expect(find.text('Ghi nhận thanh toán'), findsNothing);
     expect(find.text('Đánh dấu tất toán'), findsNothing);
+  });
+
+  testWidgets('a tracking loan says why it has no wallet', (tester) async {
+    // Reached from a reminder, the missing wallet picker would otherwise read
+    // as a bug rather than the point of the sổ (PLAN §2.4).
+    final tracking = ProviderContainer(
+      overrides: [
+        loansProvider.overrideWith((ref) => Stream.value(const <Loan>[])),
+        trackingLoansProvider.overrideWith(
+          (ref) => Stream.value([_loan(tracking: true)]),
+        ),
+        loanPaymentsProvider.overrideWith((ref, id) => Stream.value(_payments)),
+      ],
+    );
+    addTearDown(tracking.dispose);
+
+    await _pump(tester, tracking);
+
+    // The loan is found in the other sổ, and marked as belonging to it.
+    expect(find.text('Vay mua xe'), findsWidgets);
+    expect(
+      find.text('Sổ theo dõi — không liên kết ví & thống kê'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a spending loan carries no such marker', (tester) async {
+    final container = _container(payments: _payments);
+    addTearDown(container.dispose);
+
+    await _pump(tester, container);
+
+    expect(
+      find.text('Sổ theo dõi — không liên kết ví & thống kê'),
+      findsNothing,
+    );
   });
 }

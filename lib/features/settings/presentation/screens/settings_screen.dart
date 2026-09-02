@@ -63,7 +63,10 @@ class SettingsScreen extends ConsumerWidget {
   Widget _dataGroup(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesProvider).valueOrNull;
     final wallets = ref.watch(walletsProvider).valueOrNull;
+    // Each row counts exactly what the page it opens will show — the two
+    // books are separate, so one count for both would be wrong on both.
     final loans = ref.watch(loansProvider).valueOrNull;
+    final trackingLoans = ref.watch(trackingLoansProvider).valueOrNull;
     final reminders = ref.watch(remindersProvider).valueOrNull;
 
     return _Group(
@@ -85,6 +88,12 @@ class SettingsScreen extends ConsumerWidget {
           label: 'Khoản vay',
           trailingText: _count(loans?.length),
           onTap: () => context.push('/loans'),
+        ),
+        SpendoSettingsRow(
+          icon: LucideIcons.notebookPen,
+          label: 'Sổ theo dõi',
+          trailingText: _count(trackingLoans?.length),
+          onTap: () => context.push('/loans-tracking'),
         ),
         SpendoSettingsRow(
           icon: LucideIcons.bellRing,

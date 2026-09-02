@@ -57,6 +57,13 @@ void main() {
            'loan-1', 'Khoản vay', 'borrowed', '1000000', 'An',
            '2026-07-01T00:00:00.000', NULL, NULL, '#123456', 0, 'installment'
          )''');
+    await database.execute('''INSERT INTO loans(
+           id, title, type, principal, contact_name, start_date, due_date,
+           note, color_hex, is_closed, repayment_mode, is_tracking_only
+         ) VALUES(
+           'loan-2', 'Nợ theo dõi', 'lent', '400000', 'Bình',
+           '2026-07-02T00:00:00.000', NULL, NULL, '#654321', 0, NULL, 1
+         )''');
     await database.execute(
       '''INSERT INTO loan_installments(id, loan_id, seq, amount, due_date)
          VALUES('inst-1', 'loan-1', 1, '400000', '2026-08-01T00:00:00.000')''',
@@ -77,7 +84,22 @@ void main() {
     expect((payload['categories'] as List).single['is_default'], isTrue);
     expect((payload['budgets'] as List).single['month'], '2026-07');
     expect((payload['loan_payments'] as List).single['loan_id'], 'loan-1');
-    expect((payload['loans'] as List).single['repayment_mode'], 'installment');
+    final exportedLoans = (payload['loans'] as List)
+        .cast<Map<String, dynamic>>();
+    expect(
+      exportedLoans.firstWhere((l) => l['id'] == 'loan-1')['repayment_mode'],
+      'installment',
+    );
+    // Which sổ a loan is in survives the round trip; without it a restore
+    // would quietly move every tracking loan into the spending book.
+    expect(
+      exportedLoans.firstWhere((l) => l['id'] == 'loan-1')['is_tracking_only'],
+      isFalse,
+    );
+    expect(
+      exportedLoans.firstWhere((l) => l['id'] == 'loan-2')['is_tracking_only'],
+      isTrue,
+    );
     expect((payload['loan_installments'] as List).single['seq'], 1);
 
     await database.execute('DELETE FROM loan_installments');
@@ -93,10 +115,22 @@ void main() {
 
     expect(result.walletsAdded, 1);
     expect(result.monthlyBudgetsAdded, 1);
-    expect(result.loansAdded, 1);
+    expect(result.loansAdded, 2);
     expect(result.loanPaymentsAdded, 1);
     expect(result.loanInstallmentsAdded, 1);
     expect(result.errors, isEmpty);
+    expect(
+      (await database.get(
+        "SELECT is_tracking_only FROM loans WHERE id = 'loan-2'",
+      ))['is_tracking_only'],
+      1,
+    );
+    expect(
+      (await database.get(
+        "SELECT is_tracking_only FROM loans WHERE id = 'loan-1'",
+      ))['is_tracking_only'],
+      0,
+    );
     expect(
       (await database.get('SELECT is_archived FROM wallets'))['is_archived'],
       1,
@@ -121,7 +155,7 @@ void main() {
     );
     expect(
       (await database.get(
-        'SELECT repayment_mode FROM loans',
+        "SELECT repayment_mode FROM loans WHERE id = 'loan-1'",
       ))['repayment_mode'],
       'installment',
     );
@@ -180,6 +214,14 @@ void main() {
         "SELECT repayment_mode FROM loans WHERE id = 'loan-old'",
       ))['repayment_mode'],
       isNull,
+    );
+    // No flag in the file either — a loan from before the tracking sổ existed
+    // belongs to the spending one, which is where 0 puts it.
+    expect(
+      (await database.get(
+        "SELECT is_tracking_only FROM loans WHERE id = 'loan-old'",
+      ))['is_tracking_only'],
+      0,
     );
     expect(
       (await database.get(

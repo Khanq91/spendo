@@ -54,6 +54,15 @@ class Loan {
   /// null for every loan whose money never moved through the app (giai đoạn 2).
   final String? fundingTransactionId;
 
+  /// Whether this loan is a plain ledger entry rather than money the app
+  /// tracks: no transaction is ever written for it, so no wallet moves and
+  /// the statistics never see it.
+  ///
+  /// Chosen once, when the loan is created — the page it was created from
+  /// decides it, and nothing flips it afterwards. A missing column reads as
+  /// false, so every loan that existed before this feature keeps its wallet.
+  final bool isTrackingOnly;
+
   const Loan({
     required this.id,
     required this.title,
@@ -67,6 +76,7 @@ class Loan {
     required this.isClosed,
     this.repaymentMode = RepaymentMode.free,
     this.fundingTransactionId,
+    this.isTrackingOnly = false,
   });
 
   Color get color => AppColors.fromHex(colorHex);
@@ -102,6 +112,7 @@ class Loan {
       isClosed: (map['is_closed'] as int) == 1,
       repaymentMode: RepaymentMode.fromDb(map['repayment_mode'] as String?),
       fundingTransactionId: map['funding_transaction_id'] as String?,
+      isTrackingOnly: (map['is_tracking_only'] as int? ?? 0) == 1,
     );
   }
 
@@ -120,6 +131,7 @@ class Loan {
     isClosed: isClosed,
     repaymentMode: repaymentMode,
     fundingTransactionId: fundingTransactionId,
+    isTrackingOnly: isTrackingOnly,
   );
 
   Loan copyWith({
@@ -139,6 +151,9 @@ class Loan {
       isClosed: isClosed,
       repaymentMode: repaymentMode ?? this.repaymentMode,
       fundingTransactionId: fundingTransactionId ?? this.fundingTransactionId,
+      // Deliberately not a parameter: the sổ a loan belongs to is fixed at
+      // creation, and no code path may flip it afterwards (PLAN §2.2).
+      isTrackingOnly: isTrackingOnly,
     );
   }
 }

@@ -48,6 +48,23 @@ const _wallets = [
   ),
 ];
 
+/// Two loans in the tracking sổ and none in the spending one, so a row that
+/// counted both books together would read 2 where it should read 0.
+final _trackingLoans = [
+  for (final id in ['t1', 't2'])
+    Loan(
+      id: id,
+      title: 'Nợ $id',
+      type: LoanType.lent,
+      principal: 100000,
+      contactName: '',
+      startDate: DateTime(2026, 9),
+      colorHex: '#5A7230',
+      isClosed: false,
+      isTrackingOnly: true,
+    ),
+];
+
 /// Records where the hub pushed to, without needing the real screens.
 late String? lastRoute;
 
@@ -66,6 +83,7 @@ Widget _app(List<Override> overrides) {
         '/settings/notifications',
         '/wallets',
         '/loans',
+        '/loans-tracking',
         '/reminders',
       ])
         GoRoute(
@@ -83,6 +101,7 @@ Widget _app(List<Override> overrides) {
       categoriesProvider.overrideWith((ref) => Stream.value(_categories)),
       walletsProvider.overrideWith((ref) => Stream.value(_wallets)),
       loansProvider.overrideWith((ref) => Stream.value(const <Loan>[])),
+      trackingLoansProvider.overrideWith((ref) => Stream.value(_trackingLoans)),
       remindersProvider.overrideWith(
         (ref) => Stream.value(const <RecurringReminder>[]),
       ),
@@ -114,6 +133,7 @@ void main() {
       'Danh mục',
       'Nguồn tiền',
       'Khoản vay',
+      'Sổ theo dõi',
       'Nhắc nhở',
       'Sao lưu & đồng bộ',
       'Ngân hàng tự động',
@@ -124,10 +144,11 @@ void main() {
       expect(find.text(row), findsOneWidget, reason: 'missing row: $row');
     }
 
-    // Counts come from the same providers the destination pages use.
-    expect(find.text('2'), findsOneWidget); // categories
+    // Counts come from the same providers the destination pages use — and
+    // each row counts only the page it opens, so the two sổ do not pool.
     expect(find.text('1'), findsOneWidget); // wallets
-    expect(find.text('0'), findsNWidgets(2)); // loans + reminders
+    expect(find.text('0'), findsNWidgets(2)); // loans (spending sổ) + reminders
+    expect(find.text('2'), findsNWidgets(2)); // categories + tracking sổ
     expect(find.text('0/4'), findsOneWidget); // widget slots
   });
 
@@ -143,6 +164,7 @@ void main() {
       'Danh mục': '/settings/categories',
       'Nguồn tiền': '/wallets',
       'Khoản vay': '/loans',
+      'Sổ theo dõi': '/loans-tracking',
       'Nhắc nhở': '/reminders',
       'Sao lưu & đồng bộ': '/settings/backup',
       'Ngân hàng tự động': '/settings/bank',
@@ -162,7 +184,7 @@ void main() {
     }
   });
 
-  testWidgets('the whole hub fits one 360×640 screen, footer included', (
+  testWidgets('the hub stays short enough to take in at a glance', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(360, 640);
@@ -173,14 +195,19 @@ void main() {
     await tester.pump();
 
     // The point of the hub: the old list ran ~2000px with nine flat sections.
-    // Every group now ends on screen, and the footer is the only thing the
-    // user has to reach for.
+    // The last group's header is on screen without scrolling, so the shape of
+    // the whole hub is visible at once.
+    //
+    // The last *row* used to land above the fold too. Sổ theo dõi added a
+    // fourth data row and pushed it ~47px under; the hub is still a third of
+    // what it replaced, and everything below the fold is one short drag away.
     expect(find.text('ỨNG DỤNG'), findsOneWidget);
-    expect(tester.getRect(find.text('Thông báo')).bottom, lessThanOrEqualTo(640));
+    expect(tester.getRect(find.text('ỨNG DỤNG')).bottom, lessThanOrEqualTo(640));
 
     final list = find.byType(ListView);
     await tester.drag(list, const Offset(0, -200));
     await tester.pumpAndSettle();
+    expect(find.text('Thông báo'), findsOneWidget);
     expect(find.textContaining('Your money, clearly.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

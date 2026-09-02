@@ -22,10 +22,15 @@ Future<void> showLoanFormSheet(
   BuildContext context, {
   Loan? existing,
   LoanType? initialType,
+  bool trackingOnly = false,
 }) async {
   final created = await SpendoSheet.showModal<Loan>(
     context: context,
-    builder: (_) => LoanFormSheet(existing: existing, initialType: initialType),
+    builder: (_) => LoanFormSheet(
+      existing: existing,
+      initialType: initialType,
+      trackingOnly: trackingOnly,
+    ),
   );
   if (created == null || !context.mounted) return;
 
@@ -38,10 +43,20 @@ Future<void> showLoanFormSheet(
 
 /// Screen 17 of the redesign.
 class LoanFormSheet extends ConsumerStatefulWidget {
-  const LoanFormSheet({super.key, this.existing, this.initialType});
+  const LoanFormSheet({
+    super.key,
+    this.existing,
+    this.initialType,
+    this.trackingOnly = false,
+  });
 
   final Loan? existing;
   final LoanType? initialType;
+
+  /// Which sổ a new loan is written into — handed down by the page the form
+  /// was opened from, never a control the user can flip (PLAN §2.2). Ignored
+  /// when editing: an existing loan keeps the sổ it was created in.
+  final bool trackingOnly;
 
   @override
   ConsumerState<LoanFormSheet> createState() => _LoanFormSheetState();
@@ -69,6 +84,11 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
   String? _titleError;
 
   bool get _isEdit => widget.existing != null;
+
+  /// Whether this form is writing into the tracking book. On an edit it is the
+  /// loan's own flag, so the funding section stays hidden where it never
+  /// applied.
+  bool get _tracking => widget.existing?.isTrackingOnly ?? widget.trackingOnly;
 
   @override
   void initState() {
@@ -184,6 +204,9 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
         note: existing?.note,
         colorHex: existing?.colorHex ?? _defaultColorFor(_type),
         isClosed: existing?.isClosed ?? false,
+        // Only ever read on the INSERT path — `repo.update` does not touch
+        // the column, so an edit cannot move a loan between books.
+        isTrackingOnly: _tracking,
         // A loan only becomes `installment` once a schedule is actually saved,
         // so backing out of the schedule screen leaves a working free loan
         // rather than one that claims a schedule it does not have.
@@ -198,7 +221,7 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
 
       final id = await repo.add(
         loan,
-        fundingWalletId: _trackFunding ? _fundingWalletId : null,
+        fundingWalletId: _trackFunding && !_tracking ? _fundingWalletId : null,
       );
       // Only an instalment loan hands a loan back; anything else closes with
       // nothing, so the caller knows not to push the schedule screen.
@@ -225,7 +248,11 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
 
     return SpendoSheet(
       header: SpendoSheetHeader(
-        title: _isEdit ? 'Sửa khoản vay' : 'Thêm khoản vay',
+        title: _isEdit
+            ? 'Sửa khoản vay'
+            : _tracking
+            ? 'Thêm khoản theo dõi'
+            : 'Thêm khoản vay',
         onCancel: () => Navigator.of(context).pop(),
         // Wrapped, because the button's enabled state depends on the keypad:
         // the old form gated on a value it never listened to, so the button
@@ -245,6 +272,18 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 8),
               children: [
+                if (_tracking && !_isEdit) ...[
+                  // Says up front what the sheet quietly leaves out, so the
+                  // missing "Ghi vào ví" reads as intent, not an omission.
+                  Text(
+                    'Sổ theo dõi — chỉ ghi nợ, không đụng ví & thống kê',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 SpendoSegmented<LoanType>(
                   value: _type,
                   onChanged: (next) => setState(() => _type = next),
@@ -327,7 +366,9 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
                       ),
                   ],
                 ),
-                if (!_isEdit && wallets.isNotEmpty) ...[
+                // A tracking loan's money never moves through the app, so
+                // there is nothing to book into a wallet (PLAN §2.4).
+                if (!_isEdit && !_tracking && wallets.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _FundingToggle(
                     type: _type,

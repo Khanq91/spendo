@@ -82,6 +82,9 @@ Future<void> _pump(
     ProviderScope(
       overrides: [
         loansProvider.overrideWith((ref) => Stream.value(loans ?? [_loan])),
+        trackingLoansProvider.overrideWith(
+          (ref) => Stream.value(const <Loan>[]),
+        ),
         loanPaymentsProvider.overrideWith(
           (ref, id) => Stream.value(const <LoanPayment>[]),
         ),

@@ -13,12 +13,24 @@ import '../providers/loan_provider.dart';
 import '../widgets/add_payment_sheet.dart';
 import '../widgets/loan_form_sheet.dart';
 
-/// Screen 11 of the redesign.
+/// Screen 11 of the redesign — and, with [trackingOnly] set, Sổ theo dõi.
+///
+/// The two books are the same screen twice rather than two screens: they show
+/// the same rows, the same totals and the same filter, and differ only in
+/// which sổ they read and what they call themselves (PLAN §2.3).
 class LoanListScreen extends ConsumerStatefulWidget {
-  const LoanListScreen({super.key, this.filterType});
+  const LoanListScreen({
+    super.key,
+    this.filterType,
+    this.trackingOnly = false,
+  });
 
   /// Seeds the segmented filter from the route's `?type=` parameter.
   final String? filterType;
+
+  /// Which sổ this instance is: the spending book by default, the tracking
+  /// book at `/loans-tracking`. Everything the screen creates inherits it.
+  final bool trackingOnly;
 
   @override
   ConsumerState<LoanListScreen> createState() => _LoanListScreenState();
@@ -31,16 +43,20 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
     final seeded = LoanFilter.fromQuery(widget.filterType);
     if (seeded != LoanFilter.all) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) ref.read(loanFilterProvider.notifier).state = seeded;
+        if (mounted) {
+          ref.read(loanFilterProvider(widget.trackingOnly).notifier).state =
+              seeded;
+        }
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final loansAsync = ref.watch(loansProvider);
+    final tracking = widget.trackingOnly;
+    final loansAsync = ref.watch(loansOfBook(tracking));
     final paidAsync = ref.watch(paidByLoanProvider);
-    final filter = ref.watch(loanFilterProvider);
+    final filter = ref.watch(loanFilterProvider(tracking));
     final progressByLoan = ref.watch(progressByLoanProvider);
 
     final hasInitialError = loansAsync.hasError && !loansAsync.hasValue;
@@ -55,9 +71,12 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
     return Scaffold(
       floatingActionButton: SpendoExtendedFab(
         heroTag: 'loans_fab',
-        label: 'Thêm khoản vay',
+        label: tracking ? 'Thêm khoản theo dõi' : 'Thêm khoản vay',
+        // Which sổ the loan lands in is decided by the page it was added
+        // from, not by a switch in the form (PLAN §2.2).
         onPressed: () => showLoanFormSheet(
           context,
+          trackingOnly: tracking,
           initialType: switch (filter) {
             LoanFilter.borrowed => LoanType.borrowed,
             LoanFilter.lent => LoanType.lent,
@@ -69,7 +88,21 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
         bottom: false,
         child: Column(
           children: [
-            const SpendoScreenHeader(title: 'Khoản vay'),
+            SpendoScreenHeader(
+              title: tracking ? 'Sổ theo dõi' : 'Khoản vay',
+              actions: [
+                // The context door between the two books: "đổi sổ" from
+                // wherever you are (PLAN §2.3). Only one way, because the
+                // tracking page is the one that needs finding.
+                if (!tracking)
+                  SpendoHeaderIconButton(
+                    icon: LucideIcons.notebookPen,
+                    tooltip: 'Sổ theo dõi',
+                    size: 19,
+                    onPressed: () => context.push('/loans-tracking'),
+                  ),
+              ],
+            ),
             Expanded(
               child: switch ((hasInitialError, isLoading)) {
                 (true, _) => SpendoEmptyState(
@@ -77,7 +110,7 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
                   title: 'Không tải được khoản vay',
                   message: 'Kiểm tra kết nối rồi thử lại.',
                   actionLabel: 'Thử lại',
-                  onAction: () => ref.invalidate(loansProvider),
+                  onAction: () => ref.invalidate(loansOfBook(tracking)),
                 ),
                 (_, true) => const Center(child: CircularProgressIndicator()),
                 _ => ListView(
@@ -88,8 +121,9 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                       child: SpendoSegmented<LoanFilter>(
                         value: filter,
-                        onChanged: (next) =>
-                            ref.read(loanFilterProvider.notifier).state = next,
+                        onChanged: (next) => ref
+                            .read(loanFilterProvider(tracking).notifier)
+                            .state = next,
                         expand: true,
                         horizontalPadding: 12,
                         options: [
@@ -102,15 +136,29 @@ class _LoanListScreenState extends ConsumerState<LoanListScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 24),
                         child: SpendoEmptyState(
-                          icon: LucideIcons.handCoins,
-                          title: switch (filter) {
-                            LoanFilter.borrowed => 'Chưa có khoản vay nào',
-                            LoanFilter.lent => 'Chưa có khoản cho vay nào',
-                            LoanFilter.all => 'Chưa có khoản vay nào',
-                          },
-                          message: 'Ghi lại khoản vay để theo dõi còn bao nhiêu.',
-                          actionLabel: 'Thêm khoản vay',
-                          onAction: () => showLoanFormSheet(context),
+                          icon: tracking
+                              ? LucideIcons.notebookPen
+                              : LucideIcons.handCoins,
+                          title: tracking
+                              ? 'Sổ theo dõi còn trống'
+                              : switch (filter) {
+                                  LoanFilter.borrowed =>
+                                    'Chưa có khoản vay nào',
+                                  LoanFilter.lent =>
+                                    'Chưa có khoản cho vay nào',
+                                  LoanFilter.all => 'Chưa có khoản vay nào',
+                                },
+                          message: tracking
+                              ? 'Ghi nợ ở đây để nhớ, không đụng ví và '
+                                    'không vào thống kê.'
+                              : 'Ghi lại khoản vay để theo dõi còn bao nhiêu.',
+                          actionLabel: tracking
+                              ? 'Thêm khoản theo dõi'
+                              : 'Thêm khoản vay',
+                          onAction: () => showLoanFormSheet(
+                            context,
+                            trackingOnly: tracking,
+                          ),
                         ),
                       ),
                     for (var i = 0; i < active.length; i++) ...[

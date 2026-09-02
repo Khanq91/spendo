@@ -236,6 +236,7 @@ class BackupService {
             'is_closed': l.isClosed,
             'repayment_mode': l.repaymentMode.name,
             'funding_transaction_id': l.fundingTransactionId,
+            'is_tracking_only': l.isTrackingOnly,
           }).toList(),
       'loan_payments': loanPayments
           .map((p) => {
@@ -809,8 +810,8 @@ class BackupService {
     await execute(
       '''INSERT INTO loans(id, title, type, principal, contact_name,
            start_date, due_date, note, color_hex, is_closed, repayment_mode,
-           funding_transaction_id)
-         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+           funding_transaction_id, is_tracking_only)
+         VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
       [
         l['id'], l['title'], l['type'],
         (l['principal'] as int).toString(),
@@ -821,6 +822,9 @@ class BackupService {
         // both are nullable and a missing mode reads as free repayment.
         l['repayment_mode'],
         l['funding_transaction_id'],
+        // Absent in every backup written before the tracking book: a loan
+        // restored from one belongs to the spending book, as it always did.
+        (l['is_tracking_only'] as bool? ?? false) ? 1 : 0,
       ],
     );
   }
@@ -935,6 +939,7 @@ class _RestorePayload {
       // file restores with a free-repayment loan and no funding transaction.
       'repayment_mode': String,
       'funding_transaction_id': String,
+      'is_tracking_only': bool,
     });
     _validateDates(loans, 'loans', 'start_date');
     _validateDates(loans, 'loans', 'due_date', nullable: true);
