@@ -24,7 +24,7 @@
 | Nền Xịn xò | `AuroraThemeBackground` 4 blob + parallax cảm biến nghiêng, dùng ở `AppShell` (fancy) và `WelcomeScreen` (luôn) | `ParticleField` (copy nguyên từ Snipz) + blur nhẹ 1 lượt cả lớp, thay ở cả 2 chỗ. Aurora xoá. |
 
 Baseline trước khi làm: `flutter analyze` sạch · **390 test** (đo bằng `flutter test`
-trước GĐ0; 394 sau GĐ0) ·
+trước GĐ0; 394 sau GĐ0; 396 sau GĐ1) ·
 version `1.7.26+31`.
 
 ---
@@ -34,7 +34,7 @@ version `1.7.26+31`.
 | GĐ | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
 | 0 — Chip ôm chữ | Sửa `SpendoChip` nở full width trong `Wrap` (bug), + pop 1.12 spring kiểu Choice Chips khi chọn | ✅ xong | `23476e8` |
-| 1 — Nav lơ lửng | Snap Rail thay `SpendoBottomNav` (chế độ Bình thường), `extendBody` cả 2 mode | ⬜ chưa | |
+| 1 — Nav lơ lửng | Snap Rail thay `SpendoBottomNav` (chế độ Bình thường), `extendBody` cả 2 mode | ✅ xong | `43a57f4` |
 | 2 — Reveal list | `RevealScope`/`RevealItem` dùng chung, áp 10 màn list dữ liệu, xoá `MotionListItem` | ⬜ chưa | |
 | 3 — Notice slide-in | `NoticeHost` + `AppNotice.show`, thay 31 `showSnackBar`, xoá `snackBarTheme` | ⬜ chưa | |
 | 4 — Nền hạt | `ParticleField` + blur thay Aurora ở Shell + Welcome, sửa copy, bỏ `sensors_plus` | ⬜ chưa | |
