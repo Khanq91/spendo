@@ -211,6 +211,103 @@ void main() {
       );
     });
 
+    testWidgets('the spring squashes the pill against the rail ends', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1220, 2712);
+      tester.view.devicePixelRatio = 2.75;
+      addTearDown(tester.view.reset);
+
+      var index = 0;
+      await tester.pumpWidget(
+        _host(
+          StatefulBuilder(
+            builder: (context, setState) => SpendoBottomNav(
+              destinations: SpendoBottomNav.spendoDestinations,
+              selectedIndex: index,
+              onSelected: (i) => setState(() => index = i),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final pill = find.byKey(SpendoBottomNav.pillKey);
+      // The inner track the pill slides in (the rail minus border + inset).
+      final track = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(SpendoBottomNav),
+              matching: find.byType(Stack),
+            )
+            .first,
+      );
+      final cellWidth = track.width / 4;
+
+      // Sweeps to [label] and, on every frame, checks the pill stayed inside
+      // the track. Returns the narrowest width it squashed down to.
+      Future<double> sweep(String label) async {
+        await tester.tap(find.text(label));
+        await tester.pump();
+        var narrowest = double.infinity;
+        for (var t = 0; t <= 450; t += 25) {
+          final r = tester.getRect(pill);
+          expect(r.left, greaterThanOrEqualTo(track.left - 0.5), reason: '$label @${t}ms');
+          expect(r.right, lessThanOrEqualTo(track.right + 0.5), reason: '$label @${t}ms');
+          if (r.width < narrowest) narrowest = r.width;
+          await tester.pump(const Duration(milliseconds: 25));
+        }
+        await tester.pumpAndSettle();
+        // At rest it is one full cell, centred on the tab.
+        expect(tester.getSize(pill).width, closeTo(cellWidth, 1));
+        expect(
+          tester.getCenter(pill).dx,
+          closeTo(tester.getCenter(find.text(label)).dx, 1),
+        );
+        return narrowest;
+      }
+
+      // Home → Settings overshoots ~28dp: the spring still fires, but the
+      // pill compresses against the wall instead of leaving the rail.
+      expect(await sweep('Cài đặt'), lessThan(cellWidth - 15));
+      expect(await sweep('Trang chủ'), lessThan(cellWidth - 15));
+    });
+
+    testWidgets('icon and label sit centred in the rail', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          SpendoBottomNav(
+            destinations: SpendoBottomNav.spendoDestinations,
+            selectedIndex: 0,
+            onSelected: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSize(find.byType(SpendoBottomNav)).height,
+        SpendoBottomNav.railHeight + SpendoBottomNav.bottomGap,
+      );
+
+      final track = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(SpendoBottomNav),
+              matching: find.byType(Stack),
+            )
+            .first,
+      );
+      final icon = tester.getRect(
+        find.text(String.fromCharCode(LucideIcons.house.codePoint)).first,
+      );
+      final label = tester.getRect(find.text('Trang chủ'));
+      expect(icon.width, 22);
+      expect(icon.bottom, lessThan(label.top));
+      // The icon + label block is centred on the track, not hugging its top.
+      expect((icon.top + label.bottom) / 2, closeTo(track.center.dy, 1));
+    });
+
     testWidgets('reduce motion snaps the pill without animating', (
       tester,
     ) async {

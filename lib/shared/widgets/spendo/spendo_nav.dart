@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -16,6 +18,9 @@ class SpendoNavDestination {
 /// The four-tab bar as a floating snap rail (kinetics "Snap Rail"): a pill
 /// hovers above the bottom edge, and a translucent brand pill springs between
 /// its four EQUAL cells — always one cell wide, never sized to the label.
+///
+/// The spring overshoots. Past the two end cells the pill squashes against
+/// the rail's end and rebounds instead of poking out of the rounded frame.
 ///
 /// Meant for a `Scaffold` with `extendBody: true`, so content scrolls under
 /// the gap around the rail; the Scaffold reports this widget's full height
@@ -43,7 +48,7 @@ class SpendoBottomNav extends StatelessWidget {
   /// Key of the sliding pill, for tests.
   static const pillKey = Key('spendo_nav_pill');
 
-  static const double railHeight = 64;
+  static const double railHeight = 68;
   static const double sideMargin = 16;
   static const double bottomGap = 12;
   static const double _inset = 4;
@@ -89,18 +94,36 @@ class SpendoBottomNav extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final cellWidth = constraints.maxWidth / destinations.length;
+            final trackWidth = constraints.maxWidth;
+            final cellWidth = trackWidth / destinations.length;
             return Stack(
+              // Expand so the tab row fills the track and centres its
+              // icon + label vertically instead of hugging the top edge.
+              fit: StackFit.expand,
               children: [
-                AnimatedPositioned(
-                  key: pillKey,
+                // The spring overshoots by up to ~10% of the travel. Past the
+                // end cells that would carry the pill outside the rail, so the
+                // outer edge stops at the wall while the inner edge keeps
+                // going: the pill squashes against the end, then rebounds to
+                // one full cell.
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: selectedIndex.toDouble()),
                   duration: snapDuration,
                   curve: _spring,
-                  left: selectedIndex * cellWidth,
-                  top: 0,
-                  bottom: 0,
-                  width: cellWidth,
+                  builder: (context, cell, child) {
+                    final x = cell * cellWidth;
+                    final left = math.max(x, 0.0);
+                    final right = math.min(x + cellWidth, trackWidth);
+                    return Positioned(
+                      left: left,
+                      top: 0,
+                      bottom: 0,
+                      width: math.max(right - left, 0.0),
+                      child: child!,
+                    );
+                  },
                   child: DecoratedBox(
+                    key: pillKey,
                     decoration: ShapeDecoration(
                       color: spendo.brand.withValues(alpha: 0.16),
                       shape: StadiumBorder(
@@ -167,12 +190,13 @@ class _NavTab extends StatelessWidget {
           onTap();
         },
         behavior: HitTestBehavior.opaque,
+        // Fills the cell, so the whole cell is the tap target and the
+        // icon + label pair sits at its vertical centre.
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(destination.icon, size: 20, color: color),
-            const SizedBox(height: 3),
+            _HeavyIcon(destination.icon, size: 22, color: color),
+            const SizedBox(height: 4),
             AnimatedDefaultTextStyle(
               duration: tintDuration,
               curve: Curves.ease,
@@ -189,6 +213,67 @@ class _NavTab extends StatelessWidget {
                 softWrap: false,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A Lucide glyph drawn a touch heavier than the font's single stroke: the
+/// outline is stroked over the fill, which thickens every line by
+/// [strokeGain] × [size] without needing a second font weight.
+class _HeavyIcon extends StatelessWidget {
+  const _HeavyIcon(this.icon, {required this.size, required this.color});
+
+  final IconData icon;
+  final double size;
+  final Color color;
+
+  /// Extra line width as a fraction of [size] — about 0.7dp at 22.
+  static const double strokeGain = 0.032;
+
+  @override
+  Widget build(BuildContext context) {
+    final glyph = String.fromCharCode(icon.codePoint);
+    // Mirrors what [Icon] does so the glyph sits in a size×size box.
+    TextStyle style({Color? color, Paint? foreground}) => TextStyle(
+      inherit: false,
+      color: color,
+      foreground: foreground,
+      fontSize: size,
+      fontFamily: icon.fontFamily,
+      package: icon.fontPackage,
+      fontFamilyFallback: icon.fontFamilyFallback,
+      height: 1,
+      leadingDistribution: TextLeadingDistribution.even,
+    );
+    Widget glyphText(TextStyle textStyle) => Text(
+      glyph,
+      style: textStyle,
+      textDirection: TextDirection.ltr,
+      textScaler: TextScaler.noScaling,
+      softWrap: false,
+      overflow: TextOverflow.visible,
+    );
+
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            glyphText(
+              style(
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = size * strokeGain
+                  ..strokeJoin = StrokeJoin.round
+                  ..color = color,
+              ),
+            ),
+            glyphText(style(color: color)),
           ],
         ),
       ),
