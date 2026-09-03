@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/spendo_colors.dart';
@@ -32,6 +33,7 @@ import 'amount_input_controller.dart';
 Future<void> showAddTransactionSheet(
   BuildContext context, {
   Transaction? existing,
+  bool? initialIsExpense,
   String? preselectedCategoryId,
   String? preselectedWalletId,
   String? prefillNote,
@@ -41,6 +43,7 @@ Future<void> showAddTransactionSheet(
     context: context,
     builder: (_) => AddTransactionSheet(
       existing: existing,
+      initialIsExpense: initialIsExpense,
       preselectedCategoryId: preselectedCategoryId,
       preselectedWalletId: preselectedWalletId,
       prefillNote: prefillNote,
@@ -51,6 +54,10 @@ Future<void> showAddTransactionSheet(
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final Transaction? existing;
+
+  /// Which side a new entry opens on. Null means Chi, the default; a
+  /// duplicate of an income passes false so its category is in the grid.
+  final bool? initialIsExpense;
   final String? preselectedCategoryId;
 
   /// Set when the sheet is opened from a wallet's own screen, so the entry
@@ -62,6 +69,7 @@ class AddTransactionSheet extends ConsumerStatefulWidget {
   const AddTransactionSheet({
     super.key,
     this.existing,
+    this.initialIsExpense,
     this.preselectedCategoryId,
     this.preselectedWalletId,
     this.prefillNote,
@@ -88,6 +96,15 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   bool _trackWallet = false;
   String? _selectedWalletId;
   bool _isSubmitting = false;
+
+  /// The wallet the previous entry went into, read from preferences once. A
+  /// new entry defaults to it — the chip used to read "Chọn ví" every single
+  /// time — unless the caller already chose a wallet or the user touches the
+  /// chip first.
+  String? _lastWalletId;
+  bool _walletDefaulted = false;
+
+  static const _kLastWalletKey = 'last_wallet_id';
 
   /// Suggestions for the selected category, shown as chips under the note.
   List<String> _noteHistory = const [];
@@ -124,12 +141,13 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         _selectedWalletId = tx.walletId;
       }
     } else {
-      _isExpense = true;
+      _isExpense = widget.initialIsExpense ?? true;
       _createdAt = DateTime.now();
       if (widget.prefillNote != null) _noteCtrl.text = widget.prefillNote!;
       if (widget.prefillAmount != null && widget.prefillAmount! > 0) {
         _amountCtrl.prefill(widget.prefillAmount!.toString());
       }
+      if (widget.preselectedWalletId == null) _loadLastWallet();
     }
   }
 
@@ -138,6 +156,34 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     _amountCtrl.dispose();
     _noteCtrl.dispose();
     super.dispose();
+  }
+
+  // ── Last-used wallet ──────────────────────────────────────────────────────
+
+  Future<void> _loadLastWallet() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final id = prefs.getString(_kLastWalletKey);
+      if (!mounted || id == null) return;
+      setState(() => _lastWalletId = id);
+    } catch (_) {
+      // No preferences here (tests, or a platform without them): no default.
+    }
+  }
+
+  /// Remembers the wallet this entry went into — or that it went into none,
+  /// so the next entry opens the way this one was saved.
+  Future<void> _rememberWallet(String? walletId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (walletId == null) {
+        await prefs.remove(_kLastWalletKey);
+      } else {
+        await prefs.setString(_kLastWalletKey, walletId);
+      }
+    } catch (_) {
+      // Same as above: the entry is saved; the convenience just does not stick.
+    }
   }
 
   List<Category> _categories(List<Category> all) =>
@@ -161,7 +207,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
   // ── Submit ────────────────────────────────────────────────────────────────
 
-  Future<void> _submit() async {
+  /// Saves the entry. With [stay] the sheet clears the amount and the note
+  /// and stays open for the next one — type, category, wallet and date carry
+  /// over, which is what a run of entries from one receipt wants.
+  Future<void> _submit({bool stay = false}) async {
     if (_isSubmitting || !_amountCtrl.hasValue || _selectedCategoryId == null) {
       return;
     }
@@ -199,17 +248,29 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           ),
         );
       } else {
+        final walletId = _trackWallet ? _selectedWalletId : null;
         await repo.add(
           amount: _amountCtrl.value,
           type: _isExpense ? 'expense' : 'income',
           categoryId: _selectedCategoryId!,
           note: note.isEmpty ? null : note,
           createdAt: _createdAt,
-          walletId: _trackWallet ? _selectedWalletId : null,
+          walletId: walletId,
         );
+        await _rememberWallet(walletId);
       }
 
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+      if (stay) {
+        final saved = _amountCtrl.value;
+        setState(() {
+          _amountCtrl.reset();
+          _noteCtrl.clear();
+        });
+        AppNotice.success('Đã lưu ${formatVND(saved)} — nhập tiếp.');
+        return;
+      }
+      Navigator.of(context).pop();
     } catch (error) {
       AppNotice.error('Không lưu được giao dịch. Thử lại.');
     } finally {
@@ -394,6 +455,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     );
     if (picked == null || !mounted) return;
     setState(() {
+      // An explicit choice, including "no wallet", beats the remembered one.
+      _walletDefaulted = true;
       _trackWallet = picked != WalletPickerSheet.kNoWallet;
       if (_trackWallet) _selectedWalletId = picked;
     });
@@ -434,6 +497,23 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _selectedWalletId = wallets.first.id;
     }
 
+    // Default a fresh entry to the wallet the previous one went into — once,
+    // when both the preference and the wallets are in, and only while the
+    // user has not touched the chip. An archived wallet does not come back.
+    if (!_walletDefaulted &&
+        !_trackWallet &&
+        _lastWalletId != null &&
+        wallets.isNotEmpty) {
+      _walletDefaulted = true;
+      final last = wallets
+          .where((w) => w.id == _lastWalletId && !w.isArchived)
+          .firstOrNull;
+      if (last != null) {
+        _trackWallet = true;
+        _selectedWalletId = last.id;
+      }
+    }
+
     final amountColor = _isExpense ? theme.spendo.expense : theme.spendo.income;
 
     return SpendoSheet(
@@ -447,8 +527,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 _selectedCategoryId != null
             ? _submit
             : null,
+        // Only for new entries: an edit has nothing to "add next".
+        showSaveMore: !_isEditMode,
+        onSaveMore: !_isSubmitting &&
+                !_isEditMode &&
+                _amountCtrl.hasValue &&
+                _selectedCategoryId != null
+            ? () => _submit(stay: true)
+            : null,
         busy: _isSubmitting,
-        saveLabel: _isEditMode ? 'Lưu' : 'Lưu',
+        saveLabel: 'Lưu',
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -539,6 +627,8 @@ class _Header extends StatelessWidget {
     required this.onSave,
     required this.busy,
     required this.saveLabel,
+    this.showSaveMore = false,
+    this.onSaveMore,
   });
 
   final bool isExpense;
@@ -547,6 +637,11 @@ class _Header extends StatelessWidget {
   final VoidCallback? onSave;
   final bool busy;
   final String saveLabel;
+
+  /// "Lưu & thêm tiếp" — shown for new entries, enabled on the same terms as
+  /// Lưu.
+  final bool showSaveMore;
+  final VoidCallback? onSaveMore;
 
   @override
   Widget build(BuildContext context) {
@@ -589,7 +684,55 @@ class _Header extends StatelessWidget {
             ),
           ),
           _SaveButton(label: saveLabel, onPressed: onSave, busy: busy),
+          if (showSaveMore) ...[
+            const SizedBox(width: 6),
+            _SaveMoreButton(onPressed: onSaveMore, busy: busy),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// Icon-only twin of [_SaveButton]: saves and keeps the sheet open for the
+/// next entry. Outlined so Lưu stays the one filled control on the row.
+class _SaveMoreButton extends StatelessWidget {
+  const _SaveMoreButton({required this.onPressed, required this.busy});
+
+  final VoidCallback? onPressed;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final enabled = onPressed != null && !busy;
+
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: 'Lưu & thêm tiếp',
+      child: Tooltip(
+        message: 'Lưu & thêm tiếp',
+        child: Opacity(
+          opacity: enabled ? 1 : 0.45,
+          child: PressableScale(
+            deferTapToChild: true,
+            child: Material(
+              key: const ValueKey('add_save_more'),
+              color: Colors.transparent,
+              shape: StadiumBorder(side: BorderSide(color: cs.outlineVariant)),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: enabled ? onPressed : null,
+                child: SizedBox(
+                  height: 38,
+                  width: 42,
+                  child: Icon(LucideIcons.listPlus, size: 19, color: cs.primary),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -24,9 +24,9 @@ Future<void> openDatabase({
 
   await db.initialize();
 
-  // Migration: thêm wallet_id vào transactions nếu chưa có
-  await _migrateWalletId();
-  await _migrateSource();
+  // `wallet_id` and `source` used to be added here with ALTER TABLE, swallowed
+  // when it failed. It always failed: PowerSync exposes the tables as views,
+  // and both columns come from `schema.dart` anyway.
 
   await repairDuplicateCategories();
   if (setupSync) {
@@ -42,27 +42,6 @@ Future<void> resetLocalDatabase([PowerSyncDatabase? database]) async {
   final target = database ?? db;
   await target.disconnectAndClear();
   await _seedDefaultCategoriesIfNeeded(target);
-}
-
-/// Thêm cột wallet_id vào transactions nếu chưa tồn tại.
-/// PowerSync quản lý schema qua JSON, nhưng bảng SQLite thực tế
-/// cần được migrate thủ công khi thêm column mới.
-Future<void> _migrateWalletId() async {
-  try {
-    await db.execute('ALTER TABLE transactions ADD COLUMN wallet_id TEXT');
-  } catch (_) {
-    // Column đã tồn tại → ignore
-  }
-}
-
-Future<void> _migrateSource() async {
-  try {
-    await db.execute(
-      "ALTER TABLE transactions ADD COLUMN source TEXT DEFAULT 'manual'",
-    );
-  } catch (_) {
-    // Column đã tồn tại → ignore
-  }
 }
 
 Future<void> repairDuplicateCategories([PowerSyncDatabase? database]) async {
@@ -131,7 +110,6 @@ Future<void> _setupSync() async {
 
     if (event == AuthChangeEvent.signedIn && session != null) {
       await db.connect(connector: SupabasePowerSyncConnector(db));
-      await _migrateLocalDataIfNeeded(session.user.id);
     } else if (event == AuthChangeEvent.signedOut) {
       await db.disconnect();
     } else if (event == AuthChangeEvent.tokenRefreshed && session != null) {
@@ -191,20 +169,3 @@ Future<void> _seedOfflineCategories(PowerSyncDatabase db) async {
   await Future.wait(batch);
 }
 
-Future<void> _migrateLocalDataIfNeeded(String userId) async {
-  await Future.delayed(const Duration(seconds: 2));
-
-  final cloudCats = await db.getAll(
-    'SELECT id FROM categories WHERE id IS NOT NULL LIMIT 1',
-  );
-
-  if (cloudCats.isNotEmpty) return;
-
-  final localCats = await db.getAll('SELECT id FROM categories');
-  for (final cat in localCats) {
-    await db.execute(
-      'UPDATE categories SET is_default = is_default WHERE id = ?',
-      [cat['id']],
-    );
-  }
-}

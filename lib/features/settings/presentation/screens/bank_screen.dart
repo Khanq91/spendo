@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/presentation/widgets/sign_in_sheet.dart';
 import '../../domain/sepay_bank_account.dart';
 import '../providers/sepay_provider.dart';
 import '../widgets/sepay_mapping_sheet.dart';
@@ -22,15 +24,25 @@ class BankScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accountsAsync = ref.watch(sepayAccountsProvider);
+    // The mappings live in Supabase under the user's id, so without a
+    // session the list could only ever be empty and "Thêm tài khoản" could
+    // only ever fail with "Chưa đăng nhập". Ask for the sign-in instead.
+    final signedIn =
+        ref.watch(cloudEnabledProvider) &&
+        ref.watch(authUserProvider).valueOrNull != null;
+    final accountsAsync = signedIn
+        ? ref.watch(sepayAccountsProvider)
+        : const AsyncValue<List<SepayBankAccount>>.data([]);
     final accounts = accountsAsync.valueOrNull ?? const <SepayBankAccount>[];
 
     return Scaffold(
-      floatingActionButton: SpendoExtendedFab(
-        heroTag: 'bank_fab',
-        label: 'Thêm tài khoản',
-        onPressed: () => showSepayMappingSheet(context),
-      ),
+      floatingActionButton: signedIn
+          ? SpendoExtendedFab(
+              heroTag: 'bank_fab',
+              label: 'Thêm tài khoản',
+              onPressed: () => showSepayMappingSheet(context),
+            )
+          : null,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -41,7 +53,20 @@ class BankScreen extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 120),
                 children: [
                   const _SepayCard(),
-                  if (accountsAsync.hasError && !accountsAsync.hasValue)
+                  if (!signedIn)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: SpendoEmptyState(
+                        icon: LucideIcons.lock,
+                        title: 'Cần đăng nhập để liên kết',
+                        message:
+                            'Đăng nhập tài khoản Spendo, rồi thêm tài khoản '
+                            'ngân hàng ở đây để giao dịch tự đồng bộ.',
+                        actionLabel: 'Đăng nhập',
+                        onAction: () => showSignInSheet(context),
+                      ),
+                    )
+                  else if (accountsAsync.hasError && !accountsAsync.hasValue)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
                       child: SpendoEmptyState(

@@ -37,6 +37,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # The repo's own gate (CLAUDE.md): zero errors, warnings and infos.
+      - name: Analyze
+        run: flutter analyze --no-pub
+
       - name: Run tests
         run: flutter test --no-pub
 

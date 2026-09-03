@@ -129,16 +129,23 @@ class TransactionRepository {
     );
   }
 
-  Future<List<Transaction>> getRange({DateTime? from}) async {
-    if (from == null) {
-      final rows = await _database.getAll(
-        'SELECT * FROM transactions ORDER BY created_at DESC',
-      );
-      return rows.map(Transaction.fromMap).toList();
+  /// Transactions from [from] onwards (all of them when null), optionally
+  /// only those booked into [walletId]. Newest first.
+  Future<List<Transaction>> getRange({DateTime? from, String? walletId}) async {
+    final where = <String>[];
+    final args = <Object>[];
+    if (from != null) {
+      where.add('created_at >= ?');
+      args.add(from.millisecondsSinceEpoch.toString());
     }
+    if (walletId != null) {
+      where.add('wallet_id = ?');
+      args.add(walletId);
+    }
+    final filter = where.isEmpty ? '' : 'WHERE ${where.join(' AND ')} ';
     final rows = await _database.getAll(
-      'SELECT * FROM transactions WHERE created_at >= ? ORDER BY created_at DESC',
-      [from.millisecondsSinceEpoch.toString()],
+      'SELECT * FROM transactions ${filter}ORDER BY created_at DESC',
+      args,
     );
     return rows.map(Transaction.fromMap).toList();
   }

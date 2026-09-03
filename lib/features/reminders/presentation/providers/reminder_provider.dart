@@ -35,33 +35,20 @@ class ReminderActions {
   }
 
   Future<void> toggleActive(RecurringReminder r) async {
-    final next = !r.isActive;
-    await _repo.setActive(r.id, next);
-    if (next) {
-      final updated = RecurringReminder(
-        id: r.id,
-        title: r.title,
-        categoryId: r.categoryId,
-        amountHint: r.amountHint,
-        frequency: r.frequency,
-        dayOfWeek: r.dayOfWeek,
-        dayOfMonth: r.dayOfMonth,
-        hour: r.hour,
-        minute: r.minute,
-        isActive: true,
-        warnBeforeHours: r.warnBeforeHours,
-        nextTrigger: RecurringReminder.calcNextTrigger(
-          frequency: r.frequency,
-          hour: r.hour,
-          minute: r.minute,
-          dayOfWeek: r.dayOfWeek,
-          dayOfMonth: r.dayOfMonth,
-        ),
-      );
-      await ReminderNotificationService.schedule(updated);
-    } else {
+    if (r.isActive) {
+      await _repo.setActive(r.id, false);
       await ReminderNotificationService.cancel(r.id);
+      return;
     }
+    // Switching back on starts the schedule from now. The recomputed trigger
+    // is written to the row as well, not only handed to the alarm: the tile
+    // reads the row, and a stale one showed a date already gone.
+    final updated = r.copyWith(
+      isActive: true,
+      nextTrigger: r.nextTriggerAfter(DateTime.now()),
+    );
+    await _repo.update(updated);
+    await ReminderNotificationService.schedule(updated);
   }
 
   Future<void> delete(RecurringReminder r) async {

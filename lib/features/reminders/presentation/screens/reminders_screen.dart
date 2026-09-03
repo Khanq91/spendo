@@ -344,7 +344,10 @@ class _ReminderTile extends ConsumerWidget {
 String _subtitle(RecurringReminder reminder) {
   if (!reminder.isActive) return 'Đã tắt · ${reminder.scheduleDetail}';
 
-  final next = reminder.nextTrigger;
+  // The firing actually ahead, not the stored one: a row whose notification
+  // was swiped away keeps a trigger in the past until the next start-up
+  // catch-up, and this line must not read like a missed appointment.
+  final next = reminder.nextTriggerAfter(DateTime.now());
   final time =
       '${next.hour.toString().padLeft(2, '0')}:'
       '${next.minute.toString().padLeft(2, '0')}';

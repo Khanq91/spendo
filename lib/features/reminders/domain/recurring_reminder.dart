@@ -40,11 +40,38 @@ class RecurringReminder {
 
   /// Thời điểm gửi notification cảnh báo "sắp hết đồ".
   /// null nếu warnBeforeHours == 0 hoặc warn time đã qua.
-  DateTime? get warnTrigger {
+  DateTime? get warnTrigger => warnTriggerAfter(DateTime.now());
+
+  /// [warnTrigger] measured against [now], and against the firing that is
+  /// actually ahead of [now] — see [nextTriggerAfter]. Computing it from a
+  /// stale [nextTrigger] is what silently killed the warning: once the stored
+  /// trigger was in the past, the warn time was too, and it stayed null.
+  DateTime? warnTriggerAfter(DateTime now) {
     if (warnBeforeHours <= 0) return null;
-    final t = nextTrigger.subtract(Duration(hours: warnBeforeHours));
-    if (t.isBefore(DateTime.now())) return null;
+    final t = nextTriggerAfter(now).subtract(Duration(hours: warnBeforeHours));
+    if (t.isBefore(now)) return null;
     return t;
+  }
+
+  /// Whether the stored [nextTrigger] is already behind [now].
+  ///
+  /// The alarm itself keeps repeating — Android recomputes it from the
+  /// date-time components — but the row only advanced when the notification
+  /// was tapped. Swiped away or ignored, it stayed in the past.
+  bool isOverdueAt(DateTime now) => !nextTrigger.isAfter(now);
+
+  /// The first firing strictly after [now]: [nextTrigger] itself while it is
+  /// still ahead, otherwise the next one the schedule produces.
+  DateTime nextTriggerAfter(DateTime now) {
+    if (nextTrigger.isAfter(now)) return nextTrigger;
+    return calcNextTrigger(
+      frequency: frequency,
+      hour: hour,
+      minute: minute,
+      dayOfWeek: dayOfWeek,
+      dayOfMonth: dayOfMonth,
+      now: now,
+    );
   }
 
   factory RecurringReminder.fromMap(Map<String, dynamic> map) {
@@ -133,15 +160,16 @@ class RecurringReminder {
     return names[day.clamp(1, 7)];
   }
 
-  /// Tính nextTrigger kế tiếp từ thời điểm hiện tại
+  /// Tính nextTrigger kế tiếp từ [now] (mặc định: thời điểm hiện tại).
   static DateTime calcNextTrigger({
     required ReminderFrequency frequency,
     required int hour,
     required int minute,
     int? dayOfWeek,
     int? dayOfMonth,
+    DateTime? now,
   }) {
-    final now = DateTime.now();
+    now ??= DateTime.now();
     switch (frequency) {
       case ReminderFrequency.daily:
         var t = DateTime(now.year, now.month, now.day, hour, minute);

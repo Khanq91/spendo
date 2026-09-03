@@ -7,8 +7,42 @@ import '../../features/transactions/data/transaction_repository.dart';
 
 enum ExportRange { thisMonth, threeMonths, all }
 
+/// A wallet name as a file-name fragment: "Ví tiền mặt" → `vi_tien_mat`.
+///
+/// Vietnamese letters lose their marks, everything else non-alphanumeric
+/// collapses to one underscore, and the result is capped at 24 characters so
+/// the file name stays readable on every share target.
+String fileSlug(String name) {
+  final buffer = StringBuffer();
+  for (final rune in name.toLowerCase().runes) {
+    final char = String.fromCharCode(rune);
+    final marked = _markedLetters.indexOf(char);
+    buffer.write(marked < 0 ? char : _baseLetters[marked]);
+  }
+  final ascii = buffer
+      .toString()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+  if (ascii.isEmpty) return 'vi';
+  return ascii.length > 24 ? ascii.substring(0, 24) : ascii;
+}
+
+/// Every lower-case Vietnamese letter with a mark, and the base letter at the
+/// same index in [_baseLetters].
+const _markedLetters =
+    'àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ';
+const _baseLetters =
+    'aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd';
+
 class ExportService {
-  static Future<void> exportCSV(ExportRange range) async {
+  /// Writes the transactions in [range] to a CSV file and hands it to the
+  /// share sheet. With [walletId] only that wallet's rows go out, and the
+  /// file is named after it — the wallet page offers this from its menu.
+  static Future<void> exportCSV(
+    ExportRange range, {
+    String? walletId,
+    String? walletName,
+  }) async {
     final now = DateTime.now();
 
     DateTime? from;
@@ -22,7 +56,10 @@ class ExportService {
     }
 
     // lấy transactions
-    final txs = await TransactionRepository().getRange(from: from);
+    final txs = await TransactionRepository().getRange(
+      from: from,
+      walletId: walletId,
+    );
 
     // lấy categories để map tên
     final cats = await CategoryRepository().getByType(isIncome: false) +
@@ -47,8 +84,10 @@ class ExportService {
 
     // lưu file tạm
     final dir = await getTemporaryDirectory();
-    final fileName =
-        'spendo_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+    final stamp =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final scope = walletName == null ? '' : '_${fileSlug(walletName)}';
+    final fileName = 'spendo${scope}_$stamp.csv';
     final file = File('${dir.path}/$fileName');
     await file.writeAsString(csv);
 

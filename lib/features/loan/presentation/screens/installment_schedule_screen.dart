@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/notice/notice.dart';
@@ -200,6 +201,15 @@ class _InstallmentScheduleScreenState
     setState(() => _saving = true);
     final navigator = Navigator.of(context);
     try {
+      // The schedule arms instalment reminders as it is saved; make sure they
+      // are allowed to show. A refusal keeps the schedule — it is still the
+      // record of what is owed.
+      if (!await NotificationService.ensurePermission()) {
+        AppNotice.warning(
+          'Chưa có quyền thông báo — nhắc đợt trả sẽ không hiện. '
+          'Bật trong Cài đặt hệ thống.',
+        );
+      }
       await ref
           .read(loanRepoProvider)
           .replaceInstallments(widget.loan.id, _rows);

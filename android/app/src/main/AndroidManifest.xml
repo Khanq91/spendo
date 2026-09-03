@@ -2,6 +2,13 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <!-- The boot receiver below re-arms scheduled reminders after a restart;
+         without this permission Android never delivers BOOT_COMPLETED to it,
+         so every alarm was lost until the app was next opened. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Drive backup and the (flag-gated) cloud sync need the network. The
+         release build only had it merged in from google_sign_in; say so here. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:label="spendo"

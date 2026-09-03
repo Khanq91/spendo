@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
@@ -212,6 +213,16 @@ class _ReminderFormSheetState extends ConsumerState<ReminderFormSheet> {
           dayOfMonth: _dayOfMonth,
         ),
       );
+
+      // Only the daily-nudge switch ever asked for the permission; a reminder
+      // made on a fresh Android 13 install was scheduled and never shown. A
+      // refusal does not block the save — the row is still worth keeping.
+      if (reminder.isActive && !await NotificationService.ensurePermission()) {
+        AppNotice.warning(
+          'Chưa có quyền thông báo — nhắc nhở sẽ không hiện. '
+          'Bật trong Cài đặt hệ thống.',
+        );
+      }
 
       if (_isEdit) {
         await actions.update(reminder);

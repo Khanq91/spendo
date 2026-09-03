@@ -182,6 +182,27 @@ class NotificationService {
     return await android?.requestNotificationsPermission() ?? false;
   }
 
+  /// Asks for the notification permission where there is one to ask for, and
+  /// answers as if granted where there is not.
+  ///
+  /// Only an explicit refusal comes back `false`: below Android 13 the plugin
+  /// answers `null`, and without the plugin (tests) the channel throws —
+  /// neither is a reason to warn the user. Recurring reminders and instalment
+  /// schedules call this when they are created, because until now only the
+  /// daily-nudge switch ever asked, and a reminder made on a fresh Android 13
+  /// install simply never showed. The switch keeps [requestPermission], whose
+  /// strict answer is what it toggles on.
+  static Future<bool> ensurePermission() async {
+    try {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (android == null) return true;
+      return await android.requestNotificationsPermission() ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
   static Future<void> sendTestNotification() async {
     final scheduled =
     tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5));

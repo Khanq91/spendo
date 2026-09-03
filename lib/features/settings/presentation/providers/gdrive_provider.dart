@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../../../../core/services/gdrive_auth_service.dart';
+import '../../../../core/services/gdrive_background_backup.dart';
 import '../../../../core/services/gdrive_backup_service.dart';
 
 // ── Backup frequency enum ────────────────────────────────────────────────────
@@ -76,6 +77,10 @@ class GDriveState {
 const _kFrequencyKey = 'gdrive_backup_frequency';
 const _kLastBackupKey = 'gdrive_last_backup_time';
 
+/// WorkManager unique name of the periodic backup job. The data reset cancels
+/// it by the same literal (`reset_data_service.dart`).
+const _kPeriodicTaskId = 'autoGDriveBackupTask';
+
 // ── Provider ─────────────────────────────────────────────────────────────────
 
 final gdriveProvider = StateNotifierProvider<GDriveNotifier, GDriveState>(
@@ -124,6 +129,10 @@ class GDriveNotifier extends StateNotifier<GDriveState> {
         email: _auth.currentEmail,
         isLoading: false,
       );
+      // Signing out cancels the background job but keeps the frequency, so
+      // without this the page said "Hàng ngày" with nothing scheduled behind
+      // it until the user re-picked the frequency.
+      await _syncPeriodicTask(state.frequency);
     } else {
       state = state.copyWith(
         isLoading: false,
@@ -140,7 +149,7 @@ class GDriveNotifier extends StateNotifier<GDriveState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kLastBackupKey);
     // Cancel any scheduled tasks
-    await Workmanager().cancelByUniqueName('autoGDriveBackupTask');
+    await _syncPeriodicTask(BackupFrequency.none);
   }
 
   /// Manually trigger a backup now.
@@ -171,13 +180,23 @@ class GDriveNotifier extends StateNotifier<GDriveState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kFrequencyKey, freq.index);
 
-    // Update WorkManager task
-    if (freq == BackupFrequency.none) {
-      await Workmanager().cancelByUniqueName('autoGDriveBackupTask');
-    } else {
+    await _syncPeriodicTask(freq);
+  }
+
+  /// Registers or cancels the WorkManager job so it matches [freq].
+  ///
+  /// Shared by [setFrequency], [signIn] and [signOut] so the three cannot
+  /// drift. Best-effort: a missing plugin (tests) or a platform refusal must
+  /// not fail the sign-in it rides on — the app-open check still backs up.
+  Future<void> _syncPeriodicTask(BackupFrequency freq) async {
+    try {
+      if (freq == BackupFrequency.none) {
+        await Workmanager().cancelByUniqueName(_kPeriodicTaskId);
+        return;
+      }
       await Workmanager().registerPeriodicTask(
-        'autoGDriveBackupTask',
-        'autoGDriveBackup',
+        _kPeriodicTaskId,
+        autoGDriveBackupTaskName,
         frequency: freq.interval,
         constraints: Constraints(
           networkType: NetworkType.unmetered, // Require Wi-Fi
@@ -185,6 +204,8 @@ class GDriveNotifier extends StateNotifier<GDriveState> {
         ),
         existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
       );
+    } catch (e) {
+      debugPrint('[GDrive] WorkManager: $e');
     }
   }
 

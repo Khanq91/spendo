@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spendo/core/theme/app_theme.dart';
+import 'package:spendo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:spendo/features/settings/domain/sepay_bank_account.dart';
 import 'package:spendo/features/settings/presentation/providers/sepay_provider.dart';
 import 'package:spendo/features/settings/presentation/screens/bank_screen.dart';
@@ -40,11 +41,17 @@ const _wallets = [
   ),
 ];
 
-Widget _app(List<SepayBankAccount> accounts) {
+Widget _app(List<SepayBankAccount> accounts, {bool signedIn = true}) {
   return ProviderScope(
     overrides: [
       sepayAccountsProvider.overrideWith(() => _FakeSepay(accounts)),
       walletsProvider.overrideWith((ref) => Stream.value(_wallets)),
+      cloudEnabledProvider.overrideWithValue(true),
+      authUserProvider.overrideWith(
+        (ref) => Stream.value(
+          signedIn ? const SpendoAccount(id: 'u1', email: 'an@x.vn') : null,
+        ),
+      ),
     ],
     child: MaterialApp(
       theme: AppTheme.light(AppColorScheme.roseDefault),
@@ -110,6 +117,20 @@ void main() {
     expect(find.text('Nhập số tài khoản'), findsOneWidget);
     expect(find.text('Chưa chọn ngân hàng'), findsOneWidget);
     expect(find.text('Chưa chọn ví nhận giao dịch'), findsOneWidget);
+  });
+
+  testWidgets('signed out, the page asks for the account before anything', (
+    tester,
+  ) async {
+    // Without a session the mapping list could only be empty and the form
+    // could only fail with "Chưa đăng nhập" — so neither is offered.
+    await tester.pumpWidget(_app(const [], signedIn: false));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cần đăng nhập để liên kết'), findsOneWidget);
+    expect(find.text('Đăng nhập'), findsOneWidget);
+    expect(find.text('Thêm tài khoản'), findsNothing);
+    expect(find.text('Chưa liên kết tài khoản nào'), findsNothing);
   });
 
   testWidgets('the page fits a 360×640 screen', (tester) async {

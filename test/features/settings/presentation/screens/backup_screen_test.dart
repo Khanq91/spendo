@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendo/core/theme/app_theme.dart';
+import 'package:spendo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:spendo/features/settings/presentation/providers/gdrive_provider.dart';
 import 'package:spendo/features/settings/presentation/screens/backup_screen.dart';
 
@@ -15,9 +16,17 @@ class _FakeGDrive extends StateNotifier<GDriveState> implements GDriveNotifier {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Widget _app(GDriveState state) {
+Widget _app(
+  GDriveState state, {
+  bool cloud = false,
+  SpendoAccount? account,
+}) {
   return ProviderScope(
-    overrides: [gdriveProvider.overrideWith((ref) => _FakeGDrive(state))],
+    overrides: [
+      gdriveProvider.overrideWith((ref) => _FakeGDrive(state)),
+      cloudEnabledProvider.overrideWithValue(cloud),
+      authUserProvider.overrideWith((ref) => Stream.value(account)),
+    ],
     child: MaterialApp(
       theme: AppTheme.light(AppColorScheme.roseDefault),
       home: const BackupScreen(),
@@ -103,6 +112,42 @@ void main() {
     expect(find.text('Hàng ngày'), findsOneWidget);
     expect(find.text('Sao lưu ngay'), findsOneWidget);
     expect(find.text('Khôi phục từ Drive'), findsOneWidget);
+  });
+
+  testWidgets('with the cloud off there is no Spendo account section', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const GDriveState()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('TÀI KHOẢN SPENDO'), findsNothing);
+    expect(find.text('Đăng nhập tài khoản Spendo'), findsNothing);
+  });
+
+  testWidgets('with the cloud on, signed out, the section offers sign-in', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const GDriveState(), cloud: true));
+    await tester.pumpAndSettle();
+
+    expect(find.text('TÀI KHOẢN SPENDO'), findsOneWidget);
+    expect(find.text('Đăng nhập tài khoản Spendo'), findsOneWidget);
+  });
+
+  testWidgets('signed in, the section shows the account and a sign-out', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const GDriveState(),
+        cloud: true,
+        account: const SpendoAccount(id: 'u1', email: 'an@x.vn'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('an@x.vn'), findsOneWidget);
+    expect(find.byTooltip('Đăng xuất'), findsOneWidget);
   });
 
   testWidgets('the page fits a 360×640 screen', (tester) async {

@@ -11,7 +11,9 @@
 set -e
 
 DEVICE=""
-SCREENSHOT_DIR="screenshots"
+# Generated output only. The hand-curated captures live in screenshots/live_app
+# and must never sit under the folder this script wipes.
+SCREENSHOT_DIR="screenshots/generated"
 OUT_FILE="report.html"
 OPEN_BROWSER=true
 

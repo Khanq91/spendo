@@ -158,16 +158,47 @@ class CategoryRepository {
   }
 
   Future<void> delete(String id) async {
-    // Không xoá nếu còn giao dịch đang dùng category này
-    final usage = await _database.get(
-      'SELECT COUNT(*) as cnt FROM transactions WHERE category_id=?',
-      [id],
-    );
-    if ((usage['cnt'] as int) > 0) {
-      throw Exception('Danh mục đang được sử dụng, không thể xoá.');
+    // Anything still pointing at the category blocks the delete. The guard
+    // used to look at transactions only: a category with a recurring
+    // reminder and no transactions yet could go, leaving the reminder firing
+    // with a deep link into a grid tile that no longer existed, and its
+    // budget row orphaned for good.
+    final blocker = await _usageBlocker(id);
+    if (blocker != null) {
+      throw Exception('Danh mục $blocker, không thể xoá.');
     }
-    await _database.execute('DELETE FROM categories WHERE id=?', [id]);
+
+    await _database.writeTransaction((transaction) async {
+      // Habit suggestions are derived from transactions in this category;
+      // none can be left, so neither should the suggestions.
+      await transaction.execute(
+        'DELETE FROM detected_habits WHERE category_id=?',
+        [id],
+      );
+      await transaction.execute('DELETE FROM categories WHERE id=?', [id]);
+    });
 
     await WidgetSync.syncCategories();
+  }
+
+  /// What still holds the category, phrased for the error message, or null
+  /// when nothing does. Checked in the order the user is most likely to have
+  /// to go and clear it.
+  Future<String?> _usageBlocker(String id) async {
+    Future<int> count(String table) async {
+      final row = await _database.get(
+        'SELECT COUNT(*) as cnt FROM $table WHERE category_id=?',
+        [id],
+      );
+      return row['cnt'] as int;
+    }
+
+    final transactions = await count('transactions');
+    if (transactions > 0) return 'còn $transactions giao dịch';
+    final reminders = await count('recurring_reminders');
+    if (reminders > 0) return 'còn $reminders nhắc nhở';
+    final budgets = await count('category_budgets');
+    if (budgets > 0) return 'đang có hạn mức';
+    return null;
   }
 }

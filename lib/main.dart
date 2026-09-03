@@ -14,6 +14,7 @@ import 'core/db/powersync_db.dart';
 import 'core/notifications/loan_reschedule_service.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/reminder_notification_service.dart';
+import 'core/notifications/reminder_reschedule_service.dart';
 import 'core/services/gdrive_background_backup.dart';
 import 'core/theme/app_glass_policy.dart';
 import 'core/theme/theme_provider.dart';
@@ -122,16 +123,20 @@ Future<void> _initServices(
   report(0.0, 'Đang khởi động…');
   await Future.delayed(const Duration(milliseconds: 100));
 
-  // 1. Supabase
-  report(0.05, 'Đang kết nối máy chủ…');
-  await Supabase.initialize(
-    url: AppConfig.supabaseUrl,
-    anonKey: AppConfig.supabaseAnonKey,
-  );
+  // 1. Supabase — only with the cloud switched on (`AppConfig.cloudEnabled`).
+  // Off, nothing in the app reaches `Supabase.instance`, so there is nothing
+  // to initialise and no "máy chủ" step to show.
+  if (AppConfig.cloudEnabled) {
+    report(0.05, 'Đang kết nối máy chủ…');
+    await Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      anonKey: AppConfig.supabaseAnonKey,
+    );
+  }
 
   // 2. Local database
   report(0.35, 'Đang mở dữ liệu…');
-  await openDatabase();
+  await openDatabase(setupSync: AppConfig.cloudEnabled);
 
   // 3. Notifications
   report(0.65, 'Đang bật thông báo…');
@@ -143,8 +148,14 @@ Future<void> _initServices(
     final reminders = await ReminderRepository().getAll().timeout(
       const Duration(seconds: 5),
     );
-    await ReminderNotificationService.scheduleAll(
+    // A reminder that fired while the app was closed only moved its row on
+    // when the notification was tapped; bring the overdue ones forward first
+    // so the alarms below — the warn one especially — are set from real dates.
+    final current = await ReminderRescheduleService.catchUp(
       reminders,
+    ).timeout(const Duration(seconds: 5));
+    await ReminderNotificationService.scheduleAll(
+      current,
     ).timeout(const Duration(seconds: 5));
   } catch (e) {
     debugPrint('[Init] Reminder scheduling error: $e');

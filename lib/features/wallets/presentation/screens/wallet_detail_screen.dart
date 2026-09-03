@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/export_service.dart';
 import '../../../../core/utils/wallet_icons.dart';
 import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/domain/period.dart';
@@ -107,6 +108,7 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
                 ),
                 _WalletMenu(
                   wallet: wallet,
+                  onExport: () => _exportCsv(wallet),
                   onArchive: () => _toggleArchive(wallet),
                   onDelete: () => _delete(wallet),
                 ),
@@ -213,6 +215,22 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
     return all.where((w) => w.id == widget.walletId).firstOrNull;
   }
 
+  /// The whole history of this one wallet as CSV, through the share sheet.
+  /// The Sao lưu page exports everything; per-wallet lives here, next to
+  /// the wallet.
+  Future<void> _exportCsv(Wallet wallet) async {
+    try {
+      await ExportService.exportCSV(
+        ExportRange.all,
+        walletId: wallet.id,
+        walletName: wallet.name,
+      );
+      AppNotice.success('Đã tạo file CSV cho ${wallet.name}.');
+    } catch (error) {
+      AppNotice.error('Không xuất được CSV. Thử lại.');
+    }
+  }
+
   Future<void> _toggleArchive(Wallet wallet) async {
     final navigator = Navigator.of(context);
     final repo = WalletRepository();
@@ -276,11 +294,13 @@ class _WalletDetailScreenState extends ConsumerState<WalletDetailScreen> {
 class _WalletMenu extends StatelessWidget {
   const _WalletMenu({
     required this.wallet,
+    required this.onExport,
     required this.onArchive,
     required this.onDelete,
   });
 
   final Wallet wallet;
+  final VoidCallback onExport;
   final VoidCallback onArchive;
   final VoidCallback onDelete;
 
@@ -293,9 +313,22 @@ class _WalletMenu extends StatelessWidget {
       icon: const Icon(LucideIcons.ellipsisVertical, size: 20),
       constraints: const BoxConstraints.tightFor(width: 44, height: 44),
       padding: EdgeInsets.zero,
-      onSelected: (value) =>
-          value == 'archive' ? onArchive() : onDelete(),
+      onSelected: (value) => switch (value) {
+        'export' => onExport(),
+        'archive' => onArchive(),
+        _ => onDelete(),
+      },
       itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'export',
+          child: Row(
+            children: [
+              Icon(LucideIcons.fileDown, size: 18, color: cs.onSurfaceVariant),
+              const SizedBox(width: 12),
+              const Text('Xuất CSV'),
+            ],
+          ),
+        ),
         PopupMenuItem(
           value: 'archive',
           child: Row(

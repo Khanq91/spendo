@@ -135,6 +135,79 @@ void main() {
       expect(await database.getAll('SELECT id FROM categories'), hasLength(2));
     },
   );
+
+  group('delete guard', () {
+    Future<void> seedCategory() => database.execute('''INSERT INTO categories(
+      id, name, color_hex, icon_name, is_default, is_income, sort_order
+    ) VALUES('pets', 'Thú cưng', '#111111', 'pets', 0, 0, 0)''');
+
+    Future<void> seedReminder() => database.execute('''INSERT INTO recurring_reminders(
+      id, title, category_id, amount_hint, frequency, day_of_week,
+      day_of_month, hour, minute, is_active, next_trigger, warn_before_hours
+    ) VALUES(
+      'reminder-1', 'Cát mèo', 'pets', NULL, 'monthly', NULL,
+      5, 20, 0, 1, '2026-09-05T20:00:00.000', 0
+    )''');
+
+    test('a recurring reminder blocks the delete, and is named', () async {
+      // The guard used to count transactions only, so this category could go
+      // and leave the reminder deep-linking into a tile that no longer existed.
+      await seedCategory();
+      await seedReminder();
+
+      await expectLater(
+        CategoryRepository(database: database).delete('pets'),
+        throwsA(
+          predicate((e) => e.toString().contains('còn 1 nhắc nhở')),
+        ),
+      );
+      expect(await database.getAll('SELECT id FROM categories'), hasLength(1));
+    });
+
+    test('a per-category budget blocks the delete', () async {
+      await seedCategory();
+      await database.execute(
+        "INSERT INTO category_budgets(id, category_id, amount) VALUES('budget-1', 'pets', '500000')",
+      );
+
+      await expectLater(
+        CategoryRepository(database: database).delete('pets'),
+        throwsA(predicate((e) => e.toString().contains('đang có hạn mức'))),
+      );
+      expect(await database.getAll('SELECT id FROM categories'), hasLength(1));
+    });
+
+    test('transactions are reported ahead of anything else', () async {
+      await seedCategory();
+      await seedReminder();
+      await database.execute(
+        '''INSERT INTO transactions(
+      id, amount, type, category_id, note, created_at, wallet_id, source
+    ) VALUES('transaction-1', '1000', 'expense', 'pets', NULL, '1', NULL, 'manual')''',
+      );
+
+      await expectLater(
+        CategoryRepository(database: database).delete('pets'),
+        throwsA(predicate((e) => e.toString().contains('còn 1 giao dịch'))),
+      );
+    });
+
+    test('an unused category goes, and takes its habit suggestions', () async {
+      await seedCategory();
+      await database.execute('''INSERT INTO detected_habits(
+      id, keyword, category_id, median_gap_days, last_occurrence,
+      occurrence_count, is_dismissed, analyzed_at
+    ) VALUES(
+      'habit-1', 'cát mèo', 'pets', 30, '2026-08-01T00:00:00.000',
+      3, 0, '2026-09-01T00:00:00.000'
+    )''');
+
+      await CategoryRepository(database: database).delete('pets');
+
+      expect(await database.getAll('SELECT id FROM categories'), isEmpty);
+      expect(await database.getAll('SELECT id FROM detected_habits'), isEmpty);
+    });
+  });
 }
 
 class _TestPowerSyncOpenFactory extends PowerSyncOpenFactory {

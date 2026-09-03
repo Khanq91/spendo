@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendo/core/theme/app_theme.dart';
+import 'package:spendo/features/auth/presentation/providers/auth_provider.dart';
 import 'package:spendo/features/categories/domain/category.dart';
 import 'package:spendo/features/categories/presentation/providers/category_provider.dart';
 import 'package:spendo/features/loan/domain/loan.dart';
@@ -68,7 +69,9 @@ final _trackingLoans = [
 /// Records where the hub pushed to, without needing the real screens.
 late String? lastRoute;
 
-Widget _app(List<Override> overrides) {
+/// The cloud flag is on by default here so the hub is exercised in full;
+/// `cloudEnabled: false` is what the shipped build looks like today.
+Widget _app(List<Override> overrides, {bool cloudEnabled = true}) {
   lastRoute = null;
   final router = GoRouter(
     initialLocation: '/settings',
@@ -107,6 +110,8 @@ Widget _app(List<Override> overrides) {
         (ref) => Stream.value(const <RecurringReminder>[]),
       ),
       sepayAccountsProvider.overrideWith(SepayAccountsNotifier.new),
+      cloudEnabledProvider.overrideWithValue(cloudEnabled),
+      authUserProvider.overrideWith((ref) => Stream.value(null)),
       ...overrides,
     ],
     child: MaterialApp.router(
@@ -212,5 +217,35 @@ void main() {
     expect(find.text('Thông báo'), findsOneWidget);
     expect(find.textContaining('Your money, clearly.'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('with the cloud off, the bank row is not there at all', (
+    tester,
+  ) async {
+    // The shipped build: no account to link a bank to, so no dead entry.
+    await tester.pumpWidget(_app(const [], cloudEnabled: false));
+    await tester.pump();
+
+    expect(find.text('Ngân hàng tự động'), findsNothing);
+    expect(find.text('Sao lưu & đồng bộ'), findsOneWidget);
+  });
+
+  testWidgets('with the cloud on but no session, the bank row says so', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const []));
+    await tester.pump();
+
+    expect(find.text('Ngân hàng tự động'), findsOneWidget);
+    expect(find.text('Cần đăng nhập'), findsOneWidget);
+  });
+
+  testWidgets('the hub is a tab, so it carries no back arrow', (tester) async {
+    // The shared header always drew one; on the Settings tab there was
+    // nothing to pop, and the arrow did nothing.
+    await tester.pumpWidget(_app(const []));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Quay lại'), findsNothing);
   });
 }

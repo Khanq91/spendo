@@ -1,6 +1,6 @@
 param(
   [string]$EmulatorName = "pixel_9_pro",
-  [string]$Dir = "screenshots",
+  [string]$Dir = "screenshots/generated",
   [string]$Out = "report.html",
   [int]$BootTimeoutSeconds = 180,
   [switch]$NoOpen

@@ -119,7 +119,12 @@ class _TransactionDetailSheetState
     Navigator.of(context).pop();
     showAddTransactionSheet(
       context,
+      // Type and wallet travel too: the sheet opens on Chi by default, so an
+      // income's category was not in its grid and it fell back to the first
+      // expense one — a duplicated salary came out as an expense, in no wallet.
+      initialIsExpense: _transaction.isExpense,
       preselectedCategoryId: _transaction.categoryId,
+      preselectedWalletId: _transaction.walletId,
       prefillNote: _transaction.note,
       prefillAmount: _transaction.amount,
     );

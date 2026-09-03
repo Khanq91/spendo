@@ -184,7 +184,7 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
       _titleFocus.requestFocus();
       return;
     }
-    if (!_amountCtrl.hasValue) return;
+    if (!_isEdit && !_amountCtrl.hasValue) return;
 
     setState(() => _saving = true);
     final navigator = Navigator.of(context);
@@ -196,8 +196,9 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
       final loan = Loan(
         id: existing?.id ?? '',
         title: title,
-        type: _type,
-        principal: _amountCtrl.value,
+        // Locked on an edit — see the type control in `build`.
+        type: existing?.type ?? _type,
+        principal: existing?.principal ?? _amountCtrl.value,
         contactName: contact,
         startDate: _startDate,
         dueDate: _dueDate,
@@ -260,7 +261,7 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
           builder: (_, __) => SpendoButton(
             label: 'Lưu',
             busy: _saving,
-            onPressed: _amountCtrl.hasValue ? _submit : null,
+            onPressed: _isEdit || _amountCtrl.hasValue ? _submit : null,
           ),
         ),
       ),
@@ -282,16 +283,32 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
                   ),
                   const SizedBox(height: 10),
                 ],
-                SpendoSegmented<LoanType>(
-                  value: _type,
-                  onChanged: (next) => setState(() => _type = next),
-                  expand: true,
-                  height: 34,
-                  options: const [
-                    (value: LoanType.borrowed, label: 'Tôi đang vay'),
-                    (value: LoanType.lent, label: 'Tôi cho vay'),
-                  ],
-                ),
+                // Type and principal are fixed once the loan exists (PLAN
+                // review-t9-2026 §2.1): the funding transaction, the payments
+                // and the schedule were all written from them, and `update`
+                // touches none of those — flipping either here used to leave
+                // the wallet and the waterfall disagreeing with the loan.
+                if (_isEdit)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SpendoChip.meta(
+                      label: _type == LoanType.borrowed
+                          ? 'Tôi đang vay'
+                          : 'Tôi cho vay',
+                      icon: LucideIcons.lock,
+                    ),
+                  )
+                else
+                  SpendoSegmented<LoanType>(
+                    value: _type,
+                    onChanged: (next) => setState(() => _type = next),
+                    expand: true,
+                    height: 34,
+                    options: const [
+                      (value: LoanType.borrowed, label: 'Tôi đang vay'),
+                      (value: LoanType.lent, label: 'Tôi cho vay'),
+                    ],
+                  ),
                 if (!_isEdit) ...[
                   const SizedBox(height: 10),
                   // Only offered when creating: changing a live loan's mode
@@ -404,30 +421,45 @@ class _LoanFormSheetState extends ConsumerState<LoanFormSheet> {
                         ),
                       ),
                     ),
+                    if (_isEdit)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Loại và tiền gốc cố định sau khi tạo — '
+                          'xoá tạo lại nếu cần.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
             ),
           ),
-          if (!keyboardOpen)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: ListenableBuilder(
-                listenable: _amountCtrl,
-                builder: (_, __) => SpendoNumpad(
-                  onKey: _amountCtrl.press,
-                  onLongPressDelete: _amountCtrl.reset,
+          // No keypad on an edit: the principal is read-only there.
+          if (!_isEdit)
+            if (!keyboardOpen)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: ListenableBuilder(
+                  listenable: _amountCtrl,
+                  builder: (_, __) => SpendoNumpad(
+                    onKey: _amountCtrl.press,
+                    onLongPressDelete: _amountCtrl.reset,
+                  ),
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'Đóng bàn phím để nhập số tiền',
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
               ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Text(
-                'Đóng bàn phím để nhập số tiền',
-                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-              ),
-            ),
         ],
       ),
     );

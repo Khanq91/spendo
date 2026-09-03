@@ -1,6 +1,8 @@
 param(
   [string]$Device = "",
-  [string]$Dir = "screenshots",
+  # Generated output only. The hand-curated captures live in
+  # screenshots/live_app and must never be under the folder this script wipes.
+  [string]$Dir = "screenshots/generated",
   [string]$Out = "report.html",
   [switch]$NoOpen
 )

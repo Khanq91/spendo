@@ -4,13 +4,20 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/services/gdrive_backup_service.dart';
+import '../../../../core/services/restore_followup.dart';
 import '../../../../core/theme/spendo_colors.dart';
 import '../../../../core/utils/backup_service.dart';
 import '../../../../core/utils/export_service.dart';
 import '../../../../shared/widgets/notice/notice.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/presentation/widgets/sign_in_sheet.dart';
+import '../../../budget/presentation/providers/category_budget_provider.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
+import '../../../loan/presentation/providers/loan_provider.dart';
+import '../../../reminders/presentation/providers/reminder_provider.dart';
 import '../../../transactions/presentation/providers/transaction_provider.dart';
+import '../../../wallets/presentation/providers/wallet_provider.dart';
 import '../providers/gdrive_provider.dart';
 
 /// Screen 21 of the redesign — `/settings/backup`.
@@ -64,6 +71,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   _StatusCard(state: drive),
                   const _Label('GOOGLE DRIVE'),
                   _driveGroup(drive),
+                  // The Spendo account only exists with the cloud switched
+                  // on; off, the page is Drive and local files, as before.
+                  if (ref.watch(cloudEnabledProvider)) ...[
+                    const _Label('TÀI KHOẢN SPENDO'),
+                    _accountGroup(ref.watch(authUserProvider).valueOrNull),
+                  ],
                   const _Label('FILE CỤC BỘ & BÁO CÁO'),
                   _localGroup(),
                   if (_busy)
@@ -78,6 +91,71 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         ),
       ),
     );
+  }
+
+  // ── Spendo account (cloud flag) ────────────────────────────────────────────
+
+  Widget _accountGroup(SpendoAccount? user) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SpendoSettingsGroup(
+        children: [
+          if (user == null)
+            SpendoSettingsRow(
+              icon: LucideIcons.userRound,
+              label: 'Đăng nhập tài khoản Spendo',
+              subtitle: 'Đồng bộ giữa các máy · mở liên kết ngân hàng',
+              enabled: !_busy,
+              onTap: () => showSignInSheet(context),
+            )
+          else
+            SpendoSettingsRow(
+              icon: LucideIcons.userRoundCheck,
+              label: user.email ?? 'Đã đăng nhập',
+              subtitle: 'Đang đồng bộ đám mây',
+              enabled: !_busy,
+              showChevron: false,
+              trailing: SpendoHeaderIconButton(
+                icon: LucideIcons.logOut,
+                tooltip: 'Đăng xuất',
+                onPressed: _busy ? () {} : _confirmAccountSignOut,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmAccountSignOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Đăng xuất tài khoản Spendo?'),
+        // The local database is not scoped per account (audit SEC-001): the
+        // rows stay on the device, and sync simply stops.
+        content: const Text(
+          'Dữ liệu trên máy vẫn còn, chỉ dừng đồng bộ đám mây và liên kết '
+          'ngân hàng.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Huỷ'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Đăng xuất'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(authActionsProvider).signOut();
+      _snack('Đã đăng xuất.', kind: NoticeKind.info);
+    } catch (error) {
+      _snack('Không đăng xuất được: ${authErrorMessage(error)}');
+    }
   }
 
   // ── Drive ──────────────────────────────────────────────────────────────────
@@ -324,8 +402,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         chosen.fileId,
       );
       _setBusy(null);
-      _refreshData();
-      _snack(_restoredMessage(result));
+      await _refreshData();
+      _snack(_restoredMessage(result), kind: NoticeKind.success);
     } catch (error) {
       _setBusy(null);
       _snack('Lỗi khôi phục: $error');
@@ -350,7 +428,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         if (result.loanInstallments > 0)
           '${result.loanInstallments} đợt trả góp',
       ];
-      _snack('Đã xuất ${parts.join(', ')}');
+      _snack('Đã xuất ${parts.join(', ')}', kind: NoticeKind.success);
     } catch (error) {
       _setBusy(null);
       _snack('Lỗi xuất backup: $error');
@@ -391,8 +469,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     try {
       final result = await BackupService.restore(filePath);
       _setBusy(null);
-      _refreshData();
-      _snack(_restoredMessage(result));
+      await _refreshData();
+      _snack(_restoredMessage(result), kind: NoticeKind.success);
     } catch (error) {
       _setBusy(null);
       _snack('Lỗi khôi phục: $error');
@@ -435,6 +513,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     try {
       await ExportService.exportCSV(range);
       _setBusy(null);
+      _snack('Đã tạo file CSV.', kind: NoticeKind.success);
     } catch (error) {
       _setBusy(null);
       _snack('Lỗi xuất file: $error');
@@ -448,9 +527,17 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     );
   }
 
-  void _refreshData() {
+  /// Everything a restore has to re-derive: the streams the pages watch, and
+  /// — until now missing — the alarms and the widget, which only got rebuilt
+  /// on the next cold start.
+  Future<void> _refreshData() async {
     ref.invalidate(transactionsProvider);
     ref.invalidate(categoriesProvider);
+    ref.invalidate(walletsProvider);
+    ref.invalidate(loansProvider);
+    ref.invalidate(remindersProvider);
+    ref.invalidate(categoryBudgetsProvider);
+    await runRestoreFollowUp();
   }
 
   String _restoredMessage(RestoreResult result) {

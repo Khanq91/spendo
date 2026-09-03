@@ -56,64 +56,78 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final visualMode = ref.watch(visualModeProvider);
     final isFancy = visualMode == AppVisualMode.fancy;
-    final index = ref.watch(shellTabProvider).index;
+    final tab = ref.watch(shellTabProvider);
+    final index = tab.index;
     // Settings has no "add transaction" affordance.
     final showFab = index != ShellTab.settings.index;
 
-    return Scaffold(
-      // Both bars float now, so every tab scrolls under the gap around them
-      // and reads the bar's height back as MediaQuery bottom padding.
-      extendBody: true,
-      body: Stack(
-        children: [
-          if (isFancy) const Positioned.fill(child: ParticleThemeBackground()),
-          Theme(
-            data: isFancy
-                ? Theme.of(context).copyWith(
-                    scaffoldBackgroundColor: Colors.transparent,
-                    canvasColor: Colors.transparent,
-                  )
-                : Theme.of(context),
-            child: IndexedStack(
-              index: index,
-              children: List.generate(
-                _screens.length,
-                (i) => TickerMode(enabled: index == i, child: _screens[i]),
+    return PopScope(
+      // The system back on any tab used to leave the app: the shell is one
+      // route and the tabs are an IndexedStack. Back now returns to Home
+      // first, and only leaves from there — the convention on Android.
+      canPop: tab == ShellTab.home,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) ref.read(shellTabProvider.notifier).state = ShellTab.home;
+      },
+      child: Scaffold(
+        // Both bars float now, so every tab scrolls under the gap around them
+        // and reads the bar's height back as MediaQuery bottom padding.
+        extendBody: true,
+        body: Stack(
+          children: [
+            if (isFancy)
+              const Positioned.fill(child: ParticleThemeBackground()),
+            Theme(
+              data:
+                  isFancy
+                      ? Theme.of(context).copyWith(
+                        scaffoldBackgroundColor: Colors.transparent,
+                        canvasColor: Colors.transparent,
+                      )
+                      : Theme.of(context),
+              child: IndexedStack(
+                index: index,
+                children: List.generate(
+                  _screens.length,
+                  (i) => TickerMode(enabled: index == i, child: _screens[i]),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: isFancy
-          ? _FancySpendoNavBar(selectedIndex: index, onTap: _selectTab)
-          : SpendoBottomNav(
-              destinations: SpendoBottomNav.spendoDestinations,
-              selectedIndex: index,
-              onSelected: _selectTab,
-            ),
-      floatingActionButton: showFab
-          ? (isFancy
-                ? PressableScale(
-                    deferTapToChild: true,
-                    child: RepaintBoundary(
-                      child: GlassButton(
-                        key: const Key('spendo_fab_add_transaction'),
-                        icon: const Icon(LucideIcons.plus),
-                        iconSize: 28,
-                        useOwnLayer: true,
-                        quality: AppGlassPolicy.interactiveQuality,
-                        width: 56,
-                        height: 56,
-                        onTap: _showAddTransactionSheet,
+          ],
+        ),
+        bottomNavigationBar:
+            isFancy
+                ? _FancySpendoNavBar(selectedIndex: index, onTap: _selectTab)
+                : SpendoBottomNav(
+                  destinations: SpendoBottomNav.spendoDestinations,
+                  selectedIndex: index,
+                  onSelected: _selectTab,
+                ),
+        floatingActionButton:
+            showFab
+                ? (isFancy
+                    ? PressableScale(
+                      deferTapToChild: true,
+                      child: RepaintBoundary(
+                        child: GlassButton(
+                          key: const Key('spendo_fab_add_transaction'),
+                          icon: const Icon(LucideIcons.plus),
+                          iconSize: 28,
+                          useOwnLayer: true,
+                          quality: AppGlassPolicy.interactiveQuality,
+                          width: 56,
+                          height: 56,
+                          onTap: _showAddTransactionSheet,
+                        ),
                       ),
-                    ),
-                  )
-                : SpendoFab(
-                    key: const Key('spendo_fab_add_transaction'),
-                    heroTag: 'global_fab',
-                    onPressed: _showAddTransactionSheet,
-                  ))
-          : null,
+                    )
+                    : SpendoFab(
+                      key: const Key('spendo_fab_add_transaction'),
+                      heroTag: 'global_fab',
+                      onPressed: _showAddTransactionSheet,
+                    ))
+                : null,
+      ),
     );
   }
 

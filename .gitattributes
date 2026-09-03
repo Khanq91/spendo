@@ -1,0 +1,11 @@
+# Normalise line endings in the repository; check out native on each OS.
+* text=auto
+
+# Binary media — no diff, no EOL conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.mp4 binary
+*.ttf binary
+*.jks binary

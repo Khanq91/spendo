@@ -129,8 +129,9 @@ class _CategoryList extends ConsumerWidget {
             padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: _Hint(
               text:
-                  'Danh mục còn giao dịch không xoá được. Kéo ☰ để đổi thứ tự '
-                  '— thứ tự này là thứ tự trong lưới Thêm giao dịch.',
+                  'Danh mục còn giao dịch, nhắc nhở hoặc hạn mức không xoá '
+                  'được. Kéo ☰ để đổi thứ tự — thứ tự này là thứ tự trong '
+                  'lưới Thêm giao dịch.',
             ),
           );
         }
@@ -260,7 +261,13 @@ class _CategoryTile extends ConsumerWidget {
       key: ValueKey('dismiss_${category.id}'),
       direction: DismissDirection.endToStart,
       background: const _DeleteBackground(),
-      onDismissed: (_) => _deleteWithUndo(context, ref, category),
+      // The delete runs before the row goes: the count only covers
+      // transactions, so a category still held by a reminder or a budget is
+      // swipeable here and refused by the repository. Deleting in
+      // `onDismissed` would drop the row and then have the stream put it
+      // back — Flutter flags a dismissed Dismissible still in the tree.
+      confirmDismiss: (_) => _tryDelete(ref, category),
+      onDismissed: (_) => _offerUndo(ref, category),
       child: row,
     );
   }
@@ -292,22 +299,24 @@ Future<void> deleteCategoryWithUndo(
   BuildContext context,
   WidgetRef ref,
   Category category,
-) => _deleteWithUndo(context, ref, category);
-
-Future<void> _deleteWithUndo(
-  BuildContext context,
-  WidgetRef ref,
-  Category category,
 ) async {
-  final repo = ref.read(categoryRepoProvider);
+  if (await _tryDelete(ref, category)) _offerUndo(ref, category);
+}
 
+/// Deletes [category], or explains why it cannot be and answers false — the
+/// repository names what still holds it ("còn 2 nhắc nhở").
+Future<bool> _tryDelete(WidgetRef ref, Category category) async {
   try {
-    await repo.delete(category.id);
+    await ref.read(categoryRepoProvider).delete(category.id);
+    return true;
   } catch (error) {
     AppNotice.error(error.toString().replaceAll('Exception: ', ''));
-    return;
+    return false;
   }
+}
 
+void _offerUndo(WidgetRef ref, Category category) {
+  final repo = ref.read(categoryRepoProvider);
   AppNotice.undo(
     'Đã xoá "${category.name}"',
     onUndo: () async {

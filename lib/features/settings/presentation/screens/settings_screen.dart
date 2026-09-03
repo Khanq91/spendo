@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/notifications/notification_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../shared/widgets/spendo/spendo.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../loan/presentation/providers/loan_provider.dart';
 import '../../../reminders/presentation/providers/reminder_provider.dart';
@@ -35,7 +36,8 @@ class SettingsScreen extends ConsumerWidget {
         bottom: false,
         child: Column(
           children: [
-            const SpendoScreenHeader(title: 'Cài đặt'),
+            // A shell tab, not a pushed route: nothing to go back to.
+            const SpendoScreenHeader(title: 'Cài đặt', showBack: false),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.only(bottom: bottomPadding),
@@ -106,7 +108,13 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _connectionGroup(BuildContext context, WidgetRef ref) {
     final drive = ref.watch(gdriveProvider);
-    final accounts = ref.watch(sepayAccountsProvider).valueOrNull;
+    // The bank link rides on the cloud account: no cloud, no row; cloud but
+    // no session, the row says so instead of a list that can only be empty.
+    final cloud = ref.watch(cloudEnabledProvider);
+    final user = cloud ? ref.watch(authUserProvider).valueOrNull : null;
+    final accounts = user == null
+        ? null
+        : ref.watch(sepayAccountsProvider).valueOrNull;
     final pinned = ref
         .watch(widgetPinnedIdsProvider)
         .where((id) => id.isNotEmpty)
@@ -120,16 +128,19 @@ class SettingsScreen extends ConsumerWidget {
           trailingText: _backupSummary(drive),
           onTap: () => context.push('/settings/backup'),
         ),
-        SpendoSettingsRow(
-          icon: LucideIcons.landmark,
-          label: 'Ngân hàng tự động',
-          trailingText: accounts == null
-              ? null
-              : accounts.isEmpty
-              ? 'Chưa bật'
-              : '${accounts.length} tài khoản',
-          onTap: () => context.push('/settings/bank'),
-        ),
+        if (cloud)
+          SpendoSettingsRow(
+            icon: LucideIcons.landmark,
+            label: 'Ngân hàng tự động',
+            trailingText: user == null
+                ? 'Cần đăng nhập'
+                : accounts == null
+                ? null
+                : accounts.isEmpty
+                ? 'Chưa bật'
+                : '${accounts.length} tài khoản',
+            onTap: () => context.push('/settings/bank'),
+          ),
         SpendoSettingsRow(
           icon: LucideIcons.smartphone,
           label: 'Widget màn hình chính',

@@ -15,6 +15,7 @@ class SpendoScreenHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.onBack,
+    this.showBack = true,
     this.actions = const [],
   });
 
@@ -22,6 +23,10 @@ class SpendoScreenHeader extends StatelessWidget {
 
   /// Defaults to popping the route.
   final VoidCallback? onBack;
+
+  /// False on a screen that is a shell tab rather than a pushed route — there
+  /// is nothing to pop, so the arrow was a dead control on the Settings tab.
+  final bool showBack;
 
   /// Trailing widgets — icon buttons, or a [SpendoPeriodStepper].
   final List<Widget> actions;
@@ -34,12 +39,13 @@ class SpendoScreenHeader extends StatelessWidget {
       height: 52,
       child: Row(
         children: [
-          const SizedBox(width: 4),
-          SpendoHeaderIconButton(
-            icon: LucideIcons.arrowLeft,
-            tooltip: 'Quay lại',
-            onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-          ),
+          SizedBox(width: showBack ? 4 : 16),
+          if (showBack)
+            SpendoHeaderIconButton(
+              icon: LucideIcons.arrowLeft,
+              tooltip: 'Quay lại',
+              onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+            ),
           // The title yields to the actions: a period stepper needs its full
           // width to stay legible, while a long screen name can ellipsize.
           Flexible(

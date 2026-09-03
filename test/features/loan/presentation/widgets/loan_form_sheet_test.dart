@@ -150,4 +150,36 @@ void main() {
     expect(find.text('Trả tự do'), findsNothing);
     expect(find.text('Trả theo đợt'), findsNothing);
   });
+
+  testWidgets('editing locks the type and the principal', (tester) async {
+    // Both were editable, and `update` only rewrites the loans row: the
+    // funding transaction, the payments and the schedule kept the old values,
+    // so the wallet and the waterfall stopped agreeing with the loan.
+    await _pump(
+      tester,
+      existing: Loan(
+        id: 'l1',
+        title: 'Cho Bình mượn',
+        type: LoanType.lent,
+        principal: 5000000,
+        contactName: 'Bình',
+        startDate: DateTime(2026, 8),
+        colorHex: '#FF6B6B',
+        isClosed: false,
+      ),
+    );
+
+    // The type reads back as a label, not a control; there is no keypad.
+    expect(find.text('Tôi cho vay'), findsOneWidget);
+    expect(find.text('Tôi đang vay'), findsNothing);
+    expect(find.byType(SpendoSegmented<LoanType>), findsNothing);
+    expect(find.byType(SpendoNumpad), findsNothing);
+    expect(find.text('5.000.000 ₫'), findsOneWidget);
+    expect(find.textContaining('cố định sau khi tạo'), findsOneWidget);
+    // Saving stays possible without a keypad entry.
+    expect(
+      tester.widget<SpendoButton>(find.byType(SpendoButton)).onPressed,
+      isNotNull,
+    );
+  });
 }

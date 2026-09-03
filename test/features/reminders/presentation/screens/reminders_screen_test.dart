@@ -23,19 +23,35 @@ const _categories = [
   ),
 ];
 
-RecurringReminder _reminder({bool active = true, int? amountHint = 300000}) =>
-    RecurringReminder(
-      id: 'r1',
-      title: 'Tiền điện',
-      categoryId: 'bills',
-      amountHint: amountHint,
-      frequency: ReminderFrequency.monthly,
-      dayOfMonth: 5,
-      hour: 20,
-      minute: 0,
-      isActive: active,
-      nextTrigger: DateTime(2026, 9, 5, 20),
-    );
+/// Two days from now at 20:00 — ahead of the clock whenever the suite runs,
+/// so the "Lần tới" line is asserted against a live date, not a fixed one.
+final _ahead = () {
+  final day = DateTime.now().add(const Duration(days: 2));
+  return DateTime(day.year, day.month, day.day, 20);
+}();
+
+const _weekdays = ['', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+
+String _nextLine(DateTime next) =>
+    'Lần tới: ${_weekdays[next.weekday]}, ${next.day}/${next.month} · '
+    '${next.hour.toString().padLeft(2, '0')}:00';
+
+RecurringReminder _reminder({
+  bool active = true,
+  int? amountHint = 300000,
+  DateTime? nextTrigger,
+}) => RecurringReminder(
+  id: 'r1',
+  title: 'Tiền điện',
+  categoryId: 'bills',
+  amountHint: amountHint,
+  frequency: ReminderFrequency.monthly,
+  dayOfMonth: 5,
+  hour: 20,
+  minute: 0,
+  isActive: active,
+  nextTrigger: nextTrigger ?? _ahead,
+);
 
 ProviderContainer _container({
   List<RecurringReminder>? reminders,
@@ -82,11 +98,29 @@ void main() {
     expect(tester.takeException(), isNull);
     // The audit found the tile showing only the recurrence rule; the next
     // trigger and the amount were both in the model and both hidden.
-    expect(
-      find.text('Lần tới: Thứ 7, 5/9 · 20:00 · ~300.000 ₫'),
-      findsOneWidget,
-    );
+    expect(find.text('${_nextLine(_ahead)} · ~300.000 ₫'), findsOneWidget);
     expect(find.text('Ghi ngay'), findsOneWidget);
+  });
+
+  testWidgets('a row whose trigger already passed shows the next firing', (
+    tester,
+  ) async {
+    // Swiped-away notifications never advanced the row, and the tile read
+    // "Lần tới" with a date already gone.
+    final stale = DateTime(2026, 8, 5, 20);
+    final container = _container(reminders: [_reminder(nextTrigger: stale)]);
+    addTearDown(container.dispose);
+
+    await _pump(tester, container);
+
+    final next = RecurringReminder.calcNextTrigger(
+      frequency: ReminderFrequency.monthly,
+      hour: 20,
+      minute: 0,
+      dayOfMonth: 5,
+    );
+    expect(find.text('${_nextLine(next)} · ~300.000 ₫'), findsOneWidget);
+    expect(find.textContaining('5/8'), findsNothing);
   });
 
   testWidgets('a switched-off reminder says so and drops Ghi ngay', (
