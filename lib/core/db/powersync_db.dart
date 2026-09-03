@@ -32,7 +32,16 @@ Future<void> openDatabase({
   if (setupSync) {
     await _setupSync();
   }
-  await _seedDefaultCategoriesIfNeeded();
+  await _seedDefaultCategoriesIfNeeded(db);
+}
+
+/// Wipes every local table — synced and local-only alike — and puts the
+/// default categories back, so the app starts over as on first install.
+/// The database stays open; the caller resets the rest of the app around it.
+Future<void> resetLocalDatabase([PowerSyncDatabase? database]) async {
+  final target = database ?? db;
+  await target.disconnectAndClear();
+  await _seedDefaultCategoriesIfNeeded(target);
 }
 
 /// Thêm cột wallet_id vào transactions nếu chưa tồn tại.
@@ -131,16 +140,18 @@ Future<void> _setupSync() async {
   });
 }
 
-Future<void> _seedDefaultCategoriesIfNeeded() async {
+// Both seed helpers take the database as `db`, shadowing the global, so the
+// same code serves the app's database and a test fixture.
+Future<void> _seedDefaultCategoriesIfNeeded(PowerSyncDatabase db) async {
   final sentinel = await db.getOptional(
     "SELECT id FROM categories WHERE icon_name = 'restaurant' AND is_default = 1 LIMIT 1",
   );
   if (sentinel != null) return;
 
-  await _seedOfflineCategories();
+  await _seedOfflineCategories(db);
 }
 
-Future<void> _seedOfflineCategories() async {
+Future<void> _seedOfflineCategories(PowerSyncDatabase db) async {
   final expenseCategories = [
     ('Ăn uống', '#FF6B6B', 'restaurant', 0),
     ('Di chuyển', '#4ECDC4', 'directions_car', 1),

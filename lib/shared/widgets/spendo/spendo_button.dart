@@ -12,6 +12,9 @@ enum SpendoButtonVariant {
 
   /// Pill h40, 1.5px outline. Low-emphasis, e.g. "Thử lại".
   outline,
+
+  /// Pill h48, filled with `error`. The one destructive commit of a screen.
+  danger,
 }
 
 /// A button that already carries the token shape, height and text style, so
@@ -45,6 +48,15 @@ class SpendoButton extends StatelessWidget {
     this.busy = false,
   }) : variant = SpendoButtonVariant.outline;
 
+  const SpendoButton.danger({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.icon,
+    this.expand = false,
+    this.busy = false,
+  }) : variant = SpendoButtonVariant.danger;
+
   final String label;
   final VoidCallback? onPressed;
   final SpendoButtonVariant variant;
@@ -70,6 +82,7 @@ class SpendoButton extends StatelessWidget {
         cs.onSecondaryContainer,
       ),
       SpendoButtonVariant.outline => (Colors.transparent, cs.primary),
+      SpendoButtonVariant.danger => (cs.error, cs.onError),
     };
 
     final child = Row(

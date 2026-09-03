@@ -141,6 +141,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _appGroup(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final scheme = ref.watch(themeProvider).colorScheme;
     final mode = ref.watch(themeModeProvider);
     final notifOn = ref.watch(notificationEnabledProvider);
@@ -174,6 +175,13 @@ class SettingsScreen extends ConsumerWidget {
                     ':${minute.toString().padLeft(2, '0')}'
               : 'Đã tắt',
           onTap: () => context.push('/settings/notifications'),
+        ),
+        // The one destructive entry, tinted so it never reads as routine.
+        SpendoSettingsRow(
+          icon: LucideIcons.rotateCcw,
+          label: 'Đặt lại dữ liệu',
+          foregroundColor: cs.error,
+          onTap: () => context.push('/settings/reset'),
         ),
       ],
     );

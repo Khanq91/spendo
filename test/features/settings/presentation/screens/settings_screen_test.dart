@@ -81,6 +81,7 @@ Widget _app(List<Override> overrides) {
         '/settings/bank',
         '/settings/widget',
         '/settings/notifications',
+        '/settings/reset',
         '/wallets',
         '/loans',
         '/loans-tracking',
@@ -171,6 +172,7 @@ void main() {
       'Widget màn hình chính': '/settings/widget',
       'Giao diện': '/settings/appearance',
       'Thông báo': '/settings/notifications',
+      'Đặt lại dữ liệu': '/settings/reset',
     };
 
     for (final entry in expected.entries) {

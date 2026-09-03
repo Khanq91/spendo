@@ -170,6 +170,12 @@ class NotificationService {
     await _plugin.cancel(0);
   }
 
+  /// Drops every pending notification this app scheduled — the daily nudge,
+  /// per-reminder and instalment alarms alike. Used by the data reset.
+  static Future<void> cancelAll() async {
+    await _plugin.cancelAll();
+  }
+
   static Future<bool> requestPermission() async {
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();

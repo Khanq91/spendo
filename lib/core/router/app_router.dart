@@ -13,6 +13,8 @@ import '../../features/settings/presentation/screens/appearance_screen.dart';
 import '../../features/settings/presentation/screens/backup_screen.dart';
 import '../../features/settings/presentation/screens/bank_screen.dart';
 import '../../features/settings/presentation/screens/notifications_screen.dart';
+import '../../features/settings/presentation/screens/reset_data_confirm_screen.dart';
+import '../../features/settings/presentation/screens/reset_data_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/widget_screen.dart';
 import '../../features/stats/presentation/screens/stats_screen.dart';
@@ -56,6 +58,14 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/settings/notifications',
       builder: (_, __) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/reset',
+      builder: (_, __) => const ResetDataScreen(),
+    ),
+    GoRoute(
+      path: '/settings/reset/confirm',
+      builder: (_, __) => const ResetDataConfirmScreen(),
     ),
     GoRoute(
       path: '/add',

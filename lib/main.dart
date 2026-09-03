@@ -21,6 +21,7 @@ import 'core/utils/widget_sync.dart';
 import 'features/loan/data/loan_repository.dart';
 import 'features/onboarding/presentation/welcome_screen.dart';
 import 'features/reminders/data/reminder_repository.dart';
+import 'shared/widgets/app_restart.dart';
 import 'shared/widgets/notice/notice.dart';
 import 'shared/widgets/splash_screen.dart';
 
@@ -41,7 +42,14 @@ void main() async {
   Workmanager().initialize(callbackDispatcher);
   runApp(
     LiquidGlassWidgets.wrap(
-      child: const ProviderScope(child: _AppRoot()),
+      // The data reset bumps the generation: a fresh ProviderScope drops every
+      // cached provider, and the root skips the splash for the welcome pages.
+      child: AppRestart(
+        builder: (_, generation) => ProviderScope(
+          key: ValueKey(generation),
+          child: _AppRoot(freshStart: generation > 0),
+        ),
+      ),
       theme: GlassThemeData.simple(quality: AppGlassPolicy.themeQuality),
       adaptiveQuality: true,
       // Intentional Phase 7 opt-in; this is the package's device quality cap.
@@ -72,7 +80,11 @@ void main() async {
 /// Everything now runs under one themed app: splash and welcome are ordinary
 /// screens, and the router takes over once onboarding is done.
 class _AppRoot extends ConsumerWidget {
-  const _AppRoot();
+  const _AppRoot({this.freshStart = false});
+
+  /// True after a data reset: services are already up, so skip the splash
+  /// and land on the welcome pages like a first launch.
+  final bool freshStart;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -91,13 +103,15 @@ class _AppRoot extends ConsumerWidget {
       ],
       // The notice banner lives above the navigator so it shows over sheets.
       builder: (_, child) => NoticeHost(child: child ?? const SizedBox()),
-      home: SplashScreen(
-        onInit: _initServices,
-        // The splash reads the onboarding flag itself while init runs, so
-        // there is no intermediate gate screen to flash through.
-        nextScreenBuilder: (_, completed) =>
-            completed ? const SpendoApp() : const WelcomeScreen(),
-      ),
+      home: freshStart
+          ? const WelcomeScreen()
+          : SplashScreen(
+              onInit: _initServices,
+              // The splash reads the onboarding flag itself while init runs,
+              // so there is no intermediate gate screen to flash through.
+              nextScreenBuilder: (_, completed) =>
+                  completed ? const SpendoApp() : const WelcomeScreen(),
+            ),
     );
   }
 }

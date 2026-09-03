@@ -516,6 +516,7 @@ class SpendoSettingsRow extends StatelessWidget {
     this.onTap,
     this.enabled = true,
     this.showChevron,
+    this.foregroundColor,
   });
 
   final IconData icon;
@@ -540,11 +541,16 @@ class SpendoSettingsRow extends StatelessWidget {
   /// a toggle, a value picker — pass `false`.
   final bool? showChevron;
 
+  /// Tints the icon box and label — for a destructive row such as
+  /// "Đặt lại dữ liệu". Null keeps the default secondary tint.
+  final Color? foregroundColor;
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final active = enabled && onTap != null;
     final chevron = showChevron ?? (onTap != null);
+    final tint = foregroundColor;
 
     return Material(
       color: Colors.transparent,
@@ -561,10 +567,16 @@ class SpendoSettingsRow extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: cs.secondaryContainer,
+                    color: tint == null
+                        ? cs.secondaryContainer
+                        : tint.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, size: 18, color: cs.onSecondaryContainer),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: tint ?? cs.onSecondaryContainer,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -576,9 +588,10 @@ class SpendoSettingsRow extends StatelessWidget {
                         label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
+                          color: tint,
                         ),
                       ),
                       if (subtitle != null)
